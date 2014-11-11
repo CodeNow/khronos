@@ -15,5 +15,8 @@
   "bugs": {
     "url": "https://github.com/CodeNow/docker-cron/issues"
   },
-  "homepage": "https://github.com/CodeNow/docker-cron"
+  "homepage": "https://github.com/CodeNow/docker-cron",
+  "dependencies": {
+    "dockerode": "^2.0.4"
+  }
 }
