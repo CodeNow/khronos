@@ -20,6 +20,7 @@
     "dockerode": "^2.0.4"
   },
   "devDependencies": {
+    "chai": "^1.10.0",
     "docker-mock": "^0.3.0",
     "lab": "^5.0.2"
   }
