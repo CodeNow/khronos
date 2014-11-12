@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 /**
- * Prunes local containers
+ * Prunes containers running/dead > 12 hours
  */
 
 var Docker = require('dockerode');

@@ -4,7 +4,7 @@
   "description": "scripts run via cronjobs to maintain docks",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "make test-cov"
   },
   "repository": {
     "type": "git",
@@ -18,5 +18,9 @@
   "homepage": "https://github.com/CodeNow/docker-cron",
   "dependencies": {
     "dockerode": "^2.0.4"
+  },
+  "devDependencies": {
+    "docker-mock": "^0.3.0",
+    "lab": "^5.0.2"
   }
 }
