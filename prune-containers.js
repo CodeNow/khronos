@@ -1,4 +1,8 @@
-#!/usr/local/bin/node
+#!/usr/bin/env node
+
+/**
+ * Prunes local containers
+ */
 
 var Docker = require('dockerode');
 
