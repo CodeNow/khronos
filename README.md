@@ -6,3 +6,8 @@ scripts run via cronjobs to maintain docks
 Portability
 -----------
 use `#!/usr/bin/env node`
+
+Testing
+-------
+`npm test`
+ - includes coverage
