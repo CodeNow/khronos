@@ -3,8 +3,10 @@
  * Prunes containers running/dead > 12 hours
  */
 var async = require('async');
-var config = require('config/index');
+var config = require('../config');
 var Docker = require('dockerode');
+
+console.log(config);
 
 console.log('connecting to docker daemon');
 var docker = new Docker({host:config.network.host, port:config.network.port});
