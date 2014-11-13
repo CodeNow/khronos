@@ -7,7 +7,7 @@ var config = require('config/index');
 var Docker = require('dockerode');
 
 console.log('connecting to docker daemon');
-var docker = new Docker({host:'127.0.0.1', port:4243});
+var docker = new Docker({host:config.network.host, port:config.network.port});
 
 console.log('fetching containers');
 docker.listContainers({all: true}, function (err, containers) {
