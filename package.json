@@ -17,7 +17,9 @@
   },
   "homepage": "https://github.com/CodeNow/docker-cron",
   "dependencies": {
-    "dockerode": "^2.0.4"
+    "async": "^0.9.0",
+    "dockerode": "^2.0.4",
+    "optimist": "^0.6.1"
   },
   "devDependencies": {
     "chai": "^1.10.0",
