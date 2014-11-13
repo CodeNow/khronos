@@ -12,8 +12,6 @@ if (typeof argv.t !== 'undefined') {
   MAX_TIME_CONTAINER = 60*60*parseInt(argv.t);
 }
 
-console.log(argv.t);
-
 console.log('connecting to docker daemon');
 var docker = new Docker({host:'127.0.0.1', port:4243});
 
