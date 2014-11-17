@@ -12,7 +12,8 @@ var dockerMock = require('docker-mock');
 
 describe('basic', function() {
   it('should pass', function(done) {
-    expect(true).to.equal(true);
+    
+
     done();
   });
 });
