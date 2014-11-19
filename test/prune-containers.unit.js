@@ -27,7 +27,8 @@ pruneContainers.__set__('config', config);
 
 var mocks = require('./mocks');
 
-//var Container = require('dockerode/lib/container');
+var Container = require('dockerode/lib/container');
+Container.prototype.remove = sinon.spy(Container.prototype, 'remove');
 
 describe('prune-containers', function() {
   describe('multiple running containers', function() {
