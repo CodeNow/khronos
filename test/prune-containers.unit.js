@@ -6,7 +6,6 @@ var rewire = require('rewire');
 var sinon = require('sinon');
 var mocks = require('./mocks');
 
-var docker;
 var describe = lab.describe;
 var it = lab.it;
 var before = lab.before;
@@ -20,6 +19,9 @@ var expect = chai.expect;
 var config = JSON.parse(JSON.stringify(require('../config')));
 config.network.port = 5555;
 
+var Docker = require('dockerode');
+var docker = Docker({host:config.network.host, port:config.network.port});
+
 var dockerMock = require('docker-mock');
 dockerMock.listen(config.network.port);
 
@@ -27,7 +29,6 @@ dockerMock.listen(config.network.port);
 var pruneContainers = rewire('../scripts/prune-containers');
 pruneContainers.__set__('config', config);
 
-// spy on remove function
 var Container = require('dockerode/lib/container');
 sinon.spy(Container.prototype, 'remove');
 
@@ -35,7 +36,6 @@ describe('prune-containers', function() {
   describe('multiple running containers', function() {
 
     beforeEach(function(done) {
-      docker = rewire('dockerode')({host:config.network.host, port:config.network.port});
       async.forEach(mocks.containers, function(container, cb) {
         docker.createContainer(container, cb);
       }, done);
@@ -43,17 +43,17 @@ describe('prune-containers', function() {
 
     afterEach(function(done) {
       Container.prototype.remove.reset();
-      done();
-      /*
-      docker.fetchContainers(function(err, containers) {
+      docker.listContainers(function(err, containers) {
         if (err) throw err;
-        async.forEach(containers, function(container, cb) {
-          container.remove(cb);
+        async.forEach(containers, function(containerObj, cb) {
+          var container = docker.getContainer(containerObj.Id);
+          container.remove(function() {
+            cb();
+          });
         }, function(){
           done();
         });
       });
-      */
     });
 
     it('should delete containers older than 12 hours + from image "docker-image-builder"', function(done) {
@@ -67,12 +67,22 @@ describe('prune-containers', function() {
       });
     });
 
-    it('should not delete containers younger than 12 hours', function(done) {
+    it('should delete containers older than 12 hours + from image "docker-image-builder"', function(done) {
+      /**
+       * Seed data == 2 containers
+       */
       pruneContainers(function() {
+        // two containers were found and removed
         expect(Container.prototype.remove.calledTwice).to.be.ok;
         done();
       });
     });
+
+    /*
+    it('should not delete containers younger than 12 hours', function(done) {
+      pruneContainers(done);
+    });
+    */
 
   });
 });

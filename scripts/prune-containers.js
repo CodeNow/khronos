@@ -19,8 +19,8 @@ module.exports = function(cb) {
              container.Image === 'docker-image-builder';
     });
     console.log('found ' + containersToDelete.length + ' containers');
-    async.each(containersToDelete, function(containerJSON, cb){
-      var container = docker.getContainer(containerJSON.Id);
+    async.each(containersToDelete, function(containerObj, cb){
+      var container = docker.getContainer(containerObj.Id);
       container.stop(function() {
         container.remove(function() {
           cb();
