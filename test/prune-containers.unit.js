@@ -3,6 +3,7 @@ var chai = require('chai');
 var Lab = require('lab');
 var lab = exports.lab = Lab.script();
 var rewire = require('rewire');
+var sinon = require('sinon');
 
 var describe = lab.describe;
 var it = lab.it;
@@ -28,7 +29,7 @@ pruneContainers.__set__('config', config);
 var mocks = require('./mocks');
 
 var Container = require('dockerode/lib/container');
-Container.prototype.remove = sinon.spy(Container.prototype, 'remove');
+sinon.spy(Container.prototype, 'remove');
 
 describe('prune-containers', function() {
   describe('multiple running containers', function() {
@@ -40,6 +41,9 @@ describe('prune-containers', function() {
     });
 
     afterEach(function(done) {
+      Container.prototype.remove.reset();
+      done();
+      /*
       docker.fetchContainers(function(err, containers) {
         if (err) throw err;
         async.forEach(containers, function(container, cb) {
@@ -48,6 +52,7 @@ describe('prune-containers', function() {
           done();
         });
       });
+      */
     });
 
     it('should delete containers older than 12 hours + from image "docker-image-builder"', function(done) {
@@ -55,10 +60,9 @@ describe('prune-containers', function() {
        * Seed data == 2 containers
        */
       pruneContainers(function() {
-        docker.listContainers(function(err, containers) {
-          //expect(containers).to.have.property('length', 0);
-          done();
-        });
+        // two containers were found and removed
+        expect(Container.prototype.remove.calledTwice).to.be.ok;
+        done();
       });
     });
 
