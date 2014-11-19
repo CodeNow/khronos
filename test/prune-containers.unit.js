@@ -4,7 +4,9 @@ var Lab = require('lab');
 var lab = exports.lab = Lab.script();
 var rewire = require('rewire');
 var sinon = require('sinon');
+var mocks = require('./mocks');
 
+var docker;
 var describe = lab.describe;
 var it = lab.it;
 var before = lab.before;
@@ -13,21 +15,19 @@ var after = lab.after;
 var afterEach = lab.afterEach;
 var expect = chai.expect;
 
+
+// set non-default port for testing
 var config = JSON.parse(JSON.stringify(require('../config')));
 config.network.port = 5555;
 
 var dockerMock = require('docker-mock');
 dockerMock.listen(config.network.port);
 
-var Docker = require('dockerode');
-var docker = Docker({host:config.network.host, port:config.network.port});
-
 // replace private variables for testing
 var pruneContainers = rewire('../scripts/prune-containers');
 pruneContainers.__set__('config', config);
 
-var mocks = require('./mocks');
-
+// spy on remove function
 var Container = require('dockerode/lib/container');
 sinon.spy(Container.prototype, 'remove');
 
@@ -35,6 +35,7 @@ describe('prune-containers', function() {
   describe('multiple running containers', function() {
 
     beforeEach(function(done) {
+      docker = rewire('dockerode')({host:config.network.host, port:config.network.port});
       async.forEach(mocks.containers, function(container, cb) {
         docker.createContainer(container, cb);
       }, done);
