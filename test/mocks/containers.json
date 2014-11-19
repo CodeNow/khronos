@@ -3,7 +3,7 @@
     "Command": "/entrypoint.sh redis-server",
     "Created": 1415892706,
     "Id": "9656f02be73f19948dfc9476c59a477f1ede5a5ae9785994f42c0914f17b6854",
-    "Image": "redis:latest",
+    "Image": "docker-image-builder",
     "Names": [
       "/some-redis2"
     ],
@@ -19,7 +19,7 @@
     "Command": "/entrypoint.sh redis-server",
     "Created": 1415892702,
     "Id": "a365786bcf8bce39b1491ae933012c8dc5ee98d01892236ef6d20b04b8a6c1cd",
-    "Image": "redis:latest",
+    "Image": "docker-image-builder",
     "Names": [
       "/some-redis"
     ],

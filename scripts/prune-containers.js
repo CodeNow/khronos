@@ -18,16 +18,17 @@ module.exports = function(cb) {
       return container.Created < deleteContainerStartedBeforeTime &&
              container.Image === 'docker-image-builder';
     });
-    console.log('found ' + containersToDelete.length + ' containers.');
+    console.log('found ' + containersToDelete.length + ' containers');
     async.each(containersToDelete, function(container, cb){
       var Container = docker.getContainer(container.Id);
       Container.stop(function() {
         Container.remove(function() {
+          debugger;
           cb();
         });
       });
     }, function(err, results) {
-      console.log(containersToDelete.length + ' containers deleted.');
+      console.log(containersToDelete.length + ' containers deleted');
       cb();
     });
   });
