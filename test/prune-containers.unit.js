@@ -67,11 +67,12 @@ describe('prune-containers', function() {
       });
     });
 
-    /*
     it('should not delete containers younger than 12 hours', function(done) {
-      pruneContainers(done);
+      pruneContainers(function() {
+        expect(Container.prototype.remove.calledTwice).to.be.ok;
+        done();
+      });
     });
-    */
 
   });
 });
