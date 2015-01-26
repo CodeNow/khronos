@@ -1,4 +1,9 @@
-require('load-env')();
+require('loadenv')();
+
+console.log('process.env.MAVIS', process.env.MAVIS);
+console.log('process.env.MAX_CONTAINER_LIVE_TIME',
+            process.env.MAX_CONTAINER_LIVE_TIME);
+process.exit(0);
 
 // will read command line input
 // and launch multiple scripts
