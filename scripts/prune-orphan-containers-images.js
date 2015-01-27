@@ -1,3 +1,5 @@
+'use strict';
+
 /**
  * Fetch list of images on each dock, verify each image is attached to a context-version in mongodb.
  * Only fetch images with tag indicating image is in our runnable registry.
@@ -10,34 +12,26 @@ var async = require('async');
 var request = require('request');
 
 module.exports = function(cb) {
-  'use strict';
 
   // for each dock
     // find all images with tag 'registry.runnable.io'
     // query mongodb context-versions and if any image is not in db, remove it from dock
 
-  var mavisResponse;
+  var activeDocks;
   var db;
   var containers;
 
-  async.parallel([
-    function fetchActiveDocksFromMavis (cb) {
-      request(process.env.MAVIS, function (err, http, response) {
-        try {
-          mavisResponse = JSON.parse(response);
-        } catch (e) {
-          return cb(e);
-        }
-        cb(err);
-      });
-    },
-    function connectoToMongoDB (cb) {
-      MongoClient.connect(process.env.MONGO, function (err, _db) {
-        db = _db;
-        cb(err);
-      });
-    }
-  ], function (err) {
+  var initializationFunctions = [];
+  initializationFunctions.push(connectToMongoDB);
+
+  if (process.env.DOCKER_HOST) {
+    initializationFunctions.push(fetchActiveDocksFromConfiguration);
+  }
+  else {
+    initializationFunctions.push(fetchActiveDocksFromMavis);
+  }
+
+  async.parallel(initializationFunctions, function (err) {
     if (err) {
       console.log(err);
       return;
@@ -45,24 +39,40 @@ module.exports = function(cb) {
     processOrphans();
   });
 
+  function connectToMongoDB (cb) {
+    MongoClient.connect(process.env.MONGO, function (err, _db) {
+      db = _db;
+      cb(err);
+    });
+  }
+
+  function fetchActiveDocksFromConfiguration (cb) {
+    activeDocks = [{host: process.env.DOCKER_HOST+':'+process.env.DOCKER_PORT}];
+    cb();
+  }
+
+  function fetchActiveDocksFromMavis (cb) {
+    request(process.env.MAVIS, function (err, http, response) {
+      try {
+        activeDocks = JSON.parse(response);
+      } catch (e) {
+        return cb(e);
+      }
+      cb(err);
+    });
+  }
+
   function processOrphans () {
-    async.forEach(mavisResponse,
+    async.forEach(activeDocks,
     function (dock, cb) {
-      if (process.env.NODE_ENV === 'local') {
-        console.log('connecting to dockerd at tcp://localhost:4243');
-        var docker = new Docker({
-          host: 'localhost',
-          port: '4243'
-        });
-      }
-      else {
-        console.log('connecting to dockerd at ' + dock.host);
-        var parts = dock.host.split(':');
-        var docker = new Docker({
-          host: (parts[0]+parts[1]),
-          port: parts[2]
-        });
-      }
+
+      console.log('connecting to dockerd at ' + dock.host);
+      var parts = dock.host.split(':'); // ex: ['http', '//10.0.1.10', '4242']
+      var docker = new Docker({
+        host: (parts[0]+parts[1]),
+        port: parts[2]
+      });
+
       async.series([
         function fetchImagesOnDock (cb) {
           docker.listImages(function (err, _images) {
