@@ -18,13 +18,12 @@ module.exports = function(cb) {
     // query mongodb context-versions and if any image is not in db, remove it from dock
 
   var activeDocks;
-  var db;
   var containers;
+  var db;
 
-  var initializationFunctions = [];
-  initializationFunctions.push(connectToMongoDB);
+  var initializationFunctions = [connectToMongoDB];
 
-  if (process.env.DOCKER_HOST) {
+  if (process.env.KHRONOS_DOCKER_HOST) {
     initializationFunctions.push(fetchActiveDocksFromConfiguration);
   }
   else {
@@ -47,7 +46,12 @@ module.exports = function(cb) {
   }
 
   function fetchActiveDocksFromConfiguration (cb) {
-    activeDocks = [{host: process.env.DOCKER_HOST+':'+process.env.DOCKER_PORT}];
+    activeDocks = [{
+      host: ('http://'+
+        process.env.KHRONOS_DOCKER_HOST+
+        ':'+
+        process.env.KHRONOS_DOCKER_PORT)
+    }];
     cb();
   }
 
@@ -65,14 +69,15 @@ module.exports = function(cb) {
   function processOrphans () {
     async.forEach(activeDocks,
     function (dock, cb) {
-
       console.log('connecting to dockerd at ' + dock.host);
-      var parts = dock.host.split(':'); // ex: ['http', '//10.0.1.10', '4242']
+      var regex = /^http:\/\/([A-z0-9]+):([0-9]+)/;
+      var execRes = regex.exec(dock.host);
+      var host = execRes[1];
+      var port = execRes[2];
       var docker = new Docker({
-        host: (parts[0]+parts[1]),
-        port: parts[2]
+        host: host,
+        port: port
       });
-
       async.series([
         function fetchImagesOnDock (cb) {
           docker.listImages(function (err, _images) {
