@@ -8,6 +8,7 @@ var pruneOrphanContainersImages = require('./scripts/prune-orphan-containers-ima
 pruneOrphanContainersImages();
 
 /*
+ * TEMP
 var CronJob = require('cron').CronJob;
 var job = new CronJob({
   cronTime: '00 00 12 * * 0-6',

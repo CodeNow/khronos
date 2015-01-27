@@ -18,7 +18,7 @@ module.exports = function(cb) {
     // query mongodb context-versions and if any image is not in db, remove it from dock
 
   var activeDocks;
-  var containers;
+  var images;
   var db;
 
   var initializationFunctions = [connectToMongoDB];
@@ -80,15 +80,17 @@ module.exports = function(cb) {
       });
       async.series([
         function fetchImagesOnDock (cb) {
-          docker.listImages(function (err, _images) {
+          // unclear if I can query subset?
+          // https://docs.docker.com/reference/api/docker_remote_api_v1.16/#list-images
+          var regexTestImageTag = /^registry\.runnable\.com\//;
+          docker.listImages({}, function (err, _images) {
             console.log(err, _images);
+            images = _images.filter(function (image) {
+              // return all images from runnable.com registry
+              return image.RepoTags.length && regexTestImageTag.test(image.RepoTags[0]);
+            });
+            console.log('filtered images');
           });
-          /*
-          docker.listContainers({all: true}, function (err, _containers) {
-            containers = _containers;
-            cb(err);
-          });
-          */
         },
         function fetchDocuments (cb) {
           var instances = db.collection('instances');
