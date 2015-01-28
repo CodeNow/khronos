@@ -24,8 +24,6 @@ module.exports = function(cb) {
   var db;
   var images;
 
-  var regexTestImageTag = new RegExp('^'+process.env.KHRONOS_DOCKER_REGISTRY);
-  var imageTagCVRegex = new RegExp('^'+process.env.KHRONOS_DOCKER_REGISTRY+'\/[0-9]+\/(A-z0-9]+):'); // /^registry\.runnable\.com\/[0-9]+\/([a-z0-9]+):/;
   var initializationFunctions = [connectToMongoDB];
 
   if (process.env.KHRONOS_DOCKER_HOST) {
@@ -75,8 +73,8 @@ module.exports = function(cb) {
     async.forEach(activeDocks,
     function (dock, cb) {
       console.log('connecting to dockerd at ' + dock.host);
-      var regex = /^http:\/\/([A-z0-9]+):([0-9]+)/;
-      var execRes = regex.exec(dock.host);
+      var regexDockURL = /^http:\/\/([A-z0-9]+):([0-9]+)/;
+      var execRes = regexDockURL.exec(dock.host);
       var host = execRes[1];
       var port = execRes[2];
       var docker = new Docker({
@@ -85,6 +83,7 @@ module.exports = function(cb) {
       });
       async.series([
         function fetchImagesOnDock (cb) {
+          var regexTestImageTag = new RegExp('^'+process.env.KHRONOS_DOCKER_REGISTRY);
           // unclear if I can query subset?
           // https://docs.docker.com/reference/api/docker_remote_api_v1.16/#list-images
           docker.listImages({}, function (err, _images) {
@@ -105,12 +104,13 @@ module.exports = function(cb) {
         },
 
         function pruneImagesWithoutAssociatedCV (cb) {
+          var regexImageTagCV = new RegExp('^'+process.env.KHRONOS_DOCKER_REGISTRY+'\/[0-9]+\/(A-z0-9]+):'); // /^registry\.runnable\.com\/[0-9]+\/([a-z0-9]+):/;
           async.forEach(images, function (image, cb) {
             // find associated context version
             var result = find(arrayOfContextVersions, function (cv) {
               console.log(image.RepoTags);
-              console.log(imageTagCVRegex.exec(image.RepoTags[0]));
-              return image.RepoTags && image.RepoTags.length && (imageTagCVRegex.exec(image.RepoTags[0])[1] === cv._id);
+              console.log(regexImageTagCV.exec(image.RepoTags[0]));
+              return image.RepoTags && image.RepoTags.length && (regexImageTagCV.exec(image.RepoTags[0])[1] === cv._id);
             });
             if (result) {
               console.log('found!');
