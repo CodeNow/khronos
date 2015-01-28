@@ -85,23 +85,25 @@ module.exports = function(cb) {
           // https://docs.docker.com/reference/api/docker_remote_api_v1.16/#list-images
           var regexTestImageTag = /^registry\.runnable\.com\//;
           docker.listImages({}, function (err, _images) {
-            console.log(err, _images);
             images = _images.filter(function (image) {
               // return all images from runnable.com registry
               return image.RepoTags.length && regexTestImageTag.test(image.RepoTags[0]);
             });
-            console.log('filtered images', images);
+            cb();
           });
         },
+
         function fetchDocuments (cb) {
           var contextVersions = db.collection('contextversions');
-          contextVersions.find().toArray(funciton (err, results) {
+          contextVersions.find().toArray(function (err, results) {
             arrayOfContextVersions = results;
+            cb();
           });
         },
+
         function pruneImagesWithoutAssociatedCV (cb) {
           async.forEach(arrayOfContextVersions, function (cv, cb) {
-            console.log('cv');
+            console.log('cv', cv);
             cb();
           }, cb);
         }
