@@ -9,6 +9,7 @@
 var Docker = require('dockerode');
 var MongoClient = require('mongodb').MongoClient;
 var async = require('async');
+var find = require('101/find');
 var request = require('request');
 
 module.exports = function(cb) {
@@ -102,7 +103,17 @@ module.exports = function(cb) {
         },
 
         function pruneImagesWithoutAssociatedCV (cb) {
-          async.forEach(arrayOfContextVersions, function (cv, cb) {
+          var imageTagCVRegex = /^registry\.runnable\.com\/[0-9]+\/([a-z0-9]+):/;
+          async.forEach(images, function (image, cb) {
+            // find associated context version
+            var result = find(contextVersions, function (cv) {
+              return imageTagCVRegex.exec(image.RepoTags[0])[1] === cv._id
+            });
+            if (result) {
+              console.log('found!');
+            } else {
+              console.log('NOT FOUND');
+            }
             console.log('cv', cv);
             cb();
           }, cb);
