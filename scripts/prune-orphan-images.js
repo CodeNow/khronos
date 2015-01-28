@@ -106,15 +106,14 @@ module.exports = function(cb) {
           var imageTagCVRegex = /^registry\.runnable\.com\/[0-9]+\/([a-z0-9]+):/;
           async.forEach(images, function (image, cb) {
             // find associated context version
-            var result = find(contextVersions, function (cv) {
-              return imageTagCVRegex.exec(image.RepoTags[0])[1] === cv._id
+            var result = find(arrayOfContextVersions, function (cv) {
+              return image.RepoTags && image.RepoTags.length && (imageTagCVRegex.exec(image.RepoTags[0])[1] === cv._id);
             });
             if (result) {
               console.log('found!');
             } else {
               console.log('NOT FOUND');
             }
-            console.log('cv', cv);
             cb();
           }, cb);
         }
