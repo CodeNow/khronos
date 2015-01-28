@@ -107,11 +107,9 @@ module.exports = function(cb) {
           async.forEach(images, function (image, cb) {
             // find associated context version
             var result = find(arrayOfContextVersions, function (cv) {
-              if (!image.RepoTags) {
-                return false;
-              }
-              var regexImageTagCV = new RegExp('^'+process.env.KHRONOS_DOCKER_REGISTRY+'\/[0-9]+\/([A-z0-9]+):([A-z0-9]+)'); // /^registry\.runnable\.com\/[0-9]+\/([a-z0-9]+):/;
+              var regexImageTagCV = new RegExp('^'+process.env.KHRONOS_DOCKER_REGISTRY+'\/[0-9]+\/([A-z0-9]+):([A-z0-9]+)');
               var regexExecResult = regexImageTagCV.exec(image.RepoTags[0]);
+              console.log(regexExecResult[2], cv._id, (regexExecResult[2] === cv._id));
               return regexExecResult[2] === cv._id;
             });
             if (result) {
