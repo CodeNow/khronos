@@ -10,6 +10,7 @@ var Docker = require('dockerode');
 var MongoClient = require('mongodb').MongoClient;
 var async = require('async');
 var find = require('101/find');
+var keypath = require('keypather')();
 var request = require('request');
 
 module.exports = function(cb) {
@@ -23,6 +24,8 @@ module.exports = function(cb) {
   var db;
   var images;
 
+  var regexTestImageTag = new RegExp('^'+process.env.KHRONOS_DOCKER_REGISTRY);
+  var imageTagCVRegex = new RegExp('^'+process.env.KHRONOS_DOCKER_REGISTRY+'\/[0-9]+\/(A-z0-9]+):'); // /^registry\.runnable\.com\/[0-9]+\/([a-z0-9]+):/;
   var initializationFunctions = [connectToMongoDB];
 
   if (process.env.KHRONOS_DOCKER_HOST) {
@@ -41,7 +44,7 @@ module.exports = function(cb) {
   });
 
   function connectToMongoDB (cb) {
-    MongoClient.connect(process.env.MONGO, function (err, _db) {
+    MongoClient.connect(process.env.KHRONOS_MONGO, function (err, _db) {
       db = _db;
       cb(err);
     });
@@ -58,7 +61,7 @@ module.exports = function(cb) {
   }
 
   function fetchActiveDocksFromMavis (cb) {
-    request(process.env.MAVIS, function (err, http, response) {
+    request(process.env.KHRONOS_MAVIS, function (err, http, response) {
       try {
         activeDocks = JSON.parse(response);
       } catch (e) {
@@ -84,7 +87,6 @@ module.exports = function(cb) {
         function fetchImagesOnDock (cb) {
           // unclear if I can query subset?
           // https://docs.docker.com/reference/api/docker_remote_api_v1.16/#list-images
-          var regexTestImageTag = /^registry\.runnable\.com\//;
           docker.listImages({}, function (err, _images) {
             images = _images.filter(function (image) {
               // return all images from runnable.com registry
@@ -103,10 +105,11 @@ module.exports = function(cb) {
         },
 
         function pruneImagesWithoutAssociatedCV (cb) {
-          var imageTagCVRegex = /^registry\.runnable\.com\/[0-9]+\/([a-z0-9]+):/;
           async.forEach(images, function (image, cb) {
             // find associated context version
             var result = find(arrayOfContextVersions, function (cv) {
+              console.log(image.RepoTags);
+              console.log(imageTagCVRegex.exec(image.RepoTags[0]));
               return image.RepoTags && image.RepoTags.length && (imageTagCVRegex.exec(image.RepoTags[0])[1] === cv._id);
             });
             if (result) {
