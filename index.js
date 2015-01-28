@@ -2,10 +2,10 @@ require('loadenv')();
 
 // will read command line input
 // and launch multiple scripts
-// eventually
-var pruneOrphanContainersImages = require('./scripts/prune-orphan-containers-images');
+// eventuallycontainers
+var pruneOrphanImages = require('./scripts/prune-orphan-images');
 
-pruneOrphanContainersImages();
+pruneOrphanImages();
 
 /*
  * TEMP

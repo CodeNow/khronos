@@ -89,7 +89,7 @@ module.exports = function(cb) {
               // return all images from runnable.com registry
               return image.RepoTags.length && regexTestImageTag.test(image.RepoTags[0]);
             });
-            console.log('filtered images');
+            console.log('filtered images', images);
           });
         },
         function fetchDocuments (cb) {
