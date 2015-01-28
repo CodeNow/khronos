@@ -83,7 +83,7 @@ module.exports = function(cb) {
       });
       async.series([
         function fetchImagesOnDock (cb) {
-          var regexTestImageTag = new RegExp('^'+process.env.KHRONOS_DOCKER_REGISTRY);
+          var regexTestImageTag = new RegExp('^'+process.env.KHRONOS_DOCKER_REGISTRY+'\/[0-9]+\/[A-z0-9]+:');
           // unclear if I can query subset?
           // https://docs.docker.com/reference/api/docker_remote_api_v1.16/#list-images
           docker.listImages({}, function (err, _images) {
@@ -107,18 +107,15 @@ module.exports = function(cb) {
           async.forEach(images, function (image, cb) {
             // find associated context version
             var result = find(arrayOfContextVersions, function (cv) {
-              var regexImageTagCV = new RegExp('^'+process.env.KHRONOS_DOCKER_REGISTRY+'\/[0-9]+\/(A-z0-9]+):'); // /^registry\.runnable\.com\/[0-9]+\/([a-z0-9]+):/;
-              console.log(image.RepoTags);
-              console.log(regexImageTagCV.exec(image.RepoTags[0]));
-              return image.RepoTags &&
-                image.RepoTags.length &&
-                regexImageTagCV.exec(image.RepoTags[0]) &&
-                regexImageTagCV.exec(image.RepoTags[0])[1] === cv._id;
+              if (!image.RepoTags) {
+                return false;
+              }
+              var regexImageTagCV = new RegExp('^'+process.env.KHRONOS_DOCKER_REGISTRY+'\/[0-9]+\/([A-z0-9]+):'); // /^registry\.runnable\.com\/[0-9]+\/([a-z0-9]+):/;
+              var regexExecResult = regexImageTagCV.exec(image.RepoTags[0]);
+              return regexExecResult[1] === cv._id;
             });
             if (result) {
               console.log('found!');
-            } else {
-              console.log('NOT FOUND');
             }
             cb();
           }, cb);
