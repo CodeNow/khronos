@@ -104,13 +104,16 @@ module.exports = function(cb) {
         },
 
         function pruneImagesWithoutAssociatedCV (cb) {
-          var regexImageTagCV = new RegExp('^'+process.env.KHRONOS_DOCKER_REGISTRY+'\/[0-9]+\/(A-z0-9]+):'); // /^registry\.runnable\.com\/[0-9]+\/([a-z0-9]+):/;
           async.forEach(images, function (image, cb) {
             // find associated context version
             var result = find(arrayOfContextVersions, function (cv) {
+              var regexImageTagCV = new RegExp('^'+process.env.KHRONOS_DOCKER_REGISTRY+'\/[0-9]+\/(A-z0-9]+):'); // /^registry\.runnable\.com\/[0-9]+\/([a-z0-9]+):/;
               console.log(image.RepoTags);
               console.log(regexImageTagCV.exec(image.RepoTags[0]));
-              return image.RepoTags && image.RepoTags.length && (regexImageTagCV.exec(image.RepoTags[0])[1] === cv._id);
+              return image.RepoTags &&
+                image.RepoTags.length &&
+                regexImageTagCV.exec(image.RepoTags[0]) &&
+                regexImageTagCV.exec(image.RepoTags[0])[1] === cv._id;
             });
             if (result) {
               console.log('found!');
