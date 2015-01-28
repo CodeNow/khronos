@@ -18,8 +18,9 @@ module.exports = function(cb) {
     // query mongodb context-versions and if any image is not in db, remove it from dock
 
   var activeDocks;
-  var images;
+  var arrayOfContextVersions;
   var db;
+  var images;
 
   var initializationFunctions = [connectToMongoDB];
 
@@ -93,8 +94,16 @@ module.exports = function(cb) {
           });
         },
         function fetchDocuments (cb) {
-          var instances = db.collection('instances');
           var contextVersions = db.collection('contextversions');
+          contextVersions.find().toArray(funciton (err, results) {
+            arrayOfContextVersions = results;
+          });
+        },
+        function pruneImagesWithoutAssociatedCV (cb) {
+          async.forEach(arrayOfContextVersions, function (cv, cb) {
+            console.log('cv');
+            cb();
+          }, cb);
         }
       ], cb);
     }, function (err) {
