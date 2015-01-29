@@ -6,6 +6,7 @@
  * If no associated cv is found, remove image from dock.
  */
 
+var _ = require('underscore');
 var Docker = require('dockerode');
 var MongoClient = require('mongodb').MongoClient;
 var async = require('async');
@@ -20,7 +21,7 @@ module.exports = function(cb) {
     // query mongodb context-versions and if any image is not in db, remove it from dock
 
   var activeDocks;
-  var arrayOfContextVersions;
+  var contextVersions;
   var db;
   var images;
 
@@ -86,6 +87,7 @@ module.exports = function(cb) {
       async.series([
         function fetchImagesOnDock (cb) {
           var regexTestImageTag = new RegExp('^'+process.env.KHRONOS_DOCKER_REGISTRY+'\/[0-9]+\/[A-z0-9]+:[A-z0-9]+');
+
           // unclear if I can query subset?
           // https://docs.docker.com/reference/api/docker_remote_api_v1.16/#list-images
           docker.listImages({}, function (err, _images) {
@@ -93,6 +95,11 @@ module.exports = function(cb) {
               console.log(err);
               return cb(err);
             }
+
+            // TESTING temp
+            var fs = require('fs');
+            _images = JSON.parse(fs.readFileSync('./images.json').toString());
+
             images = _images.filter(function (image) {
               // return all images from runnable.com registry
               return image.RepoTags.length && regexTestImageTag.test(image.RepoTags[0]);
@@ -101,36 +108,64 @@ module.exports = function(cb) {
           });
         },
 
-        function fetchDocuments (cb) {
-          var contextVersions = db.collection('contextversions');
-          contextVersions.find().toArray(function (err, results) {
-            arrayOfContextVersions = results;
+        function fetchContextVersions (cb) {
+
+          // TESTING temp
+          var fs = require('fs');
+          var a1 = JSON.parse(fs.readFileSync('./context-versions.json').toString());
+          var a2 = JSON.parse(fs.readFileSync('./context-versions2.json').toString());
+          contextVersions = a1.concat(a2);
+          return cb();
+
+          var contextVersionsCollection = db.collection('contextversions');
+          contextVersionsCollection.find().limit(100).toArray(function (err, results) {
+            contextVersions = results;
             cb();
           });
         },
 
         function pruneImagesWithoutAssociatedCV (cb) {
-          async.forEach(images, function (image, cb) {
-            // find associated context version
-            var result = find(arrayOfContextVersions, function (cv) {
-              var regexImageTagCV = new RegExp('^'+process.env.KHRONOS_DOCKER_REGISTRY+'\/[0-9]+\/([A-z0-9]+):([A-z0-9]+)');
-              var regexExecResult = regexImageTagCV.exec(image.RepoTags[0]);
-              console.log(regexExecResult[2], cv._id, (regexExecResult[2] === cv._id));
-              return regexExecResult[2] === cv._id;
-            });
-            if (result) {
-              console.log('found!');
-              matches++;
-            }
-            cb();
-          }, cb);
+
+          // TESTING temp
+          // images = images.splice(0, 500);
+
+          var upperBound = 100;
+          var imageSet = [];
+          async.whilst(function () {
+            imageSet = images.slice(upperBound-100, upperBound);
+            upperBound += 100;
+            return imageSet.length;
+          },
+          function (doCb) {
+
+            var counter = 0;
+            async.forEach(imageSet, function (image, asyncCb) {
+
+              var result = find(contextVersions, function (cv) {
+                //var regexImageTagCV = new RegExp('^'+process.env.KHRONOS_DOCKER_REGISTRY+'\/[0-9]+\/([A-z0-9]+):([A-z0-9]+)');
+                //var regexExecResult = regexImageTagCV.exec(image.RepoTags[0]);
+                //console.log(regexExecResult[2], cv._id, (regexExecResult[2] === cv._id), matches, upperBound, imageSet.length, counter);
+                //return regexExecResult[2] === cv._id;
+                console.log(counter);
+                return false;
+              });
+              if (result) {
+                matches++;
+                // TODO delete image async
+              }
+              counter++;
+              asyncCb();
+
+            }, doCb);
+          },
+          cb);
+
         }
       ], cb);
     }, function (err) {
       console.log('done');
       console.log('matches ' + matches);
-      console.log('images: ' + images.length);
-      console.log('contextversions: ' + arrayOfContextVersions.length);
+      console.log('contextversions: ' + contextVersions.length);
     });
   }
 
