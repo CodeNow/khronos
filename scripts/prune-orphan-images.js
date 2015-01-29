@@ -24,6 +24,8 @@ module.exports = function(cb) {
   var db;
   var images;
 
+  var matches = 0;
+
   var initializationFunctions = [connectToMongoDB];
 
   if (process.env.KHRONOS_DOCKER_HOST) {
@@ -87,6 +89,10 @@ module.exports = function(cb) {
           // unclear if I can query subset?
           // https://docs.docker.com/reference/api/docker_remote_api_v1.16/#list-images
           docker.listImages({}, function (err, _images) {
+            if (err) {
+              console.log(err);
+              return cb(err);
+            }
             images = _images.filter(function (image) {
               // return all images from runnable.com registry
               return image.RepoTags.length && regexTestImageTag.test(image.RepoTags[0]);
@@ -114,6 +120,7 @@ module.exports = function(cb) {
             });
             if (result) {
               console.log('found!');
+              matches++;
             }
             cb();
           }, cb);
@@ -121,6 +128,9 @@ module.exports = function(cb) {
       ], cb);
     }, function (err) {
       console.log('done');
+      console.log('matches ' + matches);
+      console.log('images: ' + images.length);
+      console.log('contextversions: ' + arrayOfContextVersions.length);
     });
   }
 
