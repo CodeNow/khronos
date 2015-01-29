@@ -25,7 +25,7 @@ module.exports = function(cb) {
   var db;
   var images;
 
-  var matches = 0;
+  var orphanedImages = 0;
 
   var initializationFunctions = [connectToMongoDB];
 
@@ -140,7 +140,7 @@ module.exports = function(cb) {
               }
               if (results.length !== (upperBound-lowerBound)) {
                 console.log(((upperBound-lowerBound) - results.length) + ' images on box not in database, cleaning up...');
-
+                orphanedImages += ((upperBound-lowerBound) - results.length);
                 cb();
               } else {
                 console.log('all images accounted for in DB, proceeding...');
@@ -152,6 +152,7 @@ module.exports = function(cb) {
       ], cb);
     }, function (err) {
       console.log('done');
+      console.log('found ' + orphanedImages + ' orphaned images');
     });
   }
 
