@@ -141,6 +141,12 @@ module.exports = function(cb) {
               if (results.length !== (upperBound-lowerBound)) {
                 console.log(((upperBound-lowerBound) - results.length) + ' images on box not in database, cleaning up...');
                 orphanedImages += ((upperBound-lowerBound) - results.length);
+                // figure out which images in imageSet do not have corresponding context-versions
+                async.forEach(imageSet, function () {
+
+                }, function () {
+
+                });
                 cb();
               } else {
                 console.log('all images accounted for in DB, proceeding...');
@@ -155,42 +161,5 @@ module.exports = function(cb) {
       console.log('found ' + orphanedImages + ' orphaned images');
     });
   }
-
-/*
-  var docks = Object.keys(process.env)
-    .filter(function (env) {
-      return /^DOCK_HOST_/.test(env);
-    });
-
-  async.forEach(docks, function (dock) {
-    console.log('connecting to docker daemon');
-    var host = process.env[dock].split(':')[0];
-    var port = process.env[dock].split(':')[1];
-    var docker = new Docker({host:host, port:port});
-    console.log('fetching containers');
-    docker.listContainers({all: true}, function (err, containers) {
-      var currentTime = Math.floor(Date.now() / 1000); // convert nanoseconds to seconds
-      var deleteContainerStartedBeforeTime = currentTime - process.env.MAX_CONTAINER_LIVE_TIME;
-      var containersToDelete = containers.filter(function(container) {
-        return container.Created < deleteContainerStartedBeforeTime &&
-               container.Image === 'docker-image-builder';
-      });
-      console.log('found ' + containersToDelete.length + ' containers');
-      async.each(containersToDelete, function(containerObj, cb){
-        var container = docker.getContainer(containerObj.Id);
-        container.stop(function() {
-          container.remove(function() {
-            cb();
-          });
-        });
-      }, function(err, results) {
-        console.log(containersToDelete.length + ' containers deleted');
-        cb();
-      });
-    });
-  }, function () {
-    console.log('prune-containers processed: ' + docks.length);
-  });
-*/
 
 };
