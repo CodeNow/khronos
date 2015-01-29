@@ -85,7 +85,7 @@ module.exports = function(cb) {
         port: port
       });
       async.series([
-        function fetchImagesOnDock (cb) {
+        function fetchImages (cb) {
           var regexTestImageTag = new RegExp('^'+process.env.KHRONOS_DOCKER_REGISTRY+'\/[0-9]+\/[A-z0-9]+:[A-z0-9]+');
 
           // unclear if I can query subset?
@@ -110,6 +110,37 @@ module.exports = function(cb) {
 
         function fetchContextVersions (cb) {
 
+          var contextVersionsCollection = db.collection('contextversions');
+          var regexImageTagCV = new RegExp('^'+process.env.KHRONOS_DOCKER_REGISTRY+'\/[0-9]+\/([A-z0-9]+):([A-z0-9]+)');
+
+          // chunk check context versions in db for batch of 100 images
+          var upperBound = 100;
+          var imageSet = [];
+          async.whilst(function () {
+            imageSet = images.slice(upperBound-100, upperBound);
+            upperBound += 100;
+            return imageSet.length;
+          },
+          function (cb) {
+            //see if all these images are in mongodb
+            var cvIds = imageSet.map(function (image) {
+              var regexExecResult = regexImageTagCV.exec(image.RepoTags[0]);
+              return regexExecResult[2];
+            });
+            contexVersionsCollection.find({
+              "_id": {
+                "$in": cvIds
+              }
+            }).toArray(function (err, results) {
+              if (err) {
+                return cb(err);
+              }
+              console.log('results', results);
+              console.log('results.length', results.length);
+            });
+          }, cb);
+
+          /*
           // TESTING temp
           var fs = require('fs');
           var a1 = JSON.parse(fs.readFileSync('./context-versions.json').toString());
@@ -122,6 +153,7 @@ module.exports = function(cb) {
             contextVersions = results;
             cb();
           });
+          */
         },
 
         function pruneImagesWithoutAssociatedCV (cb) {
