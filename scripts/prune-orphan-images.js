@@ -6,9 +6,9 @@
  * If no associated cv is found, remove image from dock.
  */
 
-var _ = require('underscore');
 var Docker = require('dockerode');
 var MongoClient = require('mongodb').MongoClient;
+var ObjectID = require('mongodb').ObjectID;
 var async = require('async');
 var find = require('101/find');
 var keypath = require('keypather')();
@@ -90,44 +90,47 @@ module.exports = function(cb) {
 
           // unclear if I can query subset?
           // https://docs.docker.com/reference/api/docker_remote_api_v1.16/#list-images
+          console.log('fetching images...');
           docker.listImages({}, function (err, _images) {
+            console.log('images fetched');
             if (err) {
               console.log(err);
               return cb(err);
             }
-
-            // TESTING temp
-            var fs = require('fs');
-            _images = JSON.parse(fs.readFileSync('./images.json').toString());
-
             images = _images.filter(function (image) {
               // return all images from runnable.com registry
               return image.RepoTags.length && regexTestImageTag.test(image.RepoTags[0]);
             });
+            console.log('images length: ' + images.length);
             cb();
           });
         },
 
         function fetchContextVersions (cb) {
+          console.log('fetching context-versions in chunks...');
 
           var contextVersionsCollection = db.collection('contextversions');
           var regexImageTagCV = new RegExp('^'+process.env.KHRONOS_DOCKER_REGISTRY+'\/[0-9]+\/([A-z0-9]+):([A-z0-9]+)');
 
           // chunk check context versions in db for batch of 100 images
-          var upperBound = 100;
+          var chunkSize = 100;
+          var lowerBound = 0;
+          var upperBound = Math.min(chunkSize, images.length);
           var imageSet = [];
           async.whilst(function () {
-            imageSet = images.slice(upperBound-100, upperBound);
-            upperBound += 100;
+            lowerBound = upperBound;
+            upperBound = Math.min(upperBound+chunkSize, images.length);
+            imageSet = images.slice(lowerBound, upperBound);
             return imageSet.length;
           },
           function (cb) {
             //see if all these images are in mongodb
             var cvIds = imageSet.map(function (image) {
               var regexExecResult = regexImageTagCV.exec(image.RepoTags[0]);
-              return regexExecResult[2];
+              return new ObjectID(regexExecResult[2]);
             });
-            contexVersionsCollection.find({
+            console.log('fetching chunk', lowerBound, upperBound);
+            contextVersionsCollection.find({
               "_id": {
                 "$in": cvIds
               }
@@ -135,69 +138,20 @@ module.exports = function(cb) {
               if (err) {
                 return cb(err);
               }
-              console.log('results', results);
-              console.log('results.length', results.length);
+              if (results.length !== (upperBound-lowerBound)) {
+                console.log(((upperBound-lowerBound) - results.length) + ' images on box not in database, cleaning up...');
+
+                cb();
+              } else {
+                console.log('all images accounted for in DB, proceeding...');
+                cb();
+              }
             });
           }, cb);
-
-          /*
-          // TESTING temp
-          var fs = require('fs');
-          var a1 = JSON.parse(fs.readFileSync('./context-versions.json').toString());
-          var a2 = JSON.parse(fs.readFileSync('./context-versions2.json').toString());
-          contextVersions = a1.concat(a2);
-          return cb();
-
-          var contextVersionsCollection = db.collection('contextversions');
-          contextVersionsCollection.find().limit(100).toArray(function (err, results) {
-            contextVersions = results;
-            cb();
-          });
-          */
-        },
-
-        function pruneImagesWithoutAssociatedCV (cb) {
-
-          // TESTING temp
-          // images = images.splice(0, 500);
-
-          var upperBound = 100;
-          var imageSet = [];
-          async.whilst(function () {
-            imageSet = images.slice(upperBound-100, upperBound);
-            upperBound += 100;
-            return imageSet.length;
-          },
-          function (doCb) {
-
-            var counter = 0;
-            async.forEach(imageSet, function (image, asyncCb) {
-
-              var result = find(contextVersions, function (cv) {
-                //var regexImageTagCV = new RegExp('^'+process.env.KHRONOS_DOCKER_REGISTRY+'\/[0-9]+\/([A-z0-9]+):([A-z0-9]+)');
-                //var regexExecResult = regexImageTagCV.exec(image.RepoTags[0]);
-                //console.log(regexExecResult[2], cv._id, (regexExecResult[2] === cv._id), matches, upperBound, imageSet.length, counter);
-                //return regexExecResult[2] === cv._id;
-                console.log(counter);
-                return false;
-              });
-              if (result) {
-                matches++;
-                // TODO delete image async
-              }
-              counter++;
-              asyncCb();
-
-            }, doCb);
-          },
-          cb);
-
         }
       ], cb);
     }, function (err) {
       console.log('done');
-      console.log('matches ' + matches);
-      console.log('contextversions: ' + contextVersions.length);
     });
   }
 
@@ -237,4 +191,5 @@ module.exports = function(cb) {
     console.log('prune-containers processed: ' + docks.length);
   });
 */
+
 };
