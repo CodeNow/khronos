@@ -11,7 +11,7 @@ pruneOrphanImages();
  * TEMP
 var CronJob = require('cron').CronJob;
 var job = new CronJob({
-  cronTime: '00 00 12 * * 0-6',
+  cronTime: '00 00 12 * * 0-6', // every day at 12:00
   onTick: function () {
     pruneOrphanContainersImages();
   },
