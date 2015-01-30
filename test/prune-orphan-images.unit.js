@@ -14,6 +14,8 @@ var after = lab.after;
 var afterEach = lab.afterEach;
 var expect = chai.expect;
 
+require('../lib/loadenv')();
+console.log(process.env);
 
 // set non-default port for testing
 var Docker = require('dockerode');
@@ -26,7 +28,7 @@ var dockerMock = require('docker-mock');
 dockerMock.listen(process.env.KHRONOS_DOCKER_HOST);
 
 // replace private variables for testing
-var pruneOrphanImages = rewire('../scripts/prune-orpahn-images');
+var pruneOrphanImages = rewire('../scripts/prune-orphan-images');
 
 var Image = require('dockerode/lib/image');
 sinon.spy(Image.prototype, 'remove');
@@ -41,6 +43,7 @@ describe('prune-orphan-images', function() {
     docker.listImages(function (err, images) {
       if (err) throw err;
       async.forEach(images, function (image, cb) {
+        console.log(image);
         image.remove(cb);
       }, done);
     });
@@ -52,11 +55,12 @@ describe('prune-orphan-images', function() {
     });
 
     it('should run successfully with no orphaned images on dock', function (done) {
+      done();
     });
 
     it('should only remove orphaned images from dock', function (done) {
-
+      done();
     });
   });
 
-}
+});
