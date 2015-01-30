@@ -10,6 +10,7 @@ var Docker = require('dockerode');
 var MongoClient = require('mongodb').MongoClient;
 var ObjectID = require('mongodb').ObjectID;
 var async = require('async');
+var equals = require('101/equals');
 var find = require('101/find');
 var keypath = require('keypather')();
 var request = require('request');
@@ -143,12 +144,10 @@ module.exports = function(cb) {
                 orphanedImages += ((upperBound-lowerBound) - results.length);
                 // figure out which images in imageSet do not have corresponding context-versions
                 async.forEach(imageSet, function (image, cb) {
-                  if (cvIds.contains(regexImageTagCV.exec(image.RepoTags[0])[2])) {
-                    // this image has a corresponding cv, continue
-                    console.log('found cv for image');
-                    cb();
-                  } else {
-                    // this image does not have a cv
+     
+                  //if (cvIds.contains(regexImageTagCV.exec(image.RepoTags[0])[2])) {
+                  if (!find(cvIds, equals(regexImageTagCV.exec(image.RepoTags[0])[2]))) {
+                    // this image does not have a cv, delete
                     console.log('cv not found for image');
                     cb();
                   }
