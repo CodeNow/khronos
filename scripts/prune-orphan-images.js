@@ -142,12 +142,18 @@ module.exports = function(cb) {
                 console.log(((upperBound-lowerBound) - results.length) + ' images on box not in database, cleaning up...');
                 orphanedImages += ((upperBound-lowerBound) - results.length);
                 // figure out which images in imageSet do not have corresponding context-versions
-                async.forEach(imageSet, function () {
+                async.forEach(imageSet, function (image, cb) {
+                  if (cvIds.contains(regexImageTagCV.exec(image.RepoTags[0])[2])) {
+                    // this image has a corresponding cv, continue
+                    console.log('found cv for image');
+                    cb();
+                  } else {
+                    // this image does not have a cv
+                    console.log('cv not found for image');
+                    cb();
+                  }
+                }, cb);
 
-                }, function () {
-
-                });
-                cb();
               } else {
                 console.log('all images accounted for in DB, proceeding...');
                 cb();
