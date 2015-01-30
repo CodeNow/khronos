@@ -14,20 +14,18 @@ var after = lab.after;
 var afterEach = lab.afterEach;
 var expect = chai.expect;
 
-
 // set non-default port for testing
-var config = JSON.parse(JSON.stringify(require('../config')));
-config.network.port = 5555;
-
 var Docker = require('dockerode');
-var docker = Docker({host:config.network.host, port:config.network.port});
+var docker = Docker({
+  host: process.env.KHRONOS_DOCKER_HOST,
+  port: process.env.KHRONOS_DOCKER_PORT
+});
 
 var dockerMock = require('docker-mock');
 dockerMock.listen(config.network.port);
 
 // replace private variables for testing
 var pruneContainers = rewire('../scripts/prune-containers');
-pruneContainers.__set__('config', config);
 
 var Container = require('dockerode/lib/container');
 sinon.spy(Container.prototype, 'remove');
