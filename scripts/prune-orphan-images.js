@@ -15,7 +15,7 @@ var find = require('101/find');
 var keypath = require('keypather')();
 var request = require('request');
 
-module.exports = function(cb) {
+module.exports = function(finalCb) {
 
   // for each dock
     // find all images with tag 'registry.runnable.io'
@@ -27,7 +27,6 @@ module.exports = function(cb) {
   var images;
 
   var orphanedImages = 0;
-
   var initializationFunctions = [connectToMongoDB];
 
   if (process.env.KHRONOS_DOCKER_HOST) {
@@ -169,6 +168,7 @@ module.exports = function(cb) {
     }, function (err) {
       console.log('done');
       console.log('found ' + orphanedImages + ' orphaned images');
+      finalCb();
     });
   }
 

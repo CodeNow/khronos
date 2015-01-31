@@ -1,5 +1,7 @@
 test:
 	@node node_modules/lab/bin/lab
+test-dry:
+	@node node_modules/lab/bin/lab -d
 test-cov:
 	@node node_modules/lab/bin/lab -t 100
 test-cov-html:
