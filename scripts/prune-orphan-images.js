@@ -11,11 +11,11 @@ var MongoClient = require('mongodb').MongoClient;
 var ObjectID = require('mongodb').ObjectID;
 var async = require('async');
 var equals = require('101/equals');
-var find = require('101/find');
+var findIndex = require('101/find-index');
 var keypath = require('keypather')();
 var request = require('request');
 
-module.exports = function(finalCb) {
+module.exports = function(finalCB) {
 
   // for each dock
     // find all images with tag 'registry.runnable.io'
@@ -74,7 +74,7 @@ module.exports = function(finalCb) {
 
   function processOrphans () {
     async.forEach(activeDocks,
-    function (dock, cb) {
+    function (dock, dockCB) {
       console.log('connecting to dockerd at ' + dock.host);
       var regexDockURL = /^http:\/\/([A-z0-9]+):([0-9]+)/;
       var execRes = regexDockURL.exec(dock.host);
@@ -97,6 +97,7 @@ module.exports = function(finalCb) {
               console.log(err);
               return cb(err);
             }
+            console.log('prefiltered images', _images);
             images = _images.filter(function (image) {
               // return all images from runnable.com registry
               return image.RepoTags.length && regexTestImageTag.test(image.RepoTags[0]);
@@ -106,7 +107,7 @@ module.exports = function(finalCb) {
           });
         },
 
-        function fetchContextVersions (cb) {
+        function fetchContextVersions (fetchCVCB) {
           console.log('fetching context-versions in chunks...');
 
           var contextVersionsCollection = db.collection('contextversions');
@@ -117,13 +118,12 @@ module.exports = function(finalCb) {
           var lowerBound = 0;
           var upperBound = Math.min(chunkSize, images.length);
           var imageSet = [];
-          async.whilst(function () {
-            lowerBound = upperBound;
-            upperBound = Math.min(upperBound+chunkSize, images.length);
+          if (images.length) {
             imageSet = images.slice(lowerBound, upperBound);
-            return imageSet.length;
-          },
-          function (cb) {
+          }
+
+          async.doWhilst(
+          function (doWhilstCB) {
             //see if all these images are in mongodb
             var cvIds = imageSet.map(function (image) {
               var regexExecResult = regexImageTagCV.exec(image.RepoTags[0]);
@@ -138,37 +138,50 @@ module.exports = function(finalCb) {
               if (err) {
                 return cb(err);
               }
-              if (results.length !== (upperBound-lowerBound)) {
-                console.log(((upperBound-lowerBound) - results.length) + ' images on box not in database, cleaning up...');
-                orphanedImages += ((upperBound-lowerBound) - results.length);
-                // figure out which images in imageSet do not have corresponding context-versions
-                async.forEach(imageSet, function (image, cb) {
+              var numberMissing = (upperBound - lowerBound) - results.length;
+              if (numberMissing) {
+                console.log(numberMissing + ' images on box not in database, cleaning up...');
+                orphanedImages += numberMissing;
+                var foundCvIDs = results.map(function (res) {
+                  return res['_id'].toString();
+                });
 
-                  //if (cvIds.contains(regexImageTagCV.exec(image.RepoTags[0])[2])) {
-                  if (!find(cvIds, equals(regexImageTagCV.exec(image.RepoTags[0])[2]))) {
+                // figure out which images in imageSet do not have corresponding context-versions
+                async.forEach(imageSet, function (image, eachCB) {
+                  var imageCVIDEqualsFn = equals(regexImageTagCV.exec(image.RepoTags[0])[2]);
+                  if (-1 === findIndex(foundCvIDs, imageCVIDEqualsFn)) {
                     // this image does not have a cv, delete
-                    console.log('cv not found for image');
+                    console.log('cv not found for image: ' + image.Id);
                     docker.getImage(image.Id).remove(function (err, data) {
-                      if (err) {
-                        console.log(err);
-                      }
-                      cb();
+                      if (err) { throw err; }
+                      eachCB();
                     });
+                  } else {
+                    console.log('cv FOUND for image: ' + image.Id);
+                    eachCB();
                   }
-                }, cb);
+                }, doWhilstCB);
 
               } else {
                 console.log('all images accounted for in DB, proceeding...');
-                cb();
+                doWhilstCB();
               }
+
             });
-          }, cb);
+          },
+          function check () {
+            lowerBound = upperBound;
+            upperBound = Math.min(upperBound+chunkSize, images.length);
+            imageSet = images.slice(lowerBound, upperBound);
+            return imageSet.length;
+          },
+          fetchCVCB);
         }
-      ], cb);
+      ], dockCB);
     }, function (err) {
       console.log('done');
       console.log('found ' + orphanedImages + ' orphaned images');
-      finalCb();
+      finalCB();
     });
   }
 

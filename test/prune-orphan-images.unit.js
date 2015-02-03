@@ -1,5 +1,6 @@
 var Lab = require('lab');
 var MongoClient = require('mongodb').MongoClient;
+var ObjectID = require('mongodb').ObjectID;
 var async = require('async');
 var chai = require('chai');
 var dockerMock = require('docker-mock');
@@ -46,17 +47,21 @@ describe('prune-orphan-images', function() {
   });
 
   afterEach(function (done) {
-    Image.prototype.remove.reset();
+    if (Image.prototype.remove.reset) {
+      Image.prototype.remove.reset();
+    }
     docker.listImages(function (err, images) {
       console.log('images', images);
       if (err) { throw err; }
       async.forEach(images, function (image, cb) {
-        docker.getImage(image.Id).remove(function () {
-          console.log('p1', arguments);
+        docker.getImage(image.Id).remove(function (err) {
+          if (err) { throw err; }
           cb();
         });
       }, done);
     });
+
+    
   });
 
   describe('success scenarios', function () {
@@ -71,37 +76,75 @@ describe('prune-orphan-images', function() {
 
     describe('dock with images', function () {
       it('should run successfully with no orphaned images on dock', function (done) {
-        var images;
-        var cv;
+        var cvs = [];
         async.series([
           function createCVs (cb) {
             var contextVersions = db.collection('contextversions');
-            contextVersions.insert({}, function (err, _cv) {
-              cv = _cv[0];
-              cb();
-            });
-          },
-          function createImages (cb) {
-            docker.createImage({
-              fromImage: 'ubuntu',
-              tag: (cv['_id']+'') // must cast to string
-            }, function (err) {
-              if (err) { throw err; }
-              docker.listImages(function (err, _images) {
-                images = _images;
+            async.times(4, function (n, cb) {
+              contextVersions.insert({}, function (err, _cv) {
+                cvs.push(_cv[0]);
                 cb();
               });
-            });
+            }, cb);
+          },
+          function createImages (cb) {
+            async.eachLimit(cvs, 1, function (cv, cb) { // bit of a concurrency bug in tests
+              var cvId = cv['_id']+''; // must cast to string
+              docker.createImage({
+                fromImage: 'registry.runnable.com/1616464/'+cvId,
+                tag: cvId
+              }, function (err) {
+                if (err) { throw err; }
+                cb();
+              });
+            }, cb);
           }
         ], function (err) {
           if (err) { throw err; }
-          done();
+          pruneOrphanImages(function () {
+            expect(Image.prototype.remove.called).to.equal(false);
+            done();
+          });
         });
-        // add images to dock
       });
 
-      it('should only remove orphaned images from dock', function (done) {
-        done();
+      it('should only remove orphaned images from dock', {timeout: 1000*5}, function (done) {
+        var cvs = [];
+        var orphans = [];
+        async.series([
+          function createCVs (cb) {
+            var contextVersions = db.collection('contextversions');
+            async.times(1, function (n, cb) {
+              contextVersions.insert({}, function (err, _cv) {
+                cvs.push(_cv[0]);
+                cb();
+              });
+            }, cb);
+          },
+          function createImages (cb) {
+            // creating orphans
+            orphans.push({'_id': new ObjectID('999017345affa9400d894407')});
+            orphans.push({'_id': new ObjectID('999015ac341e8eb10b4a0328')});
+            orphans.push({'_id': new ObjectID('999015ac341e8eb10b4a0329')});
+            cvs = cvs.concat(orphans);
+            async.eachLimit(cvs, 1, function (cv, cb) { // bit of a concurrency bug in tests
+              var cvId = cv['_id']+''; // must cast to string
+              docker.createImage({
+                fromImage: 'registry.runnable.com/1616464/'+cvId,
+                tag: cvId
+              }, function (err) {
+                if (err) { throw err; }
+                cb();
+              });
+            }, cb);
+          }
+        ], function (err) {
+          if (err) { throw err; }
+          pruneOrphanImages(function () {
+            expect(Image.prototype.remove.callCount).to.equal(orphans.length);
+            done();
+          });
+        });
       });
     });
   });
