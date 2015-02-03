@@ -6,6 +6,7 @@ var chai = require('chai');
 var dockerMock = require('docker-mock');
 var rewire = require('rewire');
 var sinon = require('sinon');
+var createCounter = require('callback-count');
 
 var lab = exports.lab = Lab.script();
 
@@ -46,22 +47,29 @@ describe('prune-orphan-images', function() {
     });
   });
 
-  afterEach(function (done) {
+  afterEach({timeout: 1000*10}, function (done) {
+    var counter = createCounter(2, function () {
+      console.log('cb count cb');
+      done();
+    });
     if (Image.prototype.remove.reset) {
       Image.prototype.remove.reset();
     }
     docker.listImages(function (err, images) {
       console.log('images', images);
       if (err) { throw err; }
-      async.forEach(images, function (image, cb) {
+      async.forEach(images, function (image, eachCB) {
         docker.getImage(image.Id).remove(function (err) {
           if (err) { throw err; }
-          cb();
+          eachCB();
         });
-      }, done);
+      }, counter.inc().next);
+    });
+    db.collection('contextversions').drop(function () {
+      console.log('drop callback');
+      counter.inc().next();
     });
 
-    
   });
 
   describe('success scenarios', function () {
@@ -142,6 +150,7 @@ describe('prune-orphan-images', function() {
           if (err) { throw err; }
           pruneOrphanImages(function () {
             expect(Image.prototype.remove.callCount).to.equal(orphans.length);
+            console.log('last test!');
             done();
           });
         });
