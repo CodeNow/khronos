@@ -9,13 +9,14 @@
 var Docker = require('dockerode');
 var MongoClient = require('mongodb').MongoClient;
 var ObjectID = require('mongodb').ObjectID;
+var Stats = require('models/datadog');
 var async = require('async');
 var equals = require('101/equals');
 var findIndex = require('101/find-index');
 var isFunction = require('101/is-function');
 var noop = require('101/noop');
 var request = require('request');
-var stats = new require('models/datadog')('prune-expired-images');
+var stats = new Stats('prune-expired-images');
 
 module.exports = function(finalCB) {
 
@@ -40,11 +41,15 @@ module.exports = function(finalCB) {
   }
 
   async.parallel(initializationFunctions, function (err) {
-    if (err) {
-      console.log(err);
-      return;
-    }
-    processOrphans();
+    if (err) { throw err; }
+    async.series([
+      fetchImagesBlacklist,
+      pruneImages
+    ], function (err) {
+      console.log('prune expired images complete');
+      if (err) { throw err; }
+      finalCB();
+    });
   });
 
   function connectToMongoDB (cb) {
@@ -77,8 +82,9 @@ module.exports = function(finalCB) {
   }
 
   function fetchImagesBlacklist (cb) {
-    var today = new ISODate();
-    var twoWeeksAgo = new ISODate();
+    console.log('fetching images black list');
+    var today = new Date();
+    var twoWeeksAgo = new Date();
     twoWeeksAgo.setDate(today.getDate() - 7*2);
     var expiredQuery = {
       'build.started': {
@@ -93,6 +99,7 @@ module.exports = function(finalCB) {
     };
     var contextVersionsCollection = db.collection('contextversions');
     contextVersionsCollection.find(expiredQuery).toArray(function (err, results) {
+      console.log('context-versions fetch complete', results.length);
 
       async.filter(results, function (cv, cb) {
         async.series([ //could use parallel for speed, but increased load against mongo
@@ -133,12 +140,16 @@ module.exports = function(finalCB) {
       },
       function (results) {
         imageBlackList = results;
+        cb();
       });
 
     });
   }
 
-
+  function pruneImages(cb) {
+    console.log('pruneImages');
+    cb();
+  }
 
 
 

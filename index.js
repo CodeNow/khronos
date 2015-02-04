@@ -3,9 +3,11 @@ require('loadenv');
 // will read command line input
 // and launch multiple scripts
 // eventuallycontainers
-var pruneOrphanImages = require('./scripts/prune-orphan-images');
+//var pruneOrphanImages = require('./scripts/prune-orphan-images');
+var pruneExpiredImages = require('./scripts/prune-expired-images');
 
-pruneOrphanImages();
+//pruneOrphanImages();
+pruneExpiredImages();
 
 /*
 var CronJob = require('cron').CronJob;
