@@ -23,6 +23,9 @@ module.exports = function(finalCB) {
     finalCB = noop;
   }
 
+  // for datadog statsd timing
+  var startPrune = new Date();
+
   // for each dock
     // find all images with tag 'registry.runnable.io'
     // query mongodb context-versions and if any image is not in db, remove it from dock
@@ -130,7 +133,6 @@ module.exports = function(finalCB) {
             imageSet = images.slice(lowerBound, upperBound);
           }
 
-          var start = new Date();
           async.doWhilst(
           function (doWhilstCB) {
             //see if all these images are in mongodb
@@ -139,6 +141,7 @@ module.exports = function(finalCB) {
               return new ObjectID(regexExecResult[2]);
             });
             console.log('fetching chunk', lowerBound, upperBound);
+            var start = new Date();
             contextVersionsCollection.find({
               "_id": {
                 "$in": cvIds
@@ -147,6 +150,7 @@ module.exports = function(finalCB) {
               if (err) {
                 return doWhilstCB(err);
               }
+              stats.timing('fetch-context-versions', new Date()-start, [cvIds.length, results.length]);
               var numberMissing = (upperBound - lowerBound) - results.length;
               if (numberMissing) {
                 console.log(numberMissing + ' images on box not in database, cleaning up...');
@@ -193,6 +197,7 @@ module.exports = function(finalCB) {
       if (err) { throw err; }
       console.log('done');
       console.log('found ' + orphanedImages + ' orphaned images');
+      stats.timing('complete-prune-orphan-images', new Date()-startPrune);
       finalCB();
     });
   }
