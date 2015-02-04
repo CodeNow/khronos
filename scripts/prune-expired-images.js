@@ -108,7 +108,7 @@ module.exports = function(finalCB) {
       async.filter(results, function (cv, cb) {
         async.series([ //could use parallel for speed, but increased load against mongo
           function notUsedInTwoWeeks (cb) {
-            debug('determine if cv used in last two weeks: '+cv['_id']);
+            console.log('determine if cv used in last two weeks: '+cv['_id']);
             var query = {
               'build.created': {
                 '$gte': twoWeeksAgo
