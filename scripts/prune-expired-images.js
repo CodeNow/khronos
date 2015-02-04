@@ -53,7 +53,7 @@ module.exports = function(finalCB) {
   });
 
   function connectToMongoDB (cb) {
-    console.log('connecting to mongodb');
+    console.log('connecting to mongodb', process.env.KHRONOS_MONGO);
     MongoClient.connect(process.env.KHRONOS_MONGO, function (err, _db) {
       console.log('connected to mongodb');
       db = _db;
