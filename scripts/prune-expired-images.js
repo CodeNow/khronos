@@ -25,16 +25,11 @@ module.exports = function(finalCB) {
 
   // for datadog statsd timing
   var startPrune = new Date();
-
-  // for each dock
-    // find all images with tag 'registry.runnable.io'
-    // query mongodb context-versions and if any image is not in db, remove it from dock
-
   var activeDocks;
   var db;
-  var images;
-
+  var imageBlackList = [];
   var orphanedImages = 0;
+
   var initializationFunctions = [connectToMongoDB];
 
   if (process.env.KHRONOS_DOCKER_HOST) {
@@ -81,6 +76,81 @@ module.exports = function(finalCB) {
     });
   }
 
+  function fetchImagesBlacklist (cb) {
+    var today = new ISODate();
+    var twoWeeksAgo = new ISODate();
+    twoWeeksAgo.setDate(today.getDate() - 7*2);
+    var expiredQuery = {
+      'build.started': {
+        '$lte': twoWeeksAgo
+      },
+      'build.completed': {
+        '$exists': true
+      },
+      'build.dockerTag': {
+        '$exists': true
+      }
+    };
+    var contextVersionsCollection = db.collection('contextversions');
+    contextVersionsCollection.find(expiredQuery).toArray(function (err, results) {
+
+      async.filter(results, function (cv, cb) {
+        async.series([ //could use parallel for speed, but increased load against mongo
+          function notUsedInTwoWeeks (cb) {
+            debug('determine if cv used in last two weeks: '+cv['_id']);
+            var query = {
+              'build.created': {
+                '$gte': twoWeeksAgo
+              },
+              'contextVersions': cv['_id']
+            };
+            db.collection('builds').count(query, function (err, count) {
+              if (err) { return cb(err); }
+              if (count === 0) {
+                return cb();
+              }
+              cb(new Error());
+            });
+          },
+          function notCurrentlyAttachedToInstance (cb) {
+            var query = {
+              'contextVersion._id': cv['_id']
+            };
+            db.collection('instances').count(function (err, count) {
+              if (err) { return cb(err); }
+              if (count === 0) {
+                return cb();
+              }
+              cb(new Error());
+            });
+          }
+        ], function (err) {
+          if (err) {
+            return cb(false);
+          }
+          cb(true);
+        });
+      },
+      function (results) {
+        imageBlackList = results;
+      });
+
+    });
+  }
+
+
+
+
+
+
+
+
+
+
+
+
+
+/*
   function processOrphans () {
     async.forEach(activeDocks,
     function (dock, dockCB) {
@@ -201,5 +271,6 @@ module.exports = function(finalCB) {
       finalCB();
     });
   }
+*/
 
 };
