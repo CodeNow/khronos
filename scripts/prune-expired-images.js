@@ -142,8 +142,10 @@ module.exports = function(finalCB) {
           cb(true);
         });
       },
-      function (results) {
-        imageBlackList = results;
+      function (filteredResults) {
+        imageBlackList = filteredResults;
+        console.log('imageBlackList.length', imageBlackList.length);
+        console.log('results.length', results.length);
         cb();
       });
 
