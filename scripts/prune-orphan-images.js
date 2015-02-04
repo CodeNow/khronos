@@ -12,17 +12,25 @@ var ObjectID = require('mongodb').ObjectID;
 var async = require('async');
 var equals = require('101/equals');
 var findIndex = require('101/find-index');
-var keypath = require('keypather')();
+var isFunction = require('101/is-function');
+var noop = require('101/noop');
 var request = require('request');
+var stats = new require('models/datadog')('prune-orphan-images');
 
 module.exports = function(finalCB) {
+
+  if (!isFunction(finalCB)) {
+    finalCB = noop;
+  }
+
+  // for datadog statsd timing
+  var startPrune = new Date();
 
   // for each dock
     // find all images with tag 'registry.runnable.io'
     // query mongodb context-versions and if any image is not in db, remove it from dock
 
   var activeDocks;
-  var contextVersions;
   var db;
   var images;
 
@@ -65,7 +73,8 @@ module.exports = function(finalCB) {
     request(process.env.KHRONOS_MAVIS, function (err, http, response) {
       try {
         activeDocks = JSON.parse(response);
-      } catch (e) {
+      }
+      catch (e) {
         return cb(e);
       }
       cb(err);
@@ -91,8 +100,10 @@ module.exports = function(finalCB) {
           // unclear if I can query subset?
           // https://docs.docker.com/reference/api/docker_remote_api_v1.16/#list-images
           console.log('fetching images...');
+          var start = new Date();
           docker.listImages({}, function (err, _images) {
             console.log('images fetched');
+            stats.timing('fetch-images-dock'+dock.host, new Date()-start);
             if (err) {
               console.log(err);
               return cb(err);
@@ -130,14 +141,16 @@ module.exports = function(finalCB) {
               return new ObjectID(regexExecResult[2]);
             });
             console.log('fetching chunk', lowerBound, upperBound);
+            var start = new Date();
             contextVersionsCollection.find({
               "_id": {
                 "$in": cvIds
               }
             }).toArray(function (err, results) {
               if (err) {
-                return cb(err);
+                return doWhilstCB(err);
               }
+              stats.timing('fetch-context-versions', new Date()-start, [cvIds.length, results.length]);
               var numberMissing = (upperBound - lowerBound) - results.length;
               if (numberMissing) {
                 console.log(numberMissing + ' images on box not in database, cleaning up...');
@@ -152,17 +165,19 @@ module.exports = function(finalCB) {
                   if (-1 === findIndex(foundCvIDs, imageCVIDEqualsFn)) {
                     // this image does not have a cv, delete
                     console.log('cv not found for image: ' + image.Id);
-                    docker.getImage(image.Id).remove(function (err, data) {
+                    docker.getImage(image.Id).remove(function (err) {
                       if (err) { throw err; }
                       eachCB();
                     });
-                  } else {
+                  }
+                  else {
                     console.log('cv FOUND for image: ' + image.Id);
                     eachCB();
                   }
                 }, doWhilstCB);
 
-              } else {
+              }
+              else {
                 console.log('all images accounted for in DB, proceeding...');
                 doWhilstCB();
               }
@@ -179,8 +194,10 @@ module.exports = function(finalCB) {
         }
       ], dockCB);
     }, function (err) {
+      if (err) { throw err; }
       console.log('done');
       console.log('found ' + orphanedImages + ' orphaned images');
+      stats.timing('complete-prune-orphan-images', new Date()-startPrune);
       finalCB();
     });
   }
