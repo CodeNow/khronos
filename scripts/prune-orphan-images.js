@@ -81,6 +81,7 @@ module.exports = function(finalCB) {
       catch (e) {
         return cb(e);
       }
+      console.log('activeDocks', activeDocks);
       cb(err);
     });
   }
