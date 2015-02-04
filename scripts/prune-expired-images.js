@@ -53,13 +53,16 @@ module.exports = function(finalCB) {
   });
 
   function connectToMongoDB (cb) {
+    console.log('connecting to mongodb');
     MongoClient.connect(process.env.KHRONOS_MONGO, function (err, _db) {
+      console.log('connected to mongodb');
       db = _db;
       cb(err);
     });
   }
 
   function fetchActiveDocksFromConfiguration (cb) {
+    console.log('fetching docks from configuration');
     activeDocks = [{
       host: ('http://'+
         process.env.KHRONOS_DOCKER_HOST+
@@ -70,6 +73,7 @@ module.exports = function(finalCB) {
   }
 
   function fetchActiveDocksFromMavis (cb) {
+    console.log('fetching docks from mavis');
     request(process.env.KHRONOS_MAVIS, function (err, http, response) {
       try {
         activeDocks = JSON.parse(response);
