@@ -13,11 +13,11 @@ var findIndex = require('101/find-index');
 var isFunction = require('101/is-function');
 var noop = require('101/noop');
 
-var datadog = new require('models/datadog/Datadog')(__filename);
-var debug = new require('models/debug/Debug')(__filename);
-var docker = new require('models/docker/Docker')();
-var mavis = new require('models/mavis/Mavis')();
-var mongodb = new require('models/mongodb/Mongodb')();
+var datadog = require('models/datadog/datadog')(__filename);
+var debug = require('models/debug/debug')(__filename);
+var docker = require('models/docker/docker')();
+var mavis = require('models/mavis/mavis')();
+var mongodb = require('models/mongodb/mongodb')();
 
 module.exports = function(finalCB) {
   var orphanedImagesCount = 0;
