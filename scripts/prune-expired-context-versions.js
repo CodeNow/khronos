@@ -6,13 +6,10 @@
  * If no associated cv is found, remove image from dock.
  */
 
-var Docker = require('dockerode');
 var MongoClient = require('mongodb').MongoClient;
 var ObjectID = require('mongodb').ObjectID;
 var Stats = require('models/datadog');
 var async = require('async');
-var equals = require('101/equals');
-var findIndex = require('101/find-index');
 var fs = require('fs');
 var isFunction = require('101/is-function');
 var noop = require('101/noop');
@@ -30,7 +27,6 @@ module.exports = function(finalCB) {
   var activeDocks;
   var db;
   var contextVersionBlackList = [];
-  var orphanedImages = 0;
 
   var initializationFunctions = [connectToMongoDB];
 
@@ -44,8 +40,7 @@ module.exports = function(finalCB) {
   async.parallel(initializationFunctions, function (err) {
     if (err) { throw err; }
     async.series([
-      fetchImagesBlacklist,
-      pruneImages
+      fetchImagesBlacklist
     ], function (err) {
       console.log('prune expired images complete');
       if (err) { throw err; }
@@ -128,7 +123,7 @@ module.exports = function(finalCB) {
             var query = {
               'contextVersion._id': cv['_id']
             };
-            db.collection('instances').count(function (err, count) {
+            db.collection('instances').count(query, function (err, count) {
               if (err) { return cb(err); }
               if (count === 0) {
                 return cb();
