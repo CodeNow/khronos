@@ -1,4 +1,3 @@
-
   /**
    * Prunes containers running/dead > 12 hours
    * from image "docker-image-builder"
