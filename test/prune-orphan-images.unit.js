@@ -66,7 +66,6 @@ describe('prune-orphan-images', function() {
         docker.getImage(image.Id).remove(function (err) {
           if (err) {
             console.log('err', err);
-            debugger;
           }
           eachCB();
         });
