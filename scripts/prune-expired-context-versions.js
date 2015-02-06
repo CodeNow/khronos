@@ -12,8 +12,8 @@ var Stats = require('models/datadog');
 var async = require('async');
 var fs = require('fs');
 var isFunction = require('101/is-function');
+var mavis = require('models/mavis');
 var noop = require('101/noop');
-var request = require('request');
 var stats = new Stats('prune-expired-images');
 
 module.exports = function(finalCB) {
@@ -28,16 +28,10 @@ module.exports = function(finalCB) {
   var db;
   var contextVersionBlackList = [];
 
-  var initializationFunctions = [connectToMongoDB];
-
-  if (process.env.KHRONOS_DOCKER_HOST) {
-    initializationFunctions.push(fetchActiveDocksFromConfiguration);
-  }
-  else {
-    initializationFunctions.push(fetchActiveDocksFromMavis);
-  }
-
-  async.parallel(initializationFunctions, function (err) {
+  async.parallel([
+    connectToMongoDB,
+    mavis.getDocks
+  ], function (err) {
     if (err) { throw err; }
     async.series([
       fetchImagesBlacklist
@@ -53,30 +47,6 @@ module.exports = function(finalCB) {
     MongoClient.connect(process.env.KHRONOS_MONGO, function (err, _db) {
       console.log('connected to mongodb');
       db = _db;
-      cb(err);
-    });
-  }
-
-  function fetchActiveDocksFromConfiguration (cb) {
-    console.log('fetching docks from configuration');
-    activeDocks = [{
-      host: ('http://'+
-        process.env.KHRONOS_DOCKER_HOST+
-        ':'+
-        process.env.KHRONOS_DOCKER_PORT)
-    }];
-    cb();
-  }
-
-  function fetchActiveDocksFromMavis (cb) {
-    console.log('fetching docks from mavis');
-    request(process.env.KHRONOS_MAVIS, function (err, http, response) {
-      try {
-        activeDocks = JSON.parse(response);
-      }
-      catch (e) {
-        return cb(e);
-      }
       cb(err);
     });
   }

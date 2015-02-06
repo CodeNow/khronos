@@ -1,3 +1,5 @@
+'use strict';
+
 var Lab = require('lab');
 var MongoClient = require('mongodb').MongoClient;
 var ObjectID = require('mongodb').ObjectID;
@@ -13,12 +15,13 @@ var lab = exports.lab = Lab.script();
 var describe = lab.describe;
 var it = lab.it;
 var before = lab.before;
-//var beforeEach = lab.beforeEach;
+var beforeEach = lab.beforeEach;
 //var after = lab.after;
 var afterEach = lab.afterEach;
 var expect = chai.expect;
 
 require('../lib/loadenv');
+var mavisMock = require('./mocks/mavis');
 
 dockerMock.listen(process.env.KHRONOS_DOCKER_PORT);
 
@@ -47,29 +50,28 @@ describe('prune-orphan-images', function() {
     });
   });
 
-  afterEach({timeout: 1000*10}, function (done) {
-    var counter = createCounter(2, function () {
-      console.log('cb count cb');
-      done();
-    });
+  beforeEach(function (done) {
+    mavisMock();
+    done();
+  });
+
+  afterEach({ timeout: 1000*10 }, function (done) {
+    var counter = createCounter(done);
     if (Image.prototype.remove.reset) {
       Image.prototype.remove.reset();
     }
     docker.listImages(function (err, images) {
-      console.log('images', images);
       if (err) { throw err; }
       async.forEach(images, function (image, eachCB) {
         docker.getImage(image.Id).remove(function (err) {
-          if (err) { throw err; }
+          if (err) {
+            console.log('err', err);
+          }
           eachCB();
         });
       }, counter.inc().next);
     });
-    db.collection('contextversions').drop(function () {
-      console.log('drop callback');
-      counter.inc().next();
-    });
-
+    db.collection('contextversions').drop(counter.inc().next);
   });
 
   describe('success scenarios', function () {
