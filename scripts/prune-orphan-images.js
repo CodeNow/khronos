@@ -30,8 +30,8 @@ module.exports = function(finalCB) {
     // find all images with tag 'registry.runnable.io'
     // query mongodb context-versions and if any image is not in db, remove it from dock
   async.parallel([
-    mongodb.connect,
-    mavis.getDocks
+    mongodb.connect.bind(mongodb),
+    mavis.getDocks.bind(mavis)
   ], function (err) {
     if (err) {
       console.log(err);
@@ -44,7 +44,7 @@ module.exports = function(finalCB) {
     function (dock, dockCB) {
       docker.connect(dock);
       async.series([
-        docker.getImages,
+        docker.getImages.bind(docker),
         function fetchContextVersions (fetchCVCB) {
           // chunk check context versions in db for batch of 100 images
           var chunkSize = 100;
@@ -53,12 +53,12 @@ module.exports = function(finalCB) {
           var imageSet = [];
           if (docker.images.length) { imageSet = docker.images.slice(lowerBound, upperBound); }
           function doWhilstIterator (doWhilstIteratorCB) {
-            debug('fetching context-versions ' + lowerBound + ' - ' + upperBound);
+            debug.log('fetching context-versions ' + lowerBound + ' - ' + upperBound);
             mongodb.fetchContextVersionsForImages(imageSet, function (err, contextVersions) {
               if (err) { return doWhilstIteratorCB(err); }
               var numberMissing = (upperBound - lowerBound) - contextVersions.length;
               if (!numberMissing) {
-                debug('all images in set '+lowerBound+'-'+upperBound+' found, proceeding...');
+                debug.log('all images in set '+lowerBound+'-'+upperBound+' found, proceeding...');
                 return doWhilstIteratorCB();
               }
               debug.log(numberMissing + ' images on box not in database, cleaning up...');
@@ -92,7 +92,8 @@ module.exports = function(finalCB) {
         }
       ], dockCB);
     }, function (err) {
-      debug.log('done', 'found ' + orphanedImages + ' orphaned images');
+      debug.log('done')
+      debug.log('found ' + orphanedImagesCount + ' orphaned images');
       datadog.endTiming('complete-prune-orphan-images');
       finalCB(err);
     });
