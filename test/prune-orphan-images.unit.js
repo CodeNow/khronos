@@ -64,7 +64,10 @@ describe('prune-orphan-images', function() {
       if (err) { throw err; }
       async.forEach(images, function (image, eachCB) {
         docker.getImage(image.Id).remove(function (err) {
-          if (err) { throw err; }
+          if (err) {
+            console.log('err', err);
+            debugger;
+          }
           eachCB();
         });
       }, counter.inc().next);

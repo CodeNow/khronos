@@ -14,5 +14,6 @@ make test
 make test-dry
 
 // Individual tests
-NODE_ENV=test node node_modules/lab/bin/lab test/___.unit.js
+NODE_ENV=test NODE_PATH=lib/ node node_modules/lab/bin/lab test/___.unit.js
+DEBUG=khronos* (for debug output)
 ```
