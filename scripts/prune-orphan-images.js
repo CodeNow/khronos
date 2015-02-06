@@ -74,7 +74,13 @@ module.exports = function(finalCB) {
                     return eachCB();
                   }
                   debug.log('cv not found for image: ' + image.Id);
-                  docker.removeImage(image.Id, eachCB);
+                  docker.removeImage(image.Id, function (err) {
+                    if (err) {
+                      debug.log('failed to remove image: '+image.Id+ ' on dock: '+dock.host);
+                      debug.log(err);
+                    }
+                    eachCB();
+                  });
               }, doWhilstIteratorCB);
             });
           }
