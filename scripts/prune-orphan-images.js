@@ -34,8 +34,7 @@ module.exports = function(finalCB) {
     mavis.getDocks.bind(mavis)
   ], function (err) {
     if (err) {
-      console.log(err);
-      return;
+      return finalCB(err);
     }
     processOrphans();
   });
@@ -92,7 +91,7 @@ module.exports = function(finalCB) {
         }
       ], dockCB);
     }, function (err) {
-      debug.log('done')
+      debug.log('done');
       debug.log('found ' + orphanedImagesCount + ' orphaned images');
       datadog.endTiming('complete-prune-orphan-images');
       finalCB(err);
