@@ -24,7 +24,6 @@ var mongodb = require('models/mongodb/mongodb')();
 
 module.exports = function(finalCB) {
   var contextVersionBlackList = [];
-
   async.parallel([
     mongodb.connect.bind(mongodb),
     mavis.getDocks.bind(mavis)
@@ -34,9 +33,12 @@ module.exports = function(finalCB) {
     }
     processBlackListImages();
   });
-
   function processBlackListImages (cb) {
     debug.log('processBlackListImages...');
+    /**
+     * query for contextversion documents
+     * meeting expired criteria
+     */
     var today = new Date();
     var twoWeeksAgo = new Date();
     twoWeeksAgo.setDate(today.getDate() - 7*2);
@@ -51,14 +53,15 @@ module.exports = function(finalCB) {
         '$exists': true
       }
     };
-    var contextVersionsCollection = db.collection('contextversions');
-    contextVersionsCollection.find(expiredQuery).toArray(function (err, results) {
-      console.log('context-versions fetch complete', results.length);
-
+    mongodb.fetchContextVersions(expiredQuery, function (err, results) {
+      debug.log('context-versions fetch complete', results.length);
       async.filter(results, function (cv, cb) {
-        async.series([ //could use parallel for speed, but increased load against mongo
+        /**
+         * could use async.parallel but would result in increased load against mongo
+         */
+        async.series([
           function notUsedInTwoWeeks (cb) {
-            console.log('determine if cv used in last two weeks: '+cv['_id']);
+            debug.log('determine if cv used in last two weeks: '+cv['_id']);
             var query = {
               'build.created': {
                 '$gte': twoWeeksAgo
