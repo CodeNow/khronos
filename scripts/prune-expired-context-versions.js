@@ -16,43 +16,27 @@ var mavis = require('models/mavis');
 var noop = require('101/noop');
 var stats = new Stats('prune-expired-images');
 
+var datadog = require('models/datadog/datadog')(__filename);
+var debug = require('models/debug/debug')(__filename);
+var docker = require('models/docker/docker')();
+var mavis = require('models/mavis/mavis')();
+var mongodb = require('models/mongodb/mongodb')();
+
 module.exports = function(finalCB) {
-
-  if (!isFunction(finalCB)) {
-    finalCB = noop;
-  }
-
-  // for datadog statsd timing
-  var startPrune = new Date();
-  var activeDocks;
-  var db;
   var contextVersionBlackList = [];
 
   async.parallel([
-    connectToMongoDB,
-    mavis.getDocks
+    mongodb.connect.bind(mongodb),
+    mavis.getDocks.bind(mavis)
   ], function (err) {
-    if (err) { throw err; }
-    async.series([
-      fetchImagesBlacklist
-    ], function (err) {
-      console.log('prune expired images complete');
-      if (err) { throw err; }
-      finalCB();
-    });
+    if (err) {
+      return finalCB(err);
+    }
+    processBlackListImages();
   });
 
-  function connectToMongoDB (cb) {
-    console.log('connecting to mongodb', process.env.KHRONOS_MONGO);
-    MongoClient.connect(process.env.KHRONOS_MONGO, function (err, _db) {
-      console.log('connected to mongodb');
-      db = _db;
-      cb(err);
-    });
-  }
-
-  function fetchImagesBlacklist (cb) {
-    console.log('fetching images black list');
+  function processBlackListImages (cb) {
+    debug.log('processBlackListImages...');
     var today = new Date();
     var twoWeeksAgo = new Date();
     twoWeeksAgo.setDate(today.getDate() - 7*2);

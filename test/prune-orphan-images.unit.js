@@ -152,7 +152,6 @@ describe('prune-orphan-images', function() {
           if (err) { throw err; }
           pruneOrphanImages(function () {
             expect(Image.prototype.remove.callCount).to.equal(orphans.length);
-            console.log('last test!');
             done();
           });
         });

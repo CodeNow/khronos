@@ -6,7 +6,6 @@
  * If no associated cv is found, remove image from dock.
  */
 
-//var Docker = require('dockerode');
 var async = require('async');
 var equals = require('101/equals');
 var findIndex = require('101/find-index');
@@ -53,7 +52,22 @@ module.exports = function(finalCB) {
           if (docker.images.length) { imageSet = docker.images.slice(lowerBound, upperBound); }
           function doWhilstIterator (doWhilstIteratorCB) {
             debug.log('fetching context-versions ' + lowerBound + ' - ' + upperBound);
-            mongodb.fetchContextVersionsForImages(imageSet, function (err, contextVersions) {
+            /**
+             * construct query of context-version ids by iterating over each image
+             * and producting an array of ObjectID's for their corresponding
+             * context-versions
+             */
+            var regexImageTagCV = new RegExp('^'+process.env.KHRONOS_DOCKER_REGISTRY+'\/[0-9]+\/([A-z0-9]+):([A-z0-9]+)');
+            var cvIds = imageSet.map(function (image) {
+              var regexExecResult = regexImageTagCV.exec(image.RepoTags[0]);
+              return mongodb.newObjectID(regexExecResult[2]);
+            });
+            var query = {
+              '_id': {
+                '$in': cvIds
+              }
+            };
+            mongodb.fetchContextVersions(query, function (err, contextVersions) {
               if (err) { return doWhilstIteratorCB(err); }
               /**
                * The difference between the range (upperBound-lowerBound) and the number
@@ -96,6 +110,9 @@ module.exports = function(finalCB) {
                   });
               }, doWhilstIteratorCB);
             });
+
+
+
           }
           /**
            * Chunk requests to mongodb to avoid potential memory/heap size issues
