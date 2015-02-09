@@ -6,24 +6,14 @@
  * If no associated cv is found, remove image from dock.
  */
 
-var MongoClient = require('mongodb').MongoClient;
-var ObjectID = require('mongodb').ObjectID;
-var Stats = require('models/datadog');
 var async = require('async');
 var fs = require('fs');
-var isFunction = require('101/is-function');
-var mavis = require('models/mavis');
-var noop = require('101/noop');
-var stats = new Stats('prune-expired-images');
 
-var datadog = require('models/datadog/datadog')(__filename);
 var debug = require('models/debug/debug')(__filename);
-var docker = require('models/docker/docker')();
 var mavis = require('models/mavis/mavis')();
 var mongodb = require('models/mongodb/mongodb')();
 
 module.exports = function(finalCB) {
-  var contextVersionBlackList = [];
   async.parallel([
     mongodb.connect.bind(mongodb),
     mavis.getDocks.bind(mavis)
@@ -68,9 +58,9 @@ module.exports = function(finalCB) {
               },
               'contextVersions': cv['_id']
             };
-            db.collection('builds').count(query, function (err, count) {
+            mongodb.countBuilds(query, function (err, count) {
               if (err) { return cb(err); }
-              if (count === 0) {
+              if (!count) {
                 return cb();
               }
               cb(new Error());
@@ -80,9 +70,9 @@ module.exports = function(finalCB) {
             var query = {
               'contextVersion._id': cv['_id']
             };
-            db.collection('instances').count(query, function (err, count) {
+            mongodb.countInstances(query, function (err, count) {
               if (err) { return cb(err); }
-              if (count === 0) {
+              if (!count) {
                 return cb();
               }
               cb(new Error());
@@ -95,23 +85,29 @@ module.exports = function(finalCB) {
           cb(true);
         });
       },
-      function (filteredResults) {
-        contextVersionBlackList = filteredResults;
+      function (contextVersionBlackList) {
         // temporary contingency
         // preserve JSON backup of whatever images I delete
-        fs.writeFilySync(__dirname + '/../logs/removed_cvs_'+(new Date()).toISOString(),
-                         JSON.stringify(contextVersionBlackList, null, ' '));
-        console.log('contextVersionBlackList.length', contextVersionBlackList.length);
-        console.log('results.length', results.length);
-
+        try {
+          fs.writeFilySync(__dirname + '/../logs/removed_cvs_'+(new Date()).toISOString(),
+                           JSON.stringify(contextVersionBlackList, null, ' '));
+          debug.log('contextVersionBlackList.length', contextVersionBlackList.length);
+          debug.log('results.length', results.length);
+        } catch (err) {
+          debug.log('error saving backup', err);
+        }
         var cvblIds = contextVersionBlackList.map(function (contextVersion) {
-          return new ObjectID(contextVersion._id);
+          return mongodb.newObjectID(contextVersion._id);
         });
-        //remove em'
-        db.collection('contextversions').remove({
+        var query = {
           '$in': cvblIds
-        }, function () {
-          console.log('removed ' + cvblIds.length + ' context versions');
+        };
+        //remove em'
+        mongodb.removeContextVersions(query, function (err) {
+          if (err) {
+            debug.log(err);
+          }
+          debug.log('removed ' + cvblIds.length + ' context versions');
           cb();
         });
       });
