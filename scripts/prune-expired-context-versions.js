@@ -47,7 +47,11 @@ module.exports = function(finalCB) {
       debug.log('context-versions fetch complete', results.length);
       async.filter(results, function (cv, cb) {
         /**
-         * could use async.parallel but would result in increased load against mongo
+         * For every contextversion document that matches expired critera
+         * we must perform 2 additional verifications:
+         *  (1) the cv has not been attached to a build in two weeks
+         *  (2) the cv is not currently attached to an instance
+         * NOTE: could use async.parallel but would result in increased load against mongo
          */
         async.series([
           function notUsedInTwoWeeks (cb) {
