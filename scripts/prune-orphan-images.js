@@ -9,8 +9,6 @@
 var async = require('async');
 var equals = require('101/equals');
 var findIndex = require('101/find-index');
-var isFunction = require('101/is-function');
-var noop = require('101/noop');
 
 var datadog = require('models/datadog/datadog')(__filename);
 var debug = require('models/debug/debug')(__filename);
@@ -20,10 +18,6 @@ var mongodb = require('models/mongodb/mongodb')();
 
 module.exports = function(finalCB) {
   var orphanedImagesCount = 0;
-  var regexImageTagCV = new RegExp('^'+process.env.KHRONOS_DOCKER_REGISTRY+'\/[0-9]+\/([A-z0-9]+):([A-z0-9]+)');
-  if (!isFunction(finalCB)) {
-    finalCB = noop;
-  }
   datadog.startTiming('complete-prune-orphan-images');
   // for each dock
     // find all images with tag 'registry.runnable.io'
@@ -110,9 +104,6 @@ module.exports = function(finalCB) {
                   });
               }, doWhilstIteratorCB);
             });
-
-
-
           }
           /**
            * Chunk requests to mongodb to avoid potential memory/heap size issues
