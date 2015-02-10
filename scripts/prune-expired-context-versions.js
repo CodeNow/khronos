@@ -91,7 +91,9 @@ module.exports = function(finalCB) {
           return mongodb.newObjectID(contextVersion._id);
         });
         var query = {
-          '$in': cvblIds
+          '_id': {
+            '$in': cvblIds
+          }
         };
         /**
          * First remove all contextversion documents that matched
