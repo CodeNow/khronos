@@ -7,7 +7,6 @@
  */
 
 var async = require('async');
-var fs = require('fs');
 
 var debug = require('models/debug/debug')(__filename);
 var mavis = require('models/mavis/mavis')();
@@ -23,7 +22,7 @@ module.exports = function(finalCB) {
     }
     processBlackListImages();
   });
-  function processBlackListImages (cb) {
+  function processBlackListImages () {
     debug.log('processBlackListImages...');
     /**
      * query for contextversion documents
@@ -90,32 +89,57 @@ module.exports = function(finalCB) {
         });
       },
       function (contextVersionBlackList) {
-        // temporary contingency
-        // preserve JSON backup of whatever images I delete
-        try {
-          fs.writeFilySync(__dirname + '/../logs/removed_cvs_'+(new Date()).toISOString(),
-                           JSON.stringify(contextVersionBlackList, null, ' '));
-          debug.log('contextVersionBlackList.length', contextVersionBlackList.length);
-          debug.log('results.length', results.length);
-        } catch (err) {
-          debug.log('error saving backup', err);
-        }
         var cvblIds = contextVersionBlackList.map(function (contextVersion) {
           return mongodb.newObjectID(contextVersion._id);
         });
         var query = {
           '$in': cvblIds
         };
-        //remove em'
-        mongodb.removeContextVersions(query, function (err) {
-          if (err) {
-            debug.log(err);
+        /**
+         * First remove all contextversion documents that matched
+         * the selected criterias. Then, if any of those documents
+         * where attached to an instance after our initial query,
+         * reinsert them into the database.
+         */
+        async.series([
+          function removeContextVersions (removeCB) {
+            mongodb.removeContextVersions(query, function (err) {
+              if (err) {
+                debug.log(err);
+              }
+              debug.log('removed ' + cvblIds.length + ' context versions');
+              removeCB();
+            });
+          },
+          function restoreContextVersion (restoreCB) {
+            async.eachSeries(contextVersionBlackList, function (contextVersion, cb) {
+              var query = {
+                'contextVersion._id': mongodb.newObjectID(contextVersion._id)
+              };
+              mongodb.countInstances(query, function (err, count) {
+                if (err) {
+                  debug.log(err);
+                }
+                if (!count) {
+                  return cb();
+                }
+                // we have an instance that the contextVersion has been attached to,
+                // must restore contextVersion
+                debug.log('restoring contextversion id: ' + contextVersion._id);
+                mongodb.insertContextVersion(contextVersion, function (err) {
+                  if (err) {
+                    debug.log(err);
+                  }
+                  cb();
+                });
+              });
+            }, restoreCB);
           }
-          debug.log('removed ' + cvblIds.length + ' context versions');
-          cb();
+        ], function () {
+          debug.log('finished pruneExpiredContextVersions');
+          finalCB();
         });
       });
-
     });
   }
 };
