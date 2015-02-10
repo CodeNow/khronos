@@ -13,29 +13,20 @@ var lab = exports.lab = Lab.script();
 var describe = lab.describe;
 var it = lab.it;
 var before = lab.before;
-//var beforeEach = lab.beforeEach;
+var beforeEach = lab.beforeEach;
 //var after = lab.after;
 var afterEach = lab.afterEach;
 var expect = chai.expect;
 
 require('../lib/loadenv');
 
-dockerMock.listen(process.env.KHRONOS_DOCKER_PORT);
-
-// set non-default port for testing
-var Docker = require('dockerode');
-var docker = new Docker({
-  host: process.env.KHRONOS_DOCKER_HOST,
-  port: process.env.KHRONOS_DOCKER_PORT
-});
-
 // replace private variables for testing
-var pruneOrphanImages = rewire('../scripts/prune-orphan-images');
+var pruneExpiredContextVersions = rewire('../scripts/prune-expired-context-versions');
+var mongodb = pruneExpiredContextVersions.__get__('mongodb');
 
-var Image = require('dockerode/lib/image');
-sinon.spy(Image.prototype, 'remove');
+sinon.spy(mongodb, 'fetchContextVersions');
 
-describe('prune-orphan-images', function() {
+describe('prune-expired-context-versions', function() {
 
   var db;
 
@@ -47,32 +38,48 @@ describe('prune-orphan-images', function() {
     });
   });
 
-  afterEach({timeout: 1000*10}, function (done) {
-    var counter = createCounter(2, function () {
-      console.log('cb count cb');
-      done();
-    });
-    if (Image.prototype.remove.reset) {
-      Image.prototype.remove.reset();
+  afterEach(function (done) {
+    if (mongodb.fetchContextVersions.reset) {
+      mongodb.fetchContextVersions.reset();
     }
-    docker.listImages(function (err, images) {
-      console.log('images', images);
-      if (err) { throw err; }
-      async.forEach(images, function (image, eachCB) {
-        docker.getImage(image.Id).remove(function (err) {
-          if (err) { throw err; }
-          eachCB();
-        });
-      }, counter.inc().next);
-    });
-    db.collection('contextversions').drop(function () {
-      console.log('drop callback');
-      counter.inc().next();
-    });
+    done();
+  });
 
+  beforeEach({timeout: 1000*10}, function (done) {
+    var collections = [
+      'builds',
+      'contextversions',
+      'instances'
+    ];
+    async.eachSeries(collections, function (collectionName, cb) {
+      db.collection(collectionName).drop(function () { cb(); });
+    }, done);
   });
 
   describe('success scenarios', function () {
+    it('should successfully run if no contextversions', function (done) {
+      pruneExpiredContextVersions(function () {
+        expect(mongodb.fetchContextVersions.callCount).to.equal(1);
+        done();
+      });
+    });
+
+    it('should only remove contextversions that fit selection criteria', function (done) {
+      //pruneExpiredContextVersions
+      done();
+    });
+
+    it('should properly restore deleted contextversions when cv '+
+       'restored after initial blacklist fetch', function (done) {
+      done();
+    });
+  });
+});
+
+
+
+
+/*
     describe('no images', function () {
       it('should run successfully if no images on dock', {timeout: 100000}, function (done) {
         pruneOrphanImages(function () {
@@ -157,4 +164,4 @@ describe('prune-orphan-images', function() {
       });
     });
   });
-});
+*/

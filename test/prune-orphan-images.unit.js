@@ -8,7 +8,6 @@ var chai = require('chai');
 var dockerMock = require('docker-mock');
 var rewire = require('rewire');
 var sinon = require('sinon');
-var createCounter = require('callback-count');
 
 var lab = exports.lab = Lab.script();
 
@@ -49,29 +48,59 @@ describe('prune-orphan-images', function() {
       done();
     });
   });
-
+var i = 0;
   beforeEach(function (done) {
     mavisMock();
+    i++;
     done();
   });
 
-  afterEach({ timeout: 1000*10 }, function (done) {
-    var counter = createCounter(done);
+  afterEach(function (done2) {
     if (Image.prototype.remove.reset) {
       Image.prototype.remove.reset();
     }
-    docker.listImages(function (err, images) {
-      if (err) { throw err; }
-      async.forEach(images, function (image, eachCB) {
-        docker.getImage(image.Id).remove(function (err) {
-          if (err) {
-            console.log('err', err);
-          }
-          eachCB();
-        });
-      }, counter.inc().next);
+    function done () {
+      console.log('DONE', i);
+      done2();
+    }
+    var d = require('domain').create();
+
+    d.run(stuff);
+    d.on('error', function (err) {
+     console.log(err.stack);
     });
-    db.collection('contextversions').drop(counter.inc().next);
+    function stuff () {
+      async.series([
+        function deleteImages (cb) {
+          docker.listImages(function (err, images) {
+            if (err) {
+              console.log(err);
+              cb();
+            }
+            async.forEach(images, function (image, eachCB) {
+              docker.getImage(image.Id).remove(function (err) {
+                if (err) {
+                  console.log('err', err);
+                }
+                eachCB();
+              });
+            }, function () {
+              console.log('removed each image');
+              cb();
+            });
+          });
+        },
+        function deleteContextVersions (cb) {
+          db.collection('contextversions').drop(function () {
+            console.log('dropped contextversions collection');
+            cb();
+          });
+        }
+      ], function () {
+        console.log('finished afterEach');
+        done();
+      });
+    }
   });
 
   describe('success scenarios', function () {
