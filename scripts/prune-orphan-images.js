@@ -45,7 +45,7 @@ module.exports = function(finalCB) {
           var imageSet = [];
           if (docker.images.length) { imageSet = docker.images.slice(lowerBound, upperBound); }
           function doWhilstIterator (doWhilstIteratorCB) {
-            debug.log('fetching context-versions ' + lowerBound + ' - ' + upperBound);
+            debug.log('fetching context-versions '+lowerBound+' - '+upperBound);
             /**
              * construct query of context-version ids by iterating over each image
              * and producting an array of ObjectID's for their corresponding
@@ -73,12 +73,12 @@ module.exports = function(finalCB) {
                 debug.log('all images in set '+lowerBound+'-'+upperBound+' found, proceeding...');
                 return doWhilstIteratorCB();
               }
-              debug.log(numberMissing + ' images on box not in database, cleaning up...');
+              debug.log(numberMissing+' images on box not in database, cleaning up...');
               // track total number of orphaned images that were discovered in this cron iteration
               orphanedImagesCount += numberMissing;
               // need array of mongids in string format to perform search
               var foundCvIDs = contextVersions.map(function (res) {
-                return res['_id'].toString();
+                return res._id.toString();
               });
               /**
                * determine which images in imageSet do not have corresponding context-versions
@@ -93,11 +93,11 @@ module.exports = function(finalCB) {
                     // image has corresponding cv, continue (not orphan)
                     return eachCB();
                   }
-                  debug.log('cv not found for image: ' + image.Id);
+                  debug.log('cv not found for image: '+image.Id);
                   // orphan found
                   docker.removeImage(image.Id, function (err) {
                     if (err) {
-                      debug.log('failed to remove image: '+image.Id+ ' on dock: '+dock.host);
+                      debug.log('failed to remove image: '+image.Id+' on dock: '+dock.host);
                       debug.log(err);
                     }
                     eachCB();
@@ -123,7 +123,7 @@ module.exports = function(finalCB) {
       ], dockCB);
     }, function (err) {
       debug.log('done');
-      debug.log('found ' + orphanedImagesCount + ' orphaned images');
+      debug.log('found '+orphanedImagesCount+' orphaned images');
       datadog.endTiming('complete-prune-orphan-images');
       finalCB(err);
     });

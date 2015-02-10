@@ -54,12 +54,12 @@ module.exports = function(finalCB) {
          */
         async.series([
           function notUsedInTwoWeeks (cb) {
-            debug.log('determine if cv used in last two weeks: '+cv['_id']);
+            debug.log('determine if cv used in last two weeks: '+cv._id);
             var query = {
               'build.created': {
                 '$gte': twoWeeksAgo
               },
-              'contextVersions': cv['_id']
+              'contextVersions': cv._id
             };
             mongodb.countBuilds(query, function (err, count) {
               if (err) { return cb(err); }
@@ -71,7 +71,7 @@ module.exports = function(finalCB) {
           },
           function notCurrentlyAttachedToInstance (cb) {
             var query = {
-              'contextVersion._id': cv['_id']
+              'contextVersion._id': cv._id
             };
             mongodb.countInstances(query, function (err, count) {
               if (err) { return cb(err); }
@@ -107,7 +107,7 @@ module.exports = function(finalCB) {
               if (err) {
                 debug.log(err);
               }
-              debug.log('removed ' + cvblIds.length + ' context versions');
+              debug.log('removed '+cvblIds.length+' context versions');
               removeCB();
             });
           },
@@ -125,7 +125,7 @@ module.exports = function(finalCB) {
                 }
                 // we have an instance that the contextVersion has been attached to,
                 // must restore contextVersion
-                debug.log('restoring contextversion id: ' + contextVersion._id);
+                debug.log('restoring contextversion id: '+contextVersion._id);
                 mongodb.insertContextVersion(contextVersion, function (err) {
                   if (err) {
                     debug.log(err);
