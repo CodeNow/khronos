@@ -37,6 +37,9 @@ module.exports = function(finalCB) {
       }
     };
     mongodb.fetchContextVersions(expiredQuery, function (err, results) {
+      if (err) {
+        return finalCB(err);
+      }
       debug.log('context-versions fetch complete', results.length);
       async.filter(results, function (cv, cb) {
         /**
