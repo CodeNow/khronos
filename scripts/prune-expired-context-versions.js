@@ -1,9 +1,9 @@
 'use strict';
 
 /**
- * Fetch list of images on each dock, verify each image is attached to a context-version in mongodb.
- * Only fetch images with tag indicating image is in our runnable registry.
- * If no associated cv is found, remove image from dock.
+ * Query for context versions that are built and older than 2 weeks.
+ * Delete CVs and restore if they were attached to an instance between the
+ * GET and the DELETE operations
  */
 
 var async = require('async');
@@ -108,7 +108,9 @@ module.exports = function(finalCB) {
               if (err) {
                 debug.log(err);
               }
-              debug.log('removed '+cvblIds.length+' context versions');
+              else {
+                debug.log('removed '+cvblIds.length+' context versions');
+              }
               removeCB();
             });
           },
