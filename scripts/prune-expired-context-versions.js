@@ -46,35 +46,37 @@ module.exports = function(finalCB) {
          *  (2) the cv is not currently attached to an instance
          * NOTE: could use async.parallel but would result in increased load against mongo
          */
+        function notUsedInTwoWeeks (cb) {
+          debug.log('determine if cv used in last two weeks: '+cv._id);
+          var query = {
+            'build.created': {
+              '$gte': twoWeeksAgo
+            },
+            'contextVersions': cv._id
+          };
+          mongodb.countBuilds(query, function (err, count) {
+            if (err) { return cb(err); }
+            if (!count) {
+              return cb();
+            }
+            cb(new Error());
+          });
+        }
+        function notCurrentlyAttachedToInstance (cb) {
+          var query = {
+            'contextVersion._id': cv._id
+          };
+          mongodb.countInstances(query, function (err, count) {
+            if (err) { return cb(err); }
+            if (!count) {
+              return cb();
+            }
+            cb(new Error());
+          });
+        }
         async.series([
-          function notUsedInTwoWeeks (cb) {
-            debug.log('determine if cv used in last two weeks: '+cv._id);
-            var query = {
-              'build.created': {
-                '$gte': twoWeeksAgo
-              },
-              'contextVersions': cv._id
-            };
-            mongodb.countBuilds(query, function (err, count) {
-              if (err) { return cb(err); }
-              if (!count) {
-                return cb();
-              }
-              cb(new Error());
-            });
-          },
-          function notCurrentlyAttachedToInstance (cb) {
-            var query = {
-              'contextVersion._id': cv._id
-            };
-            mongodb.countInstances(query, function (err, count) {
-              if (err) { return cb(err); }
-              if (!count) {
-                return cb();
-              }
-              cb(new Error());
-            });
-          }
+          notUsedInTwoWeeks,
+          notCurrentlyAttachedToInstance
         ], function (err) {
           if (err) {
             return cb(false);
