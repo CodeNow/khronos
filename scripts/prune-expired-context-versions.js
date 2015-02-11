@@ -12,12 +12,8 @@ var debug = require('models/debug/debug')(__filename);
 var mongodb = require('models/mongodb/mongodb')();
 
 module.exports = function(finalCB) {
-  async.parallel([
-    mongodb.connect.bind(mongodb)
-  ], function (err) {
-    if (err) {
-      return finalCB(err);
-    }
+  mongodb.connect(function (err) {
+    if (err) { return err; }
     processExpiredContextVersions();
   });
   function processExpiredContextVersions () {
