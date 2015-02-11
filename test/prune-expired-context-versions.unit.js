@@ -13,29 +13,20 @@ var lab = exports.lab = Lab.script();
 var describe = lab.describe;
 var it = lab.it;
 var before = lab.before;
-//var beforeEach = lab.beforeEach;
+var beforeEach = lab.beforeEach;
 //var after = lab.after;
 var afterEach = lab.afterEach;
 var expect = chai.expect;
 
 require('../lib/loadenv');
 
-dockerMock.listen(process.env.KHRONOS_DOCKER_PORT);
-
-// set non-default port for testing
-var Docker = require('dockerode');
-var docker = new Docker({
-  host: process.env.KHRONOS_DOCKER_HOST,
-  port: process.env.KHRONOS_DOCKER_PORT
-});
-
 // replace private variables for testing
-var pruneOrphanImages = rewire('../scripts/prune-orphan-images');
+var pruneExpiredContextVersions = rewire('../scripts/prune-expired-context-versions');
+var mongodb = pruneExpiredContextVersions.__get__('mongodb');
 
-var Image = require('dockerode/lib/image');
-sinon.spy(Image.prototype, 'remove');
+sinon.spy(mongodb, 'fetchContextVersions');
 
-describe('prune-orphan-images', function() {
+describe('prune-expired-context-versions', function() {
 
   var db;
 
@@ -47,114 +38,93 @@ describe('prune-orphan-images', function() {
     });
   });
 
-  afterEach({timeout: 1000*10}, function (done) {
-    var counter = createCounter(2, function () {
-      console.log('cb count cb');
-      done();
-    });
-    if (Image.prototype.remove.reset) {
-      Image.prototype.remove.reset();
+  afterEach(function (done) {
+    if (mongodb.fetchContextVersions.reset) {
+      mongodb.fetchContextVersions.reset();
     }
-    docker.listImages(function (err, images) {
-      console.log('images', images);
-      if (err) { throw err; }
-      async.forEach(images, function (image, eachCB) {
-        docker.getImage(image.Id).remove(function (err) {
-          if (err) { throw err; }
-          eachCB();
-        });
-      }, counter.inc().next);
-    });
-    db.collection('contextversions').drop(function () {
-      console.log('drop callback');
-      counter.inc().next();
-    });
+    done();
+  });
 
+  beforeEach({timeout: 1000*10}, function (done) {
+    var collections = [
+      'builds',
+      'contextversions',
+      'instances'
+    ];
+    async.eachSeries(collections, function (collectionName, cb) {
+      db.collection(collectionName).drop(function () { cb(); });
+    }, done);
   });
 
   describe('success scenarios', function () {
-    describe('no images', function () {
-      it('should run successfully if no images on dock', {timeout: 100000}, function (done) {
-        pruneOrphanImages(function () {
-          expect(Image.prototype.remove.called).to.equal(false);
-          done();
-        });
+    it('should successfully run if no contextversions', function (done) {
+      pruneExpiredContextVersions(function () {
+        expect(mongodb.fetchContextVersions.callCount).to.equal(1);
+        done();
       });
     });
 
-    describe('dock with images', function () {
-      it('should run successfully with no orphaned images on dock', function (done) {
-        var cvs = [];
-        async.series([
-          function createCVs (cb) {
-            var contextVersions = db.collection('contextversions');
-            async.times(4, function (n, cb) {
-              contextVersions.insert({}, function (err, _cv) {
-                cvs.push(_cv[0]);
-                cb();
-              });
-            }, cb);
-          },
-          function createImages (cb) {
-            async.eachLimit(cvs, 1, function (cv, cb) { // bit of a concurrency bug in tests
-              var cvId = cv['_id']+''; // must cast to string
-              docker.createImage({
-                fromImage: 'registry.runnable.com/1616464/'+cvId,
-                tag: cvId
-              }, function (err) {
-                if (err) { throw err; }
-                cb();
-              });
-            }, cb);
-          }
-        ], function (err) {
-          if (err) { throw err; }
-          pruneOrphanImages(function () {
-            expect(Image.prototype.remove.called).to.equal(false);
-            done();
-          });
-        });
-      });
-
-      it('should only remove orphaned images from dock', {timeout: 1000*5}, function (done) {
-        var cvs = [];
-        var orphans = [];
-        async.series([
-          function createCVs (cb) {
-            var contextVersions = db.collection('contextversions');
-            async.times(1, function (n, cb) {
-              contextVersions.insert({}, function (err, _cv) {
-                cvs.push(_cv[0]);
-                cb();
-              });
-            }, cb);
-          },
-          function createImages (cb) {
-            // creating orphans
-            orphans.push({'_id': new ObjectID('999017345affa9400d894407')});
-            orphans.push({'_id': new ObjectID('999015ac341e8eb10b4a0328')});
-            orphans.push({'_id': new ObjectID('999015ac341e8eb10b4a0329')});
-            cvs = cvs.concat(orphans);
-            async.eachLimit(cvs, 1, function (cv, cb) { // bit of a concurrency bug in tests
-              var cvId = cv['_id']+''; // must cast to string
-              docker.createImage({
-                fromImage: 'registry.runnable.com/1616464/'+cvId,
-                tag: cvId
-              }, function (err) {
-                if (err) { throw err; }
-                cb();
-              });
-            }, cb);
-          }
-        ], function (err) {
-          if (err) { throw err; }
-          pruneOrphanImages(function () {
-            expect(Image.prototype.remove.callCount).to.equal(orphans.length);
-            console.log('last test!');
+    it('should only remove contextversions that fit selection criteria', function (done) {
+      var testData = [{
+        _id: ObjectID('54da9cb6ed4383c43fb1504a'),
+        build: {
+          started: new Date(1980, 1, 1),
+          completed: true,
+          dockerTag: true
+        }
+      }, {
+        _id: ObjectID('54da9cb6ed4383c43fb1504e'),
+        build: {
+          started: new Date(),
+          complete: true,
+          dockerTag: true
+        }
+      }];
+      var cv = db.collection('contextversions');
+      cv.insert(testData, function (err) {
+        if (err) { throw err; }
+        pruneExpiredContextVersions(function () {
+          cv.find({}).toArray(function (err, results) {
+            expect(results.length).to.equal(1);
+            expect(results[0]._id.toString()).to.equal('54da9cb6ed4383c43fb1504e');
             done();
           });
         });
       });
     });
+
+    /*
+    it('should properly restore deleted contextversions when cv '+
+       'restored after initial blacklist fetch', function (done) {
+      var testData = [{
+        _id: ObjectID('54da9cb6ed4383c43fb1504a'),
+        build: {
+          started: new Date(1980, 1, 1),
+          completed: true,
+          dockerTag: true
+        }
+      }, {
+        _id: ObjectID('54da9cb6ed4383c43fb1504e'),
+        build: {
+          started: new Date(),
+          complete: true,
+          dockerTag: true
+        }
+      }];
+      var cv = db.collection('contextversions');
+      cv.insert(testData, function (err) {
+        if (err) { throw err; }
+        pruneExpiredContextVersions(function () {
+          cv.find({}).toArray(function (err, results) {
+            expect(results.length).to.equal(1);
+            expect(results[0]._id.toString()).to.equal('54da9cb6ed4383c43fb1504e');
+            done();
+          });
+        });
+      });
+      done();
+    });
+    */
+
   });
 });

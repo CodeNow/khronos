@@ -1,58 +1,27 @@
 'use strict';
 
 /**
- * Fetch list of images on each dock, verify each image is attached to a context-version in mongodb.
- * Only fetch images with tag indicating image is in our runnable registry.
- * If no associated cv is found, remove image from dock.
+ * Query for context versions that are built and older than 2 weeks.
+ * Delete CVs and restore if they were attached to an instance between the
+ * GET and the DELETE operations
  */
 
-var MongoClient = require('mongodb').MongoClient;
-var ObjectID = require('mongodb').ObjectID;
-var Stats = require('models/datadog');
 var async = require('async');
-var fs = require('fs');
-var isFunction = require('101/is-function');
-var mavis = require('models/mavis');
-var noop = require('101/noop');
-var stats = new Stats('prune-expired-images');
+
+var debug = require('models/debug/debug')(__filename);
+var mongodb = require('models/mongodb/mongodb')();
 
 module.exports = function(finalCB) {
-
-  if (!isFunction(finalCB)) {
-    finalCB = noop;
-  }
-
-  // for datadog statsd timing
-  var startPrune = new Date();
-  var activeDocks;
-  var db;
-  var contextVersionBlackList = [];
-
-  async.parallel([
-    connectToMongoDB,
-    mavis.getDocks
-  ], function (err) {
-    if (err) { throw err; }
-    async.series([
-      fetchImagesBlacklist
-    ], function (err) {
-      console.log('prune expired images complete');
-      if (err) { throw err; }
-      finalCB();
-    });
+  mongodb.connect(function (err) {
+    if (err) { return err; }
+    processExpiredContextVersions();
   });
-
-  function connectToMongoDB (cb) {
-    console.log('connecting to mongodb', process.env.KHRONOS_MONGO);
-    MongoClient.connect(process.env.KHRONOS_MONGO, function (err, _db) {
-      console.log('connected to mongodb');
-      db = _db;
-      cb(err);
-    });
-  }
-
-  function fetchImagesBlacklist (cb) {
-    console.log('fetching images black list');
+  function processExpiredContextVersions () {
+    debug.log('processExpiredContextVersions...');
+    /**
+     * query for contextversion documents
+     * meeting expired criteria
+     */
     var today = new Date();
     var twoWeeksAgo = new Date();
     twoWeeksAgo.setDate(today.getDate() - 7*2);
@@ -67,40 +36,50 @@ module.exports = function(finalCB) {
         '$exists': true
       }
     };
-    var contextVersionsCollection = db.collection('contextversions');
-    contextVersionsCollection.find(expiredQuery).toArray(function (err, results) {
-      console.log('context-versions fetch complete', results.length);
-
+    mongodb.fetchContextVersions(expiredQuery, function (err, results) {
+      if (err) {
+        return finalCB(err);
+      }
+      debug.log('context-versions fetch complete', results.length);
       async.filter(results, function (cv, cb) {
-        async.series([ //could use parallel for speed, but increased load against mongo
-          function notUsedInTwoWeeks (cb) {
-            console.log('determine if cv used in last two weeks: '+cv['_id']);
-            var query = {
-              'build.created': {
-                '$gte': twoWeeksAgo
-              },
-              'contextVersions': cv['_id']
-            };
-            db.collection('builds').count(query, function (err, count) {
-              if (err) { return cb(err); }
-              if (count === 0) {
-                return cb();
-              }
-              cb(new Error());
-            });
-          },
-          function notCurrentlyAttachedToInstance (cb) {
-            var query = {
-              'contextVersion._id': cv['_id']
-            };
-            db.collection('instances').count(query, function (err, count) {
-              if (err) { return cb(err); }
-              if (count === 0) {
-                return cb();
-              }
-              cb(new Error());
-            });
-          }
+        /**
+         * For every contextversion document that matches expired critera
+         * we must perform 2 additional verifications:
+         *  (1) the cv has not been attached to a build in two weeks
+         *  (2) the cv is not currently attached to an instance
+         * NOTE: could use async.parallel but would result in increased load against mongo
+         */
+        function notUsedInTwoWeeks (cb) {
+          debug.log('determine if cv used in last two weeks: '+cv._id);
+          var query = {
+            'build.created': {
+              '$gte': twoWeeksAgo
+            },
+            'contextVersions': cv._id
+          };
+          mongodb.countBuilds(query, function (err, count) {
+            if (err) { return cb(err); }
+            if (!count) {
+              return cb();
+            }
+            cb(new Error());
+          });
+        }
+        function notCurrentlyAttachedToInstance (cb) {
+          var query = {
+            'contextVersion._id': cv._id
+          };
+          mongodb.countInstances(query, function (err, count) {
+            if (err) { return cb(err); }
+            if (!count) {
+              return cb();
+            }
+            cb(new Error());
+          });
+        }
+        async.series([
+          notUsedInTwoWeeks,
+          notCurrentlyAttachedToInstance
         ], function (err) {
           if (err) {
             return cb(false);
@@ -108,27 +87,62 @@ module.exports = function(finalCB) {
           cb(true);
         });
       },
-      function (filteredResults) {
-        contextVersionBlackList = filteredResults;
-        // temporary contingency
-        // preserve JSON backup of whatever images I delete
-        fs.writeFilySync(__dirname + '/../logs/removed_cvs_'+(new Date()).toISOString(),
-                         JSON.stringify(contextVersionBlackList, null, ' '));
-        console.log('contextVersionBlackList.length', contextVersionBlackList.length);
-        console.log('results.length', results.length);
-
+      function (contextVersionBlackList) {
         var cvblIds = contextVersionBlackList.map(function (contextVersion) {
-          return new ObjectID(contextVersion._id);
+          return mongodb.newObjectID(contextVersion._id);
         });
-        //remove em'
-        db.collection('contextversions').remove({
-          '$in': cvblIds
-        }, function () {
-          console.log('removed ' + cvblIds.length + ' context versions');
-          cb();
+        var query = {
+          '_id': {
+            '$in': cvblIds
+          }
+        };
+        /**
+         * First remove all contextversion documents that matched
+         * the selected criterias. Then, if any of those documents
+         * where attached to an instance after our initial query,
+         * reinsert them into the database.
+         */
+        async.series([
+          function removeContextVersions (removeCB) {
+            mongodb.removeContextVersions(query, function (err) {
+              if (err) {
+                debug.log(err);
+              }
+              else {
+                debug.log('removed '+cvblIds.length+' context versions');
+              }
+              removeCB();
+            });
+          },
+          function restoreContextVersion (restoreCB) {
+            async.eachSeries(contextVersionBlackList, function (contextVersion, cb) {
+              var query = {
+                'contextVersion._id': mongodb.newObjectID(contextVersion._id)
+              };
+              mongodb.countInstances(query, function (err, count) {
+                if (err) {
+                  debug.log(err);
+                }
+                if (!count) {
+                  return cb();
+                }
+                // we have an instance that the contextVersion has been attached to,
+                // must restore contextVersion
+                debug.log('restoring contextversion id: '+contextVersion._id);
+                mongodb.insertContextVersion(contextVersion, function (err) {
+                  if (err) {
+                    debug.log(err);
+                  }
+                  cb();
+                });
+              });
+            }, restoreCB);
+          }
+        ], function () {
+          debug.log('finished pruneExpiredContextVersions');
+          finalCB();
         });
       });
-
     });
   }
 };
