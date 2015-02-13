@@ -23,7 +23,7 @@ if (process.env.MANUAL_RUN) {
   });
 } else {
   new CronJob({
-    cronTime: '00 00 12 * * 0-6', // every day at 12:00
+    cronTime: process.env.KHRONOS_INTERVAL,
     onTick: function () {
       var timingKey = 'cron-scripts-duration';
       debug.log('cron run started: '+new Date().toString());
