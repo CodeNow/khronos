@@ -91,7 +91,7 @@ module.exports = function(finalCB) {
                */
               async.forEach(imageTagSet,
                 function (imageTag, eachCB) {
-                  // registry.runnable.io/555:333 [2] is "333"
+                  // registry.runnable.io/<session-user>:<context-version-Id> [2] is "<context-version-Id>"
                   var imageCVIDEqualsFn = equals(regexImageTagCV.exec(imageTag)[2]);
                   if (-1 !== findIndex(foundCvIDs, imageCVIDEqualsFn)) {
                     // image has corresponding cv, continue (not orphan)
