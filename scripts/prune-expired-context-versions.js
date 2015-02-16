@@ -13,7 +13,10 @@ var mongodb = require('models/mongodb/mongodb')();
 
 module.exports = function(finalCB) {
   mongodb.connect(function (err) {
-    if (err) { return err; }
+    if (err) {
+      console.log('mongodb failed to connect', err);
+      return err;
+    }
     processExpiredContextVersions();
   });
   function processExpiredContextVersions () {
@@ -38,6 +41,7 @@ module.exports = function(finalCB) {
     };
     mongodb.fetchContextVersions(expiredQuery, function (err, results) {
       if (err) {
+        debug.log('failed to fetch context versions', err);
         return finalCB(err);
       }
       debug.log('context-versions fetch complete', results.length);
