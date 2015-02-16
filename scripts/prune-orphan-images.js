@@ -91,14 +91,14 @@ module.exports = function(finalCB) {
                */
               async.forEach(imageSet,
                 function (image, eachCB) {
-                  var imageCVIDEqualsFn = equals(regexImageTagCV.exec(image.RepoTags[0])[2]);
+                  var imageCVIDEqualsFn = equals(regexImageTagCV.exec(image)[2]);
                   if (-1 !== findIndex(foundCvIDs, imageCVIDEqualsFn)) {
                     // image has corresponding cv, continue (not orphan)
                     return eachCB();
                   }
                   debug.log('cv not found for image: '+image.Id);
                   // orphan found
-                  docker.removeImage(image.Id, function (err) {
+                  docker.removeImage(image, function (err) {
                     if (err) {
                       debug.log('failed to remove image: '+image.Id+' on dock: '+dock.host);
                       debug.log(err);
