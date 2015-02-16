@@ -53,7 +53,7 @@ module.exports = function(finalCB) {
              */
             var regexImageTagCV = new RegExp('^'+process.env.KHRONOS_DOCKER_REGISTRY+'\/[0-9]+\/([A-z0-9]+):([A-z0-9]+)');
             var cvIds = imageSet.map(function (image) {
-              var regexExecResult = regexImageTagCV.exec(image.RepoTags[0]);
+              var regexExecResult = regexImageTagCV.exec(image);
               return mongodb.newObjectID(regexExecResult[2]);
             });
             var query = {
@@ -62,7 +62,10 @@ module.exports = function(finalCB) {
               }
             };
             mongodb.fetchContextVersions(query, function (err, contextVersions) {
-              if (err) { return doWhilstIteratorCB(err); }
+              if (err) {
+                debug.log('error fetching context versions', query, err);
+                return doWhilstIteratorCB(err);
+              }
               /**
                * The difference between the range (upperBound-lowerBound) and the number
                * of contextVersions that were retrieved is the number of orphaned images
