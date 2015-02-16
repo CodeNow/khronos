@@ -14,7 +14,7 @@ var mongodb = require('models/mongodb/mongodb')();
 module.exports = function(finalCB) {
   mongodb.connect(function (err) {
     if (err) {
-      console.log('mongodb failed to connect', err);
+      debug.log('mongodb failed to connect', err);
       return err;
     }
     processExpiredContextVersions();
