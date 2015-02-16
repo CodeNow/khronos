@@ -53,6 +53,7 @@ module.exports = function(finalCB) {
              */
             var regexImageTagCV = new RegExp('^'+process.env.KHRONOS_DOCKER_REGISTRY+'\/[0-9]+\/([A-z0-9]+):([A-z0-9]+)');
             var cvIds = imageTagSet.map(function (image) {
+              // regexExecResult = registry.runnable.io/<session-user>:<context-version-Id> [2] is "<context-version-Id>"
               var regexExecResult = regexImageTagCV.exec(image);
               return mongodb.newObjectID(regexExecResult[2]);
             });
