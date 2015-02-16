@@ -13,10 +13,7 @@ var mongodb = require('models/mongodb/mongodb')();
 
 module.exports = function(finalCB) {
   mongodb.connect(function (err) {
-    if (err) {
-      debug.log('mongodb failed to connect', err);
-      return err;
-    }
+    if (err) { return err; }
     processExpiredContextVersions();
   });
   function processExpiredContextVersions () {
