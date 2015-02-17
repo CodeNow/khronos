@@ -5,9 +5,9 @@
   "main": "index.js",
   "scripts": {
     "start": "NODE_PATH=./lib node ./index.js",
-    "test": "lab -v",
-    "test-dry": "lab -d -v",
-    "test-cov-html": "lab -r html -o coverage.html"
+    "test": "NODE_PATH=./lib lab -v",
+    "test-dry": "NODE_PATH=./lib lab -d -v",
+    "test-cov-html": "NODE_PATH=./lib lab -r html -o coverage.html"
   },
   "repository": {
     "type": "git",
