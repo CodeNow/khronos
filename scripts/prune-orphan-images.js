@@ -64,10 +64,7 @@ module.exports = function(finalCB) {
               }
             };
             mongodb.fetchContextVersions(query, function (err, contextVersions) {
-              if (err) {
-                debug.log('error fetching context versions', query, err);
-                return doWhilstIteratorCB(err);
-              }
+              if (err) { return doWhilstIteratorCB(err); }
               /**
                * The difference between the range (upperBound-lowerBound) and the number
                * of contextVersions that were retrieved is the number of orphaned images
