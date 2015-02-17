@@ -38,6 +38,7 @@ module.exports = function(finalCB) {
     };
     mongodb.fetchContextVersions(expiredQuery, function (err, results) {
       if (err) {
+        debug.log('failed to fetch context versions', err);
         return finalCB(err);
       }
       debug.log('context-versions fetch complete', results.length);

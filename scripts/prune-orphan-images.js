@@ -32,8 +32,9 @@ module.exports = function(finalCB) {
     processOrphans();
   });
   function processOrphans () {
-    async.forEach(mavis.docks,
+    async.eachSeries(mavis.docks,
     function (dock, dockCB) {
+      debug.log('dock', dock);
       docker.connect(dock);
       async.series([
         docker.getImages.bind(docker),
@@ -42,8 +43,8 @@ module.exports = function(finalCB) {
           var chunkSize = 100;
           var lowerBound = 0;
           var upperBound = Math.min(chunkSize, docker.images.length);
-          var imageSet = [];
-          if (docker.images.length) { imageSet = docker.images.slice(lowerBound, upperBound); }
+          var imageTagSet = [];
+          if (docker.images.length) { imageTagSet = docker.images.slice(lowerBound, upperBound); }
           function doWhilstIterator (doWhilstIteratorCB) {
             debug.log('fetching context-versions '+lowerBound+' - '+upperBound);
             /**
@@ -52,8 +53,9 @@ module.exports = function(finalCB) {
              * context-versions
              */
             var regexImageTagCV = new RegExp('^'+process.env.KHRONOS_DOCKER_REGISTRY+'\/[0-9]+\/([A-z0-9]+):([A-z0-9]+)');
-            var cvIds = imageSet.map(function (image) {
-              var regexExecResult = regexImageTagCV.exec(image.RepoTags[0]);
+            var cvIds = imageTagSet.map(function (imageTag) {
+              // regexExecResult = registry.runnable.io/<session-user>:<context-version-Id> [2] is "<context-version-Id>"
+              var regexExecResult = regexImageTagCV.exec(imageTag);
               return mongodb.newObjectID(regexExecResult[2]);
             });
             var query = {
@@ -81,24 +83,28 @@ module.exports = function(finalCB) {
                 return res._id.toString();
               });
               /**
-               * determine which images in imageSet do not have corresponding context-versions
-               * by iterating over each image in imageSet, and searching through the retrieved
+               * determine which images in imageTagSet do not have corresponding context-versions
+               * by iterating over each image in imageTagSet, and searching through the retrieved
                * context-version documents for a match. If no match found, this image is an
                * orphan.
                */
-              async.forEach(imageSet,
-                function (image, eachCB) {
-                  var imageCVIDEqualsFn = equals(regexImageTagCV.exec(image.RepoTags[0])[2]);
+              async.eachSeries(imageTagSet,
+                function (imageTag, eachCB) {
+                  // registry.runnable.io/<session-user>:<context-version-Id> [2] is "<context-version-Id>"
+                  var imageCVIDEqualsFn = equals(regexImageTagCV.exec(imageTag)[2]);
                   if (-1 !== findIndex(foundCvIDs, imageCVIDEqualsFn)) {
                     // image has corresponding cv, continue (not orphan)
                     return eachCB();
                   }
-                  debug.log('cv not found for image: '+image.Id);
+                  debug.log('cv not found for image: '+imageTag);
                   // orphan found
-                  docker.removeImage(image.Id, function (err) {
+                  docker.removeImage(imageTag, function (err) {
                     if (err) {
-                      debug.log('failed to remove image: '+image.Id+' on dock: '+dock.host);
+                      debug.log('failed to remove image: '+imageTag+' on dock: '+dock.host, docker.dock);
                       debug.log(err);
+                    }
+                    else {
+                      debug.log('removed image: '+imageTag+' on dock: '+dock.host, docker.dock);
                     }
                     eachCB();
                   });
@@ -114,16 +120,19 @@ module.exports = function(finalCB) {
             function check () {
               lowerBound = upperBound;
               upperBound = Math.min(upperBound+chunkSize, docker.images.length);
-              imageSet = docker.images.slice(lowerBound, upperBound);
-              return imageSet.length;
+              imageTagSet = docker.images.slice(lowerBound, upperBound);
+              return imageTagSet.length;
             },
             fetchCVCB
           );
         }
-      ], dockCB);
+      ], function () {
+        debug.log('completed dock:', dock);
+        dockCB();
+      });
     }, function (err) {
       debug.log('done');
-      debug.log('found '+orphanedImagesCount+' orphaned images');
+      debug.log('found & removed '+orphanedImagesCount+' orphaned images');
       datadog.endTiming('complete-prune-orphan-images');
       finalCB(err);
     });
