@@ -16,4 +16,7 @@ make test-dry
 // Individual tests
 NODE_ENV=test NODE_PATH=lib/ node node_modules/lab/bin/lab test/___.unit.js
 DEBUG=khronos* (for debug output)
+
+// Run examples
+NODE_ENV=staging NODE_PATH=./lib MANUAL_RUN=true DEBUG=khronos* KHRONOS_DOCKS=http://10.0.1.240:4242 node index.js
 ```
