@@ -110,8 +110,7 @@ module.exports = function(finalCB) {
              * context-version documents for a match. If no match found, this image is an
              * orphan.
              */
-            async.eachLimit(imageTagSet,
-              process.env.KHRONOS_DELETE_CONCURRENCY_LIMIT,
+            async.eachSeries(imageTagSet,
               function (imageTag, eachCB) {
                 // registry.runnable.io/<session-user>:<context-version-Id> [2] is
                 //   "<context-version-Id>"
