@@ -50,6 +50,15 @@ module.exports = function(finalCB) {
          *  (2) the cv is not currently attached to an instance
          * NOTE: could use async.parallel but would result in increased load against mongo
          */
+        async.series([
+          notUsedInTwoWeeks,
+          notCurrentlyAttachedToInstance
+        ], function (err) {
+          if (err) {
+            return cb(false);
+          }
+          cb(true);
+        });
         function notUsedInTwoWeeks (cb) {
           debug.log('determine if cv used in last two weeks: '+cv._id);
           var query = {
@@ -78,15 +87,6 @@ module.exports = function(finalCB) {
             cb(new Error());
           });
         }
-        async.series([
-          notUsedInTwoWeeks,
-          notCurrentlyAttachedToInstance
-        ], function (err) {
-          if (err) {
-            return cb(false);
-          }
-          cb(true);
-        });
       },
       function (contextVersionBlackList) {
         var cvblIds = contextVersionBlackList.map(function (contextVersion) {
@@ -104,45 +104,47 @@ module.exports = function(finalCB) {
          * reinsert them into the database.
          */
         async.series([
-          function removeContextVersions (removeCB) {
-            mongodb.removeContextVersions(query, function (err) {
-              if (err) {
-                debug.log(err);
-              }
-              else {
-                debug.log('removed '+cvblIds.length+' context versions');
-              }
-              removeCB();
-            });
-          },
-          function restoreContextVersion (restoreCB) {
-            async.eachSeries(contextVersionBlackList, function (contextVersion, cb) {
-              var query = {
-                'contextVersion._id': mongodb.newObjectID(contextVersion._id)
-              };
-              mongodb.countInstances(query, function (err, count) {
-                if (err) {
-                  debug.log(err);
-                }
-                if (!count) {
-                  return cb();
-                }
-                // we have an instance that the contextVersion has been attached to,
-                // must restore contextVersion
-                debug.log('restoring contextversion id: '+contextVersion._id);
-                mongodb.insertContextVersion(contextVersion, function (err) {
-                  if (err) {
-                    debug.log(err);
-                  }
-                  cb();
-                });
-              });
-            }, restoreCB);
-          }
+          removeContextVersions,
+          restoreContextVersion
         ], function () {
           debug.log('finished pruneExpiredContextVersions');
           finalCB();
         });
+        function removeContextVersions (removeCB) {
+          mongodb.removeContextVersions(query, function (err) {
+            if (err) {
+              debug.log(err);
+            }
+            else {
+              debug.log('removed '+cvblIds.length+' context versions');
+            }
+            removeCB();
+          });
+        },
+        function restoreContextVersion (restoreCB) {
+          async.eachSeries(contextVersionBlackList, function (contextVersion, cb) {
+            var query = {
+              'contextVersion._id': mongodb.newObjectID(contextVersion._id)
+            };
+            mongodb.countInstances(query, function (err, count) {
+              if (err) {
+                debug.log(err);
+              }
+              if (!count) {
+                return cb();
+              }
+              // we have an instance that the contextVersion has been attached to,
+              // must restore contextVersion
+              debug.log('restoring contextversion id: '+contextVersion._id);
+              mongodb.insertContextVersion(contextVersion, function (err) {
+                if (err) {
+                  debug.log(err);
+                }
+                cb();
+              });
+            });
+          }, restoreCB);
+        }
       });
     });
   }
