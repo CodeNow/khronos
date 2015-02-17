@@ -124,11 +124,11 @@ module.exports = function(finalCB) {
                 docker.removeImage(imageTag, function (err) {
                   if (err) {
                     debug.log(
-                      'failed to remove image: '+imageTag+' on dock: '+dock, docker.dock);
+                      'failed to remove image: '+imageTag+' on dock: '+dock);
                     debug.log(err);
                   }
                   else {
-                    debug.log('removed image: '+imageTag+' on dock: '+dock, docker.dock);
+                    debug.log('removed image: '+imageTag+' on dock: '+dock);
                   }
                   eachCB();
                 });
