@@ -24,7 +24,8 @@ module.exports = function(finalCB) {
      */
     var today = new Date();
     var twoWeeksAgo = new Date();
-    twoWeeksAgo.setDate(today.getDate() - 7*2);
+    twoWeeksAgo.setDate(today.getDate() -
+                        parseInt(process.env.KHRONOS_MAX_CV_AGE_DAYS));
     var expiredQuery = {
       'build.started': {
         '$lte': twoWeeksAgo
