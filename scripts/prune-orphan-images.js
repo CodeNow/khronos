@@ -32,8 +32,9 @@ module.exports = function(finalCB) {
     processOrphans();
   });
   function processOrphans () {
-    async.forEach(mavis.docks,
+    async.eachSeries(mavis.docks,
     function (dock, dockCB) {
+      debug.log('dock', dock);
       docker.connect(dock);
       async.series([
         docker.getImages.bind(docker),
@@ -52,9 +53,9 @@ module.exports = function(finalCB) {
              * context-versions
              */
             var regexImageTagCV = new RegExp('^'+process.env.KHRONOS_DOCKER_REGISTRY+'\/[0-9]+\/([A-z0-9]+):([A-z0-9]+)');
-            var cvIds = imageTagSet.map(function (image) {
+            var cvIds = imageTagSet.map(function (imageTag) {
               // regexExecResult = registry.runnable.io/<session-user>:<context-version-Id> [2] is "<context-version-Id>"
-              var regexExecResult = regexImageTagCV.exec(image);
+              var regexExecResult = regexImageTagCV.exec(imageTag);
               return mongodb.newObjectID(regexExecResult[2]);
             });
             var query = {
@@ -90,7 +91,7 @@ module.exports = function(finalCB) {
                * context-version documents for a match. If no match found, this image is an
                * orphan.
                */
-              async.forEach(imageTagSet,
+              async.eachSeries(imageTagSet,
                 function (imageTag, eachCB) {
                   // registry.runnable.io/<session-user>:<context-version-Id> [2] is "<context-version-Id>"
                   var imageCVIDEqualsFn = equals(regexImageTagCV.exec(imageTag)[2]);
@@ -102,8 +103,11 @@ module.exports = function(finalCB) {
                   // orphan found
                   docker.removeImage(imageTag, function (err) {
                     if (err) {
-                      debug.log('failed to remove image: '+imageTag+' on dock: '+dock.host);
+                      debug.log('failed to remove image: '+imageTag+' on dock: '+dock.host, docker.dock);
                       debug.log(err);
+                    }
+                    else {
+                      debug.log('removed image: '+imageTag+' on dock: '+dock.host, docker.dock);
                     }
                     eachCB();
                   });
@@ -125,10 +129,13 @@ module.exports = function(finalCB) {
             fetchCVCB
           );
         }
-      ], dockCB);
+      ], function () {
+        debug.log('completed dock:', dock);
+        dockCB();
+      });
     }, function (err) {
       debug.log('done');
-      debug.log('found '+orphanedImagesCount+' orphaned images');
+      debug.log('found & removed '+orphanedImagesCount+' orphaned images');
       datadog.endTiming('complete-prune-orphan-images');
       finalCB(err);
     });
