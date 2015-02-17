@@ -120,7 +120,7 @@ module.exports = function(finalCB) {
             }
             removeCB();
           });
-        },
+        }
         function restoreContextVersion (restoreCB) {
           async.eachSeries(contextVersionBlackList, function (contextVersion, cb) {
             var query = {

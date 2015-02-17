@@ -5,7 +5,9 @@
   "main": "index.js",
   "scripts": {
     "start": "NODE_PATH=./lib node ./index.js",
-    "test": "make test-cov"
+    "test": "lab -v",
+    "test-dry": "lab -d -v",
+    "test-cov-html": "lab -r html -o coverage.html"
   },
   "repository": {
     "type": "git",
