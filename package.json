@@ -1,6 +1,6 @@
 {
   "name": "docker-cron",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "scripts run via cronjobs to maintain docks",
   "main": "index.js",
   "scripts": {
