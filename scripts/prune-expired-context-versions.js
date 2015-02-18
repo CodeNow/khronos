@@ -108,8 +108,13 @@ module.exports = function(finalCB) {
           removeContextVersions,
           restoreContextVersion
         ], function () {
-          debug.log('finished pruneExpiredContextVersions');
-          finalCB();
+          mongodb.close(true, function (err) {
+            if (err) {
+              debug.log(err);
+            }
+            debug.log('finished pruneExpiredContextVersions');
+            finalCB();
+          });
         });
         function removeContextVersions (removeCB) {
           mongodb.removeContextVersions(query, function (err) {

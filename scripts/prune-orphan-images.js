@@ -38,7 +38,8 @@ module.exports = function(finalCB) {
       docker.connect(dock);
       async.series([
         docker.getImages.bind(docker),
-        fetchContextVersions
+        fetchContextVersions,
+        disconnectFromMongo
       ], function () {
         debug.log('completed dock:', dock);
         dockCB();
@@ -137,10 +138,15 @@ module.exports = function(finalCB) {
         }
       }
     }, function (err) {
-      debug.log('done');
-      debug.log('found & removed '+orphanedImagesCount+' orphaned images');
-      datadog.endTiming('complete-prune-orphan-images');
-      finalCB(err);
+      mongodb.close(true, function (err) {
+        if (err) {
+          debug.log(err);
+        }
+        debug.log('done');
+        debug.log('found & removed '+orphanedImagesCount+' orphaned images');
+        datadog.endTiming('complete-prune-orphan-images');
+        finalCB(err);
+      });
     });
   }
 };
