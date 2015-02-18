@@ -1,3 +1,5 @@
+'use strict';
+
 require('loadenv');
 var CronJob = require('cron').CronJob;
 var async = require('async');
@@ -14,15 +16,17 @@ process.on('exit', function () {
   debug.log('khronos exit'+new Date().toString());
 });
 
+var cron;
 if (process.env.MANUAL_RUN) {
   async.series([
     pruneExpiredContextVersions,
     pruneOrphanImages
   ], function () {
     debug.log('complete '+new Date().toString());
+    process.exit(0);
   });
 } else {
-  new CronJob({
+  cron = new CronJob({
     cronTime: process.env.KHRONOS_INTERVAL,
     onTick: function () {
       var timingKey = 'cron-scripts-duration';
