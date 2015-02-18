@@ -38,8 +38,7 @@ module.exports = function(finalCB) {
       docker.connect(dock);
       async.series([
         docker.getImages.bind(docker),
-        fetchContextVersions,
-        disconnectFromMongo
+        fetchContextVersions
       ], function () {
         debug.log('completed dock:', dock);
         dockCB();
@@ -137,7 +136,7 @@ module.exports = function(finalCB) {
           });
         }
       }
-    }, function (err) {
+    }, function () {
       mongodb.close(true, function (err) {
         if (err) {
           debug.log(err);
