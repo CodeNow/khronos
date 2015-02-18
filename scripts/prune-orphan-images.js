@@ -1,10 +1,9 @@
-'use strict';
-
 /**
  * Fetch list of images on each dock, verify each image is attached to a context-version in mongodb.
  * Only fetch images with tag indicating image is in our runnable registry.
  * If no associated cv is found, remove image from dock.
  */
+'use strict';
 
 var async = require('async');
 var equals = require('101/equals');
@@ -12,7 +11,7 @@ var findIndex = require('101/find-index');
 
 var datadog = require('models/datadog/datadog')(__filename);
 var debug = require('models/debug/debug')(__filename);
-var docker = require('models/docker/docker')();
+var dockerModule = require('models/docker/docker');
 var mavis = require('models/mavis/mavis')();
 var mongodb = require('models/mongodb/mongodb')();
 
@@ -32,9 +31,10 @@ module.exports = function(finalCB) {
     processOrphans();
   });
   function processOrphans () {
-    async.eachSeries(mavis.docks,
+    async.each(mavis.docks,
     function (dock, dockCB) {
-      debug.log('dock', dock);
+      debug.log('beginning dock:', dock);
+      var docker = dockerModule();
       docker.connect(dock);
       async.series([
         docker.getImages.bind(docker),
@@ -68,7 +68,7 @@ module.exports = function(finalCB) {
           debug.log('fetching context-versions '+lowerBound+' - '+upperBound);
           /**
            * construct query of context-version ids by iterating over each image
-           * and producting an array of ObjectID's for their corresponding
+           * and producting an array of ObjectID's for images' corresponding
            * context-versions
            */
           var regexImageTagCV =

@@ -1,4 +1,11 @@
 /**
+ *
+ * @module scripts/prune-orphan-containers.js
+ */
+'use strict';
+
+
+/**
  * Prunes containers running/dead > 12 hours
  * from image "docker-image-builder"
  */
