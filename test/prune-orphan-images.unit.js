@@ -152,7 +152,7 @@ describe('prune-orphan-images'.bold.underline.green, function() {
         async.series([
           function createCVs (cb) {
             var contextVersions = db.collection('contextversions');
-            async.times(3, function (n, cb) {
+            async.times(10, function (n, cb) {
               contextVersions.insert({}, function (err, _cv) {
                 cvs.push(_cv[0]);
                 cb();
