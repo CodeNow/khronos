@@ -2,6 +2,7 @@
  * Fetch list of images on each dock, verify each image is attached to a context-version in mongodb.
  * Only fetch images with tag indicating image is in our runnable registry.
  * If no associated cv is found, remove image from dock.
+ * @module scripts/prune-orphan-images
  */
 'use strict';
 

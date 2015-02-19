@@ -1,20 +1,48 @@
 /**
- *
- * @module scripts/prune-orphan-containers.js
+ * Prune images from each dock if no corresponding context-version document
+ * in database
+ * @module scripts/prune-orphan-containers
  */
 'use strict';
-
 
 /**
  * Prunes containers running/dead > 12 hours
  * from image "docker-image-builder"
  */
 var async = require('async');
-var Docker = require('dockerode');
 
-module.exports = function(cb) {
-  'use strict';
+var datadog = require('models/datadog/datadog')(__filename);
+var debug = require('models/debug/debug')(__filename);
+var dockerModule = require('models/docker/docker');
+var mavis = require('models/mavis/mavis')();
+var mongodb = require('models/mongodb/mongodb')();
 
+module.exports = function(finalCB) {
+  var orphanedContainersCount = 0;
+  datadog.startTiming('complete-prune-orpha-containers');
+  async.parallel([
+    mongodb.connect.bind(mongodb),
+    mavis.getDocks.bind(mavis)
+  ], function (err) {
+    if (err) {
+      return finalCB(err);
+    }
+    processOrphanContainers();
+  });
+  function processOrphanContainers () {
+    async.each(mavis.docks,
+    function (dock, dockCB) {
+      debug.log('beginning dock:', dock);
+    },
+    function () {
+      mongodb.close(true, function (err) {
+        if (err) {
+        }
+      });
+    });
+  }
+
+/*
   var docks = Object.keys(process.env)
     .filter(function (env) {
       return /^DOCK_HOST_/.test(env);
@@ -48,4 +76,5 @@ module.exports = function(cb) {
   }, function () {
     console.log('prune-containers processed: ' + docks.length);
   });
+*/
 };
