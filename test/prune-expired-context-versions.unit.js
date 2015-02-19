@@ -1,38 +1,35 @@
 'use strict';
 
+require('../lib/loadenv');
+require('colors');
+
+//var createCounter = require('callback-count');
+//var dockerMock = require('docker-mock');
 var Lab = require('lab');
 var MongoClient = require('mongodb').MongoClient;
 var ObjectID = require('mongodb').ObjectID;
 var async = require('async');
 var chai = require('chai');
-//var dockerMock = require('docker-mock');
-var rewire = require('rewire');
 var sinon = require('sinon');
-//var createCounter = require('callback-count');
 
 var lab = exports.lab = Lab.script();
 
-var describe = lab.describe;
-var it = lab.it;
-var before = lab.before;
-var beforeEach = lab.beforeEach;
 //var after = lab.after;
 var afterEach = lab.afterEach;
+var before = lab.before;
+var beforeEach = lab.beforeEach;
+var describe = lab.describe;
 var expect = chai.expect;
+var it = lab.it;
 
-require('../lib/loadenv');
+var debug = require('../lib/models/debug/debug')(__filename);
+var mongodb = require('../lib/models/mongodb/mongodb');
+var pruneExpiredContextVersions = require('../scripts/prune-expired-context-versions');
 
-// replace private variables for testing
-var pruneExpiredContextVersions = rewire('../scripts/prune-expired-context-versions');
-var mongodb = pruneExpiredContextVersions.__get__('mongodb');
-
-sinon.spy(mongodb, 'fetchContextVersions');
-
-describe('prune-expired-context-versions', function() {
-
+describe('prune-expired-context-versions'.bold.underline.green, function() {
   var db;
-
   before(function (done) {
+    sinon.spy(mongodb, 'fetchContextVersions');
     async.parallel([
       /* mongodb.connect to initialize connection of mongodb instance shared by script modules */
       mongodb.connect.bind(mongodb),
@@ -87,14 +84,25 @@ describe('prune-expired-context-versions', function() {
           complete: true,
           dockerTag: true
         }
+      }, {
+        _id: new ObjectID('54da9cb6ed4383c43fb15049'),
+        build: {
+          started: new Date(2015, 1, 1),
+          complete: true,
+          dockerTag: true
+        }
       }];
       var cv = db.collection('contextversions');
       cv.insert(testData, function (err) {
         if (err) { throw err; }
         pruneExpiredContextVersions(function () {
           cv.find({}).toArray(function (err, results) {
-            expect(results.length).to.equal(1);
+            expect(results.length).to.equal(2);
+            /**
+             * 2nd cv removed b/c started > cutoff datetime
+             */
             expect(results[0]._id.toString()).to.equal('54da9cb6ed4383c43fb1504e');
+            expect(results[1]._id.toString()).to.equal('54da9cb6ed4383c43fb15049');
             done();
           });
         });

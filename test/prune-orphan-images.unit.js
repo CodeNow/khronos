@@ -1,26 +1,26 @@
 'use strict';
 
+require('../lib/loadenv');
+require('colors');
+
 var Lab = require('lab');
 var MongoClient = require('mongodb').MongoClient;
 var ObjectID = require('mongodb').ObjectID;
 var async = require('async');
 var chai = require('chai');
 var dockerMock = require('docker-mock');
-var rewire = require('rewire');
+var mavisMock = require('./mocks/mavis');
 var sinon = require('sinon');
 
 var lab = exports.lab = Lab.script();
 
-var describe = lab.describe;
-var it = lab.it;
-var before = lab.before;
-var beforeEach = lab.beforeEach;
 //var after = lab.after;
 var afterEach = lab.afterEach;
+var before = lab.before;
+var beforeEach = lab.beforeEach;
+var describe = lab.describe;
 var expect = chai.expect;
-
-require('../lib/loadenv');
-var mavisMock = require('./mocks/mavis');
+var it = lab.it;
 
 dockerMock.listen(process.env.KHRONOS_DOCKER_PORT);
 
@@ -32,17 +32,14 @@ var docker = new Docker({
 });
 
 // replace private variables for testing
-var pruneOrphanImages = rewire('../scripts/prune-orphan-images');
+var debug = require('../lib/models/debug/debug')(__filename);
 var mongodb = require('../lib/models/mongodb/mongodb');
+var pruneOrphanImages = require('../scripts/prune-orphan-images');
 
 var Image = require('dockerode/lib/image');
 sinon.spy(Image.prototype, 'remove');
-
-describe('prune-orphan-images', function() {
-
+describe('prune-orphan-images'.bold.underline.green, function() {
   var db;
-  var i = 0;
-
   before(function (done) {
     async.parallel([
       /* mongodb.connect to initialize connection of mongodb instance shared by script modules */
@@ -50,7 +47,7 @@ describe('prune-orphan-images', function() {
       MongoClient.connect.bind(MongoClient, process.env.KHRONOS_MONGO)
     ], function (err, results) {
       if (err) {
-        console.log(err);
+        debug.log(err);
       }
       db = results[1];
       done();
@@ -59,7 +56,6 @@ describe('prune-orphan-images', function() {
 
   beforeEach(function (done) {
     mavisMock();
-    i++;
     done();
   });
 
@@ -68,44 +64,43 @@ describe('prune-orphan-images', function() {
       Image.prototype.remove.reset();
     }
     function done () {
-      console.log('DONE', i);
       done2();
     }
     var d = require('domain').create();
 
     d.run(stuff);
     d.on('error', function (err) {
-     console.log(err.stack);
+     debug.log(err.stack);
     });
     function stuff () {
       async.series([
         function deleteImages (cb) {
           docker.listImages(function (err, images) {
             if (err) {
-              console.log(err);
+              debug.log(err);
               cb();
             }
             async.forEach(images, function (image, eachCB) {
               docker.getImage(image.Id).remove(function (err) {
                 if (err) {
-                  console.log('err', err);
+                  debug.log('err', err);
                 }
                 eachCB();
               });
             }, function () {
-              console.log('removed each image');
+              debug.log('removed each image');
               cb();
             });
           });
         },
         function deleteContextVersions (cb) {
           db.collection('contextversions').drop(function () {
-            console.log('dropped contextversions collection');
+            debug.log('dropped contextversions collection');
             cb();
           });
         }
       ], function () {
-        console.log('finished afterEach');
+        debug.log('finished afterEach');
         done();
       });
     }

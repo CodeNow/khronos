@@ -35,6 +35,7 @@
   },
   "devDependencies": {
     "chai": "^1.10.0",
+    "colors": "^1.0.3",
     "docker-mock": "^0.6.0",
     "lab": "^5.0.2",
     "nock": "^0.59.1",
