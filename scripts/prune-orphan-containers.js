@@ -19,7 +19,8 @@ var mongodb = require('models/mongodb/mongodb')();
 
 module.exports = function(finalCB) {
   var orphanedContainersCount = 0;
-  datadog.startTiming('complete-prune-orpha-containers');
+  var rootTimingKey = 'complete-prune-orphan-containers';
+  datadog.startTiming(rootTimingKey);
   async.parallel([
     mongodb.connect.bind(mongodb),
     mavis.getDocks.bind(mavis)

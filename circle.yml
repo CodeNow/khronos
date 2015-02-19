@@ -1,0 +1,15 @@
+machine:
+  environment:
+    NODE_ENV: test
+dependencies:
+  override:
+    - nvm install 0.10.28
+    - nvm alias default 0.10.28
+    - npm install -g npm@2.1.18
+    - npm install
+test:
+  pre:
+    - ulimit -n 10240
+  override:
+    - npm run lint
+    - npm test
