@@ -6,6 +6,7 @@ dependencies:
     - nvm install 0.10.28
     - nvm alias default 0.10.28
     - npm install -g npm@2.1.18
+    - npm install -g jshint
     - npm install
 test:
   pre:
