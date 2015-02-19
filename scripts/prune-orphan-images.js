@@ -136,7 +136,7 @@ module.exports = function(finalCB) {
           });
         }
       }
-    }, function () {
+    }, function (err) {
       debug.log('done');
       debug.log('found & removed '+orphanedImagesCount+' orphaned images');
       datadog.endTiming('complete-prune-orphan-images');
