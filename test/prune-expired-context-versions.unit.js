@@ -1,12 +1,14 @@
+'use strict';
+
 var Lab = require('lab');
 var MongoClient = require('mongodb').MongoClient;
 var ObjectID = require('mongodb').ObjectID;
 var async = require('async');
 var chai = require('chai');
-var dockerMock = require('docker-mock');
+//var dockerMock = require('docker-mock');
 var rewire = require('rewire');
 var sinon = require('sinon');
-var createCounter = require('callback-count');
+//var createCounter = require('callback-count');
 
 var lab = exports.lab = Lab.script();
 
@@ -31,9 +33,15 @@ describe('prune-expired-context-versions', function() {
   var db;
 
   before(function (done) {
-    MongoClient.connect(process.env.KHRONOS_MONGO, function (err, _db) {
-      if (err) { throw err; }
-      db = _db;
+    async.parallel([
+      /* mongodb.connect to initialize connection of mongodb instance shared by script modules */
+      mongodb.connect.bind(mongodb),
+      MongoClient.connect.bind(MongoClient, process.env.KHRONOS_MONGO)
+    ], function (err, results) {
+      if (err) {
+        console.log(err);
+      }
+      db = results[1];
       done();
     });
   });
@@ -66,14 +74,14 @@ describe('prune-expired-context-versions', function() {
 
     it('should only remove contextversions that fit selection criteria', function (done) {
       var testData = [{
-        _id: ObjectID('54da9cb6ed4383c43fb1504a'),
+        _id: new ObjectID('54da9cb6ed4383c43fb1504a'),
         build: {
           started: new Date(1980, 1, 1),
           completed: true,
           dockerTag: true
         }
       }, {
-        _id: ObjectID('54da9cb6ed4383c43fb1504e'),
+        _id: new ObjectID('54da9cb6ed4383c43fb1504e'),
         build: {
           started: new Date(),
           complete: true,

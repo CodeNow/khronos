@@ -16,31 +16,39 @@ process.on('exit', function () {
   debug.log('khronos exit'+new Date().toString());
 });
 
+// functions to be run sequentially for both
+// manual run and cron run
+var seriesFunctions = [
+  pruneExpiredContextVersions,
+  pruneOrphanImages
+];
+
 var cron;
-if (process.env.MANUAL_RUN) {
-  async.series([
-    pruneExpiredContextVersions,
-    pruneOrphanImages
-  ], function () {
-    debug.log('complete '+new Date().toString());
-    process.exit(0);
-  });
-} else {
-  cron = new CronJob({
-    cronTime: process.env.KHRONOS_INTERVAL,
-    onTick: function () {
-      var timingKey = 'cron-scripts-duration';
-      debug.log('cron run started: '+new Date().toString());
-      datadog.startTiming(timingKey);
-      async.series([
-        pruneExpiredContextVersions,
-        pruneOrphanImages
-      ], function () {
-        debug.log('cron run completed: '+new Date().toString());
-        datadog.endTiming(timingKey);
-      });
-    },
-    start: true, // run immediately
-    timeZone: 'America/Los_Angeles'
-  });
-}
+var mongodb = require('models/mongodb/mongodb');
+mongodb.connect(function (err) {
+  if (err) {
+    return debug(err);
+  }
+  if (process.env.MANUAL_RUN) {
+    async.series(seriesFunctions, function () {
+      debug.log('complete '+new Date().toString());
+      process.exit(0);
+    });
+  } else {
+    cron = new CronJob({
+      cronTime: process.env.KHRONOS_INTERVAL,
+      onTick: function () {
+        var timingKey = 'cron-scripts-duration';
+        debug.log('cron run started: '+new Date().toString());
+        datadog.startTiming(timingKey);
+        async.series(seriesFunctions, function () {
+          debug.log('cron run completed: '+new Date().toString());
+          datadog.endTiming(timingKey);
+        });
+      },
+      start: true, // run immediately
+      timeZone: 'America/Los_Angeles'
+    });
+  }
+});
+
