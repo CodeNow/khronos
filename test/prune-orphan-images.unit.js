@@ -140,8 +140,14 @@ describe('prune-orphan-images'.bold.underline.green, function() {
         ], function (err) {
           if (err) { throw err; }
           pruneOrphanImages(function () {
-            expect(Image.prototype.remove.called).to.equal(false);
-            done();
+            docker.listImages({}, function (err, images) {
+              if (err) {
+                throw err;
+              }
+              expect(images.length).to.equal(cvs.length);
+              expect(Image.prototype.remove.called).to.equal(false);
+              done();
+            });
           });
         });
       });
