@@ -36,7 +36,7 @@ describe('prune-expired-context-versions'.bold.underline.green, function() {
       MongoClient.connect.bind(MongoClient, process.env.KHRONOS_MONGO)
     ], function (err, results) {
       if (err) {
-        console.log(err);
+        debug.log(err);
       }
       db = results[1];
       done();

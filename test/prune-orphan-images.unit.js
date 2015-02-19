@@ -59,51 +59,40 @@ describe('prune-orphan-images'.bold.underline.green, function() {
     done();
   });
 
-  afterEach(function (done2) {
+  afterEach(function (done) {
     if (Image.prototype.remove.reset) {
       Image.prototype.remove.reset();
     }
-    function done () {
-      done2();
-    }
-    var d = require('domain').create();
-
-    d.run(stuff);
-    d.on('error', function (err) {
-     debug.log(err.stack);
-    });
-    function stuff () {
-      async.series([
-        function deleteImages (cb) {
-          docker.listImages(function (err, images) {
-            if (err) {
-              debug.log(err);
-              cb();
-            }
-            async.forEach(images, function (image, eachCB) {
-              docker.getImage(image.Id).remove(function (err) {
-                if (err) {
-                  debug.log('err', err);
-                }
-                eachCB();
-              });
-            }, function () {
-              debug.log('removed each image');
-              cb();
+    async.series([
+      function deleteImages (cb) {
+        docker.listImages(function (err, images) {
+          if (err) {
+            debug.log(err);
+            cb();
+          }
+          async.forEach(images, function (image, eachCB) {
+            docker.getImage(image.Id).remove(function (err) {
+              if (err) {
+                debug.log('err', err);
+              }
+              eachCB();
             });
-          });
-        },
-        function deleteContextVersions (cb) {
-          db.collection('contextversions').drop(function () {
-            debug.log('dropped contextversions collection');
+          }, function () {
+            debug.log('removed each image');
             cb();
           });
-        }
-      ], function () {
-        debug.log('finished afterEach');
-        done();
-      });
-    }
+        });
+      },
+      function deleteContextVersions (cb) {
+        db.collection('contextversions').drop(function () {
+          debug.log('dropped contextversions collection');
+          cb();
+        });
+      }
+    ], function () {
+      debug.log('finished afterEach');
+      done();
+    });
   });
 
   describe('success scenarios', function () {
@@ -117,6 +106,13 @@ describe('prune-orphan-images'.bold.underline.green, function() {
     });
 
     describe('dock with images', function () {
+      beforeEach(function (done) {
+        if (Image.prototype.remove.reset) {
+          Image.prototype.remove.reset();
+        }
+        done();
+      });
+
       it('should run successfully with no orphaned images on dock', function (done) {
         var cvs = [];
         async.series([
@@ -151,13 +147,12 @@ describe('prune-orphan-images'.bold.underline.green, function() {
       });
 
       it('should only remove orphaned images from dock', {timeout: 1000*5}, function (done) {
-        return done();
         var cvs = [];
         var orphans = [];
         async.series([
           function createCVs (cb) {
             var contextVersions = db.collection('contextversions');
-            async.times(1, function (n, cb) {
+            async.times(3, function (n, cb) {
               contextVersions.insert({}, function (err, _cv) {
                 cvs.push(_cv[0]);
                 cb();
@@ -165,17 +160,19 @@ describe('prune-orphan-images'.bold.underline.green, function() {
             }, cb);
           },
           function createImages (cb) {
-            // creating orphans
+            // creating orphans (images without associated context versions)
             orphans.push({'_id': new ObjectID('999017345affa9400d894407')});
             orphans.push({'_id': new ObjectID('999015ac341e8eb10b4a0328')});
             orphans.push({'_id': new ObjectID('999015ac341e8eb10b4a0329')});
             cvs = cvs.concat(orphans);
-            async.eachLimit(cvs, 1, function (cv, cb) { // bit of a concurrency bug in tests
+            // will make 6 images, 3 of which will be orphans
+            async.eachLimit(cvs, 1, function (cv, cb) {
               var cvId = cv._id+''; // must cast to string
               docker.createImage({
                 fromImage: 'registry.runnable.com/1616464/'+cvId,
                 tag: cvId
-              }, function (err) {
+              }, function (err, data) {
+                data.on('data', function () {});
                 if (err) { throw err; }
                 cb();
               });
@@ -183,9 +180,15 @@ describe('prune-orphan-images'.bold.underline.green, function() {
           }
         ], function (err) {
           if (err) { throw err; }
-          pruneOrphanImages(function () {
-            expect(Image.prototype.remove.callCount).to.equal(orphans.length);
-            done();
+          docker.listImages({}, function (err, images) {
+            expect(images.length).to.equal(cvs.length);
+            pruneOrphanImages(function () {
+              docker.listImages({}, function (err, images) {
+                expect(images.length).to.equal(cvs.length - orphans.length);
+                expect(Image.prototype.remove.callCount).to.equal(orphans.length);
+                done();
+              });
+            });
           });
         });
       });
