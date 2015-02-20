@@ -2,11 +2,12 @@
  * Prune containers from each dock if no corresponding instance document exisits
  * @module scripts/prune-orphan-containers
  */
-use strict';
+'use strict';
 
 var async = require('async');
 var equals = require('101/equals');
 var findIndex = require('101/find-index');
+var pluck = require('101/pluck');
 
 var datadog = require('models/datadog/datadog')(__filename);
 var debug = require('models/debug/debug')(__filename);
@@ -46,7 +47,9 @@ module.exports = function(finalCB) {
         var lowerBound = 0;
         var upperBound = Math.min(chunkSize, docker.images.length);
         var containerSet = [];
-        if (docker.containers.length) { containerSet = docker.containers.slice(lowerBound, upperBound); }
+        if (docker.containers.length) {
+          containerSet = docker.containers.slice(lowerBound, upperBound);
+        }
         /**
          * Chunk requests to mongodb to avoid potential memory/heap size issues
          * when working with large numbers of containers and instance documents
@@ -94,7 +97,7 @@ module.exports = function(finalCB) {
              * instance documents for a match. If no match found, this container is an
              * orphan.
              */
-            var foundInstancesContainerIds = instances.map(pluck('contextVersion.containerId')):
+            var foundInstancesContainerIds = instances.map(pluck('contextVersion.containerId'));
             async.eachSeries(containerSet,
             function (container, eachCB) {
               // have container, is it in the list of "foundInstancesContainerIds" ????
@@ -103,90 +106,16 @@ module.exports = function(finalCB) {
                 return eachCB();
               }
               debug.log('Instance not found for container: '+container.Id);
-              // orphan found
-              // see if image has any running containers & remove if so
-              var results = docker.containers.filter(function (container) {
-                return container.Image === imageTag;
-              });
-              if (results.length) {
-                // first remove containers...
-                orphanedContainersCount += results.length;
-                debug.log('Found '+results.length+
-                          ' containers with base image: '+imageTag+'. Cleaning up...');
-                async.eachLimit(results, 1, function  (container, cb) {
-                  docker.removeContainer(container.Id, cb);
-                }, function (err) {
-                  if (err) { debug.log(err); }
-                  removeImage(imageTag, eachCB);
-                });
-              }
-              else {
-                removeImage(imageTag, eachCB);
-              }
+              docker.removeContainer(container.Id, eachCB);
             }, doWhilstIteratorCB);
-          });
-        }
-        function removeImage(imageTag, cb) {
-          docker.removeImage(imageTag, function (err) {
-            if (err) {
-              debug.log(
-                'failed to remove image: '+imageTag+' on dock: '+dock);
-              debug.log(err);
-            }
-            else {
-              debug.log('removed image: '+imageTag+' on dock: '+dock);
-            }
-            cb();
           });
         }
       }
     }, function (err) {
-      debug.log('completed prune-orphan-images-and-containers');
-      debug.log('found & removed '+orphanedImagesCount+' orphaned images');
+      debug.log('completed prune-orphan-containers');
       debug.log('found & removed '+orphanedContainersCount+' orphaned containers');
       datadog.endTiming('complete-prune-orphan-images');
       finalCB(err);
     });
   }
-}
-
-
-
-
-
-
-/*
-  var docks = Object.keys(process.env)
-    .filter(function (env) {
-      return /^DOCK_HOST_/.test(env);
-    });
-  async.forEach(docks, function (dock) {
-    console.log('connecting to docker daemon');
-    var host = process.env[dock].split(':')[0];
-    var port = process.env[dock].split(':')[1];
-    var docker = new Docker({host:host, port:port});
-    console.log('fetching containers');
-    docker.listContainers({all: true}, function (err, containers) {
-      var currentTime = Math.floor(Date.now() / 1000); // convert nanoseconds to seconds
-      var deleteContainerStartedBeforeTime = currentTime - process.env.MAX_CONTAINER_LIVE_TIME;
-      var containersToDelete = containers.filter(function(container) {
-        return container.Created < deleteContainerStartedBeforeTime &&
-               container.Image === 'docker-image-builder';
-      });
-      console.log('found ' + containersToDelete.length + ' containers');
-      async.each(containersToDelete, function(containerObj, cb){
-        var container = docker.getContainer(containerObj.Id);
-        container.stop(function() {
-          container.remove(function() {
-            cb();
-          });
-        });
-      }, function(err, results) {
-        console.log(containersToDelete.length + ' containers deleted');
-        cb();
-      });
-    });
-  }, function () {
-    console.log('prune-containers processed: ' + docks.length);
-  });
-*/
+};
