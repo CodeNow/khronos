@@ -142,7 +142,6 @@ module.exports = function(finalCB) {
             }, doWhilstIteratorCB);
           });
         }
-
         function removeImage(imageTag, cb) {
           docker.removeImage(imageTag, function (err) {
             if (err) {
@@ -156,9 +155,6 @@ module.exports = function(finalCB) {
             cb();
           });
         }
-
-
-
       }
     }, function (err) {
       debug.log('done');
