@@ -19,4 +19,8 @@ DEBUG=khronos* (for debug output)
 
 // Run examples
 NODE_ENV=staging NODE_PATH=./lib MANUAL_RUN=true DEBUG=khronos* KHRONOS_DOCKS=http://10.0.1.240:4242 node index.js
+
+// ENV Flags
+DRY_RUN=true    # docker stop/kill/remove commands stubbed (very time consuming, useful for quick test)
+MANUAL_RUN=true # run immediately rather than wait for scheduled datetime
 ```
