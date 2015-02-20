@@ -45,7 +45,7 @@ module.exports = function(finalCB) {
         // chunk check context versions in db for batch of 100 images
         var chunkSize = 100;
         var lowerBound = 0;
-        var upperBound = Math.min(chunkSize, docker.images.length);
+        var upperBound = Math.min(chunkSize, docker.containers.length);
         var containerSet = [];
         if (docker.containers.length) {
           containerSet = docker.containers.slice(lowerBound, upperBound);
@@ -114,6 +114,7 @@ module.exports = function(finalCB) {
     }, function (err) {
       debug.log('completed prune-orphan-containers');
       debug.log('found & removed '+orphanedContainersCount+' orphaned containers');
+      debug.log('-----------------------------------------------------------------------');
       datadog.endTiming('complete-prune-orphan-images');
       finalCB(err);
     });

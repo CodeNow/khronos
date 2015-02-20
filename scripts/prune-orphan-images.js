@@ -140,6 +140,7 @@ module.exports = function(finalCB) {
     }, function (err) {
       debug.log('completed prune-orphan-images');
       debug.log('found & removed '+orphanedImagesCount+' orphaned images');
+      debug.log('-----------------------------------------------------------------------');
       datadog.endTiming('complete-prune-orphan-images');
       finalCB(err);
     });
