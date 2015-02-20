@@ -2,6 +2,7 @@
  * Query for context versions that are built and older than 2 weeks.
  * Delete CVs and restore if they were attached to an instance between the
  * GET and the DELETE operations
+ * @module scripts/prune-expired-context-versions
  */
 'use strict';
 
@@ -105,6 +106,7 @@ module.exports = function(finalCB) {
         if (err) {
           debug.log(err);
         }
+        debug.log('-----------------------------------------------------------------------');
         debug.log('finished pruneExpiredContextVersions');
         finalCB();
       });
