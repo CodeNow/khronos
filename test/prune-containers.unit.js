@@ -25,7 +25,7 @@ var dockerMock = require('docker-mock');
 dockerMock.listen(config.network.port);
 
 // replace private variables for testing
-var pruneContainers = rewire('../scripts/prune-containers');
+var pruneOrphanContainers = rewire('../scripts/prune-orphan-containers');
 
 var Container = require('dockerode/lib/container');
 sinon.spy(Container.prototype, 'remove');
