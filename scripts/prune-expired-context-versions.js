@@ -1,10 +1,9 @@
-'use strict';
-
 /**
  * Query for context versions that are built and older than 2 weeks.
  * Delete CVs and restore if they were attached to an instance between the
  * GET and the DELETE operations
  */
+'use strict';
 
 var async = require('async');
 

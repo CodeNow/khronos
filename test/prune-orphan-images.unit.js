@@ -120,6 +120,7 @@ describe('prune-orphan-images'.bold.underline.green, function() {
             var contextVersions = db.collection('contextversions');
             async.times(4, function (n, cb) {
               contextVersions.insert({}, function (err, _cv) {
+                if (err) { throw err; }
                 cvs.push(_cv[0]);
                 cb();
               });
@@ -160,6 +161,7 @@ describe('prune-orphan-images'.bold.underline.green, function() {
             var contextVersions = db.collection('contextversions');
             async.times(10, function (n, cb) {
               contextVersions.insert({}, function (err, _cv) {
+                if (err) { throw err; }
                 cvs.push(_cv[0]);
                 cb();
               });
@@ -187,9 +189,11 @@ describe('prune-orphan-images'.bold.underline.green, function() {
         ], function (err) {
           if (err) { throw err; }
           docker.listImages({}, function (err, images) {
+            if (err) { throw err; }
             expect(images.length).to.equal(cvs.length);
             pruneOrphanImages(function () {
               docker.listImages({}, function (err, images) {
+                if (err) { throw err; }
                 expect(images.length).to.equal(cvs.length - orphans.length);
                 expect(Image.prototype.remove.callCount).to.equal(orphans.length);
                 done();
