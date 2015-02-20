@@ -17,6 +17,7 @@ var pruneOrphanImages = require('./scripts/prune-orphan-images');
 var seriesFunctions = [
   pruneExpiredContextVersions,
   pruneOrphanContainers,
+  // pruneOrphanImages must be run after pruneOrphanContainers
   pruneOrphanImages
 ];
 debug.log('khronos started '+new Date().toString());
