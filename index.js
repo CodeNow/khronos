@@ -7,7 +7,7 @@ var async = require('async');
 var datadog = require('models/datadog/datadog')(__filename);
 var debug = require('models/debug/debug')(__filename);
 
-var pruneOrphanImages = require('./scripts/prune-orphan-images');
+var pruneOrphanImagesAndContainers = require('./scripts/prune-orphan-images-and-containers');
 var pruneExpiredContextVersions = require('./scripts/prune-expired-context-versions');
 
 debug.log('khronos started '+new Date().toString());
@@ -20,7 +20,7 @@ process.on('exit', function () {
 // manual run and cron run
 var seriesFunctions = [
   pruneExpiredContextVersions,
-  pruneOrphanImages
+  pruneOrphanImagesAndContainers
 ];
 
 var cron;

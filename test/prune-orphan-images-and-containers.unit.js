@@ -34,7 +34,7 @@ var docker = new Docker({
 // replace private variables for testing
 var debug = require('../lib/models/debug/debug')(__filename);
 var mongodb = require('../lib/models/mongodb/mongodb');
-var pruneOrphanImages = require('../scripts/prune-orphan-images');
+var pruneOrphanImagesAndContainers = require('../scripts/prune-orphan-images-and-containers');
 
 var Image = require('dockerode/lib/image');
 sinon.spy(Image.prototype, 'remove');
@@ -98,7 +98,7 @@ describe('prune-orphan-images'.bold.underline.green, function() {
   describe('success scenarios', function () {
     describe('no images', function () {
       it('should run successfully if no images on dock', {timeout: 100000}, function (done) {
-        pruneOrphanImages(function () {
+        pruneOrphanImagesAndContainers(function () {
           expect(Image.prototype.remove.called).to.equal(false);
           done();
         });
@@ -140,7 +140,7 @@ describe('prune-orphan-images'.bold.underline.green, function() {
           }
         ], function (err) {
           if (err) { throw err; }
-          pruneOrphanImages(function () {
+          pruneOrphanImagesAndContainers(function () {
             docker.listImages({}, function (err, images) {
               if (err) {
                 throw err;
@@ -191,7 +191,7 @@ describe('prune-orphan-images'.bold.underline.green, function() {
           docker.listImages({}, function (err, images) {
             if (err) { throw err; }
             expect(images.length).to.equal(cvs.length);
-            pruneOrphanImages(function () {
+            pruneOrphanImagesAndContainers(function () {
               docker.listImages({}, function (err, images) {
                 if (err) { throw err; }
                 expect(images.length).to.equal(cvs.length - orphans.length);

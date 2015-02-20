@@ -18,6 +18,7 @@ var mongodb = require('models/mongodb/mongodb');
 
 module.exports = function(finalCB) {
   var orphanedImagesCount = 0;
+  var orphanedContainersCount = 0;
   datadog.startTiming('complete-prune-orphan-images');
   // for each dock
     // find all images with tag 'registry.runnable.io'
@@ -127,6 +128,7 @@ module.exports = function(finalCB) {
               });
               if (results.length) {
                 // first remove containers...
+                orphanedContainersCount += results.length;
                 debug.log('Found '+results.length+
                           ' containers with base image: '+imageTag+'. Cleaning up...');
                 async.eachLimit(results, 1, function  (container, cb) {
@@ -157,8 +159,9 @@ module.exports = function(finalCB) {
         }
       }
     }, function (err) {
-      debug.log('done');
+      debug.log('completed prune-orphan-images-and-containers');
       debug.log('found & removed '+orphanedImagesCount+' orphaned images');
+      debug.log('found & removed '+orphanedContainersCount+' orphaned containers');
       datadog.endTiming('complete-prune-orphan-images');
       finalCB(err);
     });
