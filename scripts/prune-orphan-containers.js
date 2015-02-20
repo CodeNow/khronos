@@ -70,10 +70,8 @@ module.exports = function(finalCB) {
            * construct query for instances by iterating over each container
            */
           var query = {
-            contextVersion: {
-              containerId: {
-                '$in': containerSet.map(pluck('Id'))
-              }
+            'container.dockerContainer': {
+              '$in': containerSet.map(pluck('Id'))
             }
           };
           mongodb.fetchInstances(query, function (err, instances) {
