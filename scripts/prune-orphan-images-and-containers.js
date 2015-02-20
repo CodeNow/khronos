@@ -37,12 +37,13 @@ module.exports = function(finalCB) {
       docker.connect(dock);
       async.series([
         docker.getImages.bind(docker),
-        fetchContextVersions
+        docker.getContainers.bind(docker),
+        fetchContextVersionsAndPrune
       ], function () {
         debug.log('completed dock:', dock);
         dockCB();
       });
-      function fetchContextVersions (fetchCVCB) {
+      function fetchContextVersionsAndPrune (fetchCVCB) {
         // chunk check context versions in db for batch of 100 images
         var chunkSize = 100;
         var lowerBound = 0;
@@ -110,30 +111,54 @@ module.exports = function(finalCB) {
              * orphan.
              */
             async.eachSeries(imageTagSet,
-              function (imageTag, eachCB) {
-                // registry.runnable.io/<session-user>:<context-version-Id> [2] is
-                //   "<context-version-Id>"
-                var imageCVIDEqualsFn = equals(regexImageTagCV.exec(imageTag)[2]);
-                if (-1 !== findIndex(foundCvIDs, imageCVIDEqualsFn)) {
-                  // image has corresponding cv, continue (not orphan)
-                  return eachCB();
-                }
-                debug.log('cv not found for image: '+imageTag);
-                // orphan found
-                docker.removeImage(imageTag, function (err) {
-                  if (err) {
-                    debug.log(
-                      'failed to remove image: '+imageTag+' on dock: '+dock);
-                    debug.log(err);
-                  }
-                  else {
-                    debug.log('removed image: '+imageTag+' on dock: '+dock);
-                  }
-                  eachCB();
+            function (imageTag, eachCB) {
+              // registry.runnable.io/<session-user>:<context-version-Id> [2] is
+              //   "<context-version-Id>"
+              var imageCVIDEqualsFn = equals(regexImageTagCV.exec(imageTag)[2]);
+              if (-1 !== findIndex(foundCvIDs, imageCVIDEqualsFn)) {
+                // image has corresponding cv, continue (not orphan)
+                return eachCB();
+              }
+              debug.log('cv not found for image: '+imageTag);
+              // orphan found
+              // see if image has any running containers & remove if so
+              var results = docker.containers.filter(function (container) {
+                return container.Image === imageTag;
+              });
+              if (results.length) {
+                // first remove containers...
+                debug.log('Found '+results.length+
+                          ' containers with base image: '+imageTag+'. Cleaning up...');
+                async.eachLimit(results, 1, function  (container, cb) {
+                  docker.removeContainer(container.Id, cb);
+                }, function (err) {
+                  if (err) { debug.log(err); }
+                  removeImage(imageTag, eachCB);
                 });
+              }
+              else {
+                removeImage(imageTag, eachCB);
+              }
             }, doWhilstIteratorCB);
           });
         }
+
+        function removeImage(imageTag, cb) {
+          docker.removeImage(imageTag, function (err) {
+            if (err) {
+              debug.log(
+                'failed to remove image: '+imageTag+' on dock: '+dock);
+              debug.log(err);
+            }
+            else {
+              debug.log('removed image: '+imageTag+' on dock: '+dock);
+            }
+            cb();
+          });
+        }
+
+
+
       }
     }, function (err) {
       debug.log('done');

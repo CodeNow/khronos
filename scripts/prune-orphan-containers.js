@@ -34,7 +34,7 @@ module.exports = function(finalCB) {
         docker.getContainers.bind(docker),
         fetchContextVersions
       ], function () {
-        debug.log('completed dock': dock);
+        debug.log('completed dock:'+ dock);
         dockCB();
       });
       function fetchContextVersions (fetchCVCB) {
