@@ -22,11 +22,10 @@ module.exports = function(finalCB) {
   // for each dock
     // find all images with tag 'registry.runnable.io'
     // query mongodb context-versions and if any image is not in db, remove it from dock
-  async.parallel([
-    mavis.getDocks.bind(mavis)
-  ], function (err) {
+  mavis.getDocks(function (err) {
     if (err) {
-      return finalCB(err);
+      debug.log(err);
+      finalCB(err);
     }
     processOrphans();
   });
