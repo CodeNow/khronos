@@ -4,27 +4,25 @@ require('loadenv');
 var CronJob = require('cron').CronJob;
 var async = require('async');
 
+var cron;
 var datadog = require('models/datadog/datadog')(__filename);
 var debug = require('models/debug/debug')(__filename);
+var mongodb = require('models/mongodb/mongodb');
 
-var pruneOrphanImagesAndContainers = require('./scripts/prune-orphan-images-and-containers');
 var pruneExpiredContextVersions = require('./scripts/prune-expired-context-versions');
-
-debug.log('khronos started '+new Date().toString());
-
-process.on('exit', function () {
-  debug.log('khronos exit'+new Date().toString());
-});
-
+var pruneOrphanContainers = require('./scripts/prune-orphan-containers');
+var pruneOrphanImages = require('./scripts/prune-orphan-images');
 // functions to be run sequentially for both
 // manual run and cron run
 var seriesFunctions = [
   pruneExpiredContextVersions,
-  pruneOrphanImagesAndContainers
+  pruneOrphanContainers,
+  pruneOrphanImages
 ];
-
-var cron;
-var mongodb = require('models/mongodb/mongodb');
+debug.log('khronos started '+new Date().toString());
+process.on('exit', function () {
+  debug.log('khronos exit'+new Date().toString());
+});
 mongodb.connect(function (err) {
   if (err) {
     return debug(err);

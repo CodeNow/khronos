@@ -18,7 +18,6 @@ var mongodb = require('models/mongodb/mongodb');
 
 module.exports = function(finalCB) {
   var orphanedImagesCount = 0;
-  var orphanedContainersCount = 0;
   datadog.startTiming('complete-prune-orphan-images');
   // for each dock
     // find all images with tag 'registry.runnable.io'
@@ -38,7 +37,6 @@ module.exports = function(finalCB) {
       docker.connect(dock);
       async.series([
         docker.getImages.bind(docker),
-        docker.getContainers.bind(docker),
         fetchContextVersionsAndPrune
       ], function () {
         debug.log('completed dock:', dock);
@@ -121,26 +119,7 @@ module.exports = function(finalCB) {
                 return eachCB();
               }
               debug.log('cv not found for image: '+imageTag);
-              // orphan found
-              // see if image has any running containers & remove if so
-              var results = docker.containers.filter(function (container) {
-                return container.Image === imageTag;
-              });
-              if (results.length) {
-                // first remove containers...
-                orphanedContainersCount += results.length;
-                debug.log('Found '+results.length+
-                          ' containers with base image: '+imageTag+'. Cleaning up...');
-                async.eachLimit(results, 1, function  (container, cb) {
-                  docker.removeContainer(container.Id, cb);
-                }, function (err) {
-                  if (err) { debug.log(err); }
-                  removeImage(imageTag, eachCB);
-                });
-              }
-              else {
-                removeImage(imageTag, eachCB);
-              }
+              removeImage(imageTag, eachCB);
             }, doWhilstIteratorCB);
           });
         }
@@ -159,9 +138,8 @@ module.exports = function(finalCB) {
         }
       }
     }, function (err) {
-      debug.log('completed prune-orphan-images-and-containers');
+      debug.log('completed prune-orphan-images');
       debug.log('found & removed '+orphanedImagesCount+' orphaned images');
-      debug.log('found & removed '+orphanedContainersCount+' orphaned containers');
       datadog.endTiming('complete-prune-orphan-images');
       finalCB(err);
     });
