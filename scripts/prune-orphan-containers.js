@@ -17,6 +17,7 @@ var mongodb = require('models/mongodb/mongodb');
 
 module.exports = function(finalCB) {
   var orphanedContainersCount = 0;
+  var totalContainersCount = 0;
   datadog.startTiming('complete-prune-orphan-containers');
   // for each dock
     // find all containers with tag 'registry.runnable.io'
@@ -38,6 +39,7 @@ module.exports = function(finalCB) {
         docker.getContainers.bind(docker),
         fetchInstancesAndPrune
       ], function () {
+        totalContainersCount += docker.containers.length;
         debug.log('completed dock:', dock);
         dockCB();
       });
@@ -111,7 +113,8 @@ module.exports = function(finalCB) {
       }
     }, function (err) {
       debug.log('completed prune-orphan-containers');
-      debug.log('found & removed '+orphanedContainersCount+' orphaned containers');
+      debug.log('found & removed '+orphanedContainersCount+' orphaned containers of '+
+                totalContainersCount+' total containers');
       debug.log('-----------------------------------------------------------------------');
       datadog.endTiming('complete-prune-orphan-images');
       finalCB(err);

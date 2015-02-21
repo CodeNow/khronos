@@ -26,7 +26,7 @@ var it = lab.it;
 
 // set non-default port for testing
 var Docker = require('dockerode');
-var docker = Docker({
+var docker = new Docker({
   host: process.env.KHRONOS_DOCKER_HOST,
   port: process.env.KHRONOS_DOCKER_PORT
 });
@@ -62,7 +62,7 @@ describe('prune-orphan-containers'.bold.underline.green, function() {
   afterEach(function(done) {
     Container.prototype.remove.reset();
     docker.listContainers(function(err, containers) {
-      if (err) throw err;
+      if (err) { throw err; }
       async.forEach(containers, function(containerObj, cb) {
         var container = docker.getContainer(containerObj.Id);
         container.remove(function() {
@@ -82,7 +82,30 @@ describe('prune-orphan-containers'.bold.underline.green, function() {
   });
 
   it('should run successfully if no orphaned containers on dock', function (done) {
-    done();
+    var instanceDocuments = [];
+    async.series([
+      function createInstances (cb) {
+        var instances = db.collection('instances');
+        async.times(5, function (n, cb) {
+          // insert standard instances
+          instances.insert({
+            container: {
+              dockerContainer: 'registry.runnable.com/5555/5555:'+n  //'123456789ab'+n
+            }
+          }, function (err, _instance) {
+            if (err) { throw err; }
+            instanceDocuments.push(_instance[0]);
+            cb();
+          });
+        }, cb);
+      },
+      function createContainers (cb) {
+        async.eachLimit(instanceDocuments, 1, function (instance, cb) {
+        }, cb);
+      }
+    ], function () {
+      done();
+    });
   });
 
   it('should only remove orphaned containers from dock', function (done) {
