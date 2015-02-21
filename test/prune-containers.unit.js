@@ -1,18 +1,28 @@
+'use strict';
+
+require('../lib/loadenv');
+require('colors');
+
+var Lab = require('lab');
+var MongoClient = require('mongodb').MongoClient;
 var async = require('async');
 var chai = require('chai');
-var Lab = require('lab');
-var lab = exports.lab = Lab.script();
+var dockerMock = require('docker-mock');
+var mavisMock = require('./mocks/mavis');
 var rewire = require('rewire');
 var sinon = require('sinon');
-var mocks = require('./mocks');
 
-var describe = lab.describe;
-var it = lab.it;
-var before = lab.before;
-var beforeEach = lab.beforeEach;
+var lab = exports.lab = Lab.script();
+
 var after = lab.after;
 var afterEach = lab.afterEach;
+var before = lab.before;
+var beforeEach = lab.beforeEach;
+var describe = lab.describe;
 var expect = chai.expect;
+var it = lab.it;
+
+//dockerMock.listen(process.env.KHRONOS_DOCKER_PORT);
 
 // set non-default port for testing
 var Docker = require('dockerode');
@@ -21,66 +31,61 @@ var docker = Docker({
   port: process.env.KHRONOS_DOCKER_PORT
 });
 
-var dockerMock = require('docker-mock');
-dockerMock.listen(config.network.port);
-
-// replace private variables for testing
+var debug = require('../lib/models/debug/debug')(__filename);
+var mongodb = require('../lib/models/mongodb/mongodb');
 var pruneOrphanContainers = rewire('../scripts/prune-orphan-containers');
 
 var Container = require('dockerode/lib/container');
 sinon.spy(Container.prototype, 'remove');
 
-describe('prune-containers', function() {
-  describe('multiple running containers', function() {
-
-    beforeEach(function(done) {
-      async.forEach(mocks.containers, function(container, cb) {
-        docker.createContainer(container, cb);
-      }, done);
+describe('prune-orphan-containers'.bold.underline.green, function() {
+  var db;
+  before(function (done) {
+    async.parallel([
+      /* mongodb.connect to initialize connection of mongodb instance shared by script modules */
+      mongodb.connect.bind(mongodb),
+      MongoClient.connect.bind(MongoClient, process.env.KHRONOS_MONGO)
+    ], function (err, results) {
+      if (err) {
+        debug.log(err);
+      }
+      db = results[1];
+      done();
     });
+  });
 
-    afterEach(function(done) {
-      Container.prototype.remove.reset();
-      docker.listContainers(function(err, containers) {
-        if (err) throw err;
-        async.forEach(containers, function(containerObj, cb) {
-          var container = docker.getContainer(containerObj.Id);
-          container.remove(function() {
-            cb();
-          });
-        }, function(){
-          done();
+  beforeEach(function (done) {
+    mavisMock();
+    done();
+  });
+
+  afterEach(function(done) {
+    Container.prototype.remove.reset();
+    docker.listContainers(function(err, containers) {
+      if (err) throw err;
+      async.forEach(containers, function(containerObj, cb) {
+        var container = docker.getContainer(containerObj.Id);
+        container.remove(function() {
+          cb();
         });
-      });
-    });
-
-    it('should delete containers older than 12 hours + from image "docker-image-builder"', function(done) {
-      /**
-       * Seed data == 2 containers
-       */
-      pruneContainers(function() {
-        // two containers were found and removed
-        expect(Container.prototype.remove.calledTwice).to.be.ok;
+      }, function(){
         done();
       });
     });
+  });
 
-    it('should delete containers older than 12 hours + from image "docker-image-builder"', function(done) {
-      /**
-       * Seed data == 2 containers
-       */
-      pruneContainers(function() {
-        // two containers were found and removed
-        expect(Container.prototype.remove.calledTwice).to.be.ok;
-        done();
-      });
+  it('should run successfully if no containers on dock', function (done) {
+    pruneOrphanContainers(function () {
+      expect(Container.prototype.remove.called).to.equal(false);
+      done();
     });
+  });
 
-    /*
-    it('should not delete containers younger than 12 hours', function(done) {
-      pruneContainers(done);
-    });
-    */
+  it('should run successfully if no orphaned containers on dock', function (done) {
+    done();
+  });
 
+  it('should only remove orphaned containers from dock', function (done) {
+    done();
   });
 });
