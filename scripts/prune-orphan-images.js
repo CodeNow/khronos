@@ -40,7 +40,7 @@ module.exports = function(finalCB) {
         docker.getImages.bind(docker),
         fetchContextVersionsAndPrune
       ], function () {
-        totalImagesCount += docker.images.count;
+        totalImagesCount += docker.images.length;
         debug.log('completed dock:', dock);
         dockCB();
       });
