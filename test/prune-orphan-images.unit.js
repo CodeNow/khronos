@@ -14,15 +14,13 @@ var sinon = require('sinon');
 
 var lab = exports.lab = Lab.script();
 
-//var after = lab.after;
+var after = lab.after;
 var afterEach = lab.afterEach;
 var before = lab.before;
 var beforeEach = lab.beforeEach;
 var describe = lab.describe;
 var expect = chai.expect;
 var it = lab.it;
-
-dockerMock.listen(process.env.KHRONOS_DOCKER_PORT);
 
 // set non-default port for testing
 var Docker = require('dockerode');
@@ -40,7 +38,14 @@ var Image = require('dockerode/lib/image');
 sinon.spy(Image.prototype, 'remove');
 describe('prune-orphan-images'.bold.underline.green, function() {
   var db;
+  var server;
+
+  after(function (done) {
+    server.close(done);
+  });
+
   before(function (done) {
+    server = dockerMock.listen(process.env.KHRONOS_DOCKER_PORT);
     async.parallel([
       /* mongodb.connect to initialize connection of mongodb instance shared by script modules */
       mongodb.connect.bind(mongodb),
