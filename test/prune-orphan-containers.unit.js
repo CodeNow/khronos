@@ -67,17 +67,49 @@ describe('prune-orphan-containers'.bold.underline.green, function() {
   });
 
   afterEach(function(done) {
-    Container.prototype.remove.reset();
-    docker.listContainers(function(err, containers) {
-      if (err) { throw err; }
-      async.forEach(containers, function(containerObj, cb) {
-        var container = docker.getContainer(containerObj.Id);
-        container.remove(function() {
+    async.series([
+      function deleteImages (cb) {
+        docker.listImages(function (err, images) {
+          if (err) {
+            debug.log(err);
+            cb();
+          }
+          async.forEach(images, function (image, eachCB) {
+            docker.getImage(image.Id).remove(function (err) {
+              if (err) {
+                debug.log('err', err);
+              }
+              eachCB();
+            });
+          }, function () {
+            cb();
+          });
+        });
+      },
+      function deleteContextVersions (cb) {
+        db.collection('contextversions').drop(function () {
           cb();
         });
-      }, function(){
-        done();
-      });
+      },
+      function deleteInstances (cb) {
+        db.collection('instances').drop(function () {
+          cb();
+        });
+      },
+      function deleteContainers (cb) {
+        docker.listContainers({all: true}, function (err, containers) {
+          if (err) { throw err; }
+          async.eachSeries(containers, function (container, cb) {
+            docker.getContainer(container.Id).remove(cb);
+          }, cb);
+        });
+      }
+    ], function () {
+      if (Container.prototype.remove.reset) {
+        Container.prototype.remove.reset();
+      }
+      debug.log('finished afterEach');
+      done();
     });
   });
 
@@ -89,45 +121,88 @@ describe('prune-orphan-containers'.bold.underline.green, function() {
   });
 
   it('should run successfully if no orphaned containers on dock', function (done) {
-    var containers = [];
     var instanceDocuments = [];
+    var numContainers = 5;
     async.series([
       function createContainers (cb) {
-        async.times(5, function (n, cb) {
+        async.times(numContainers, function (n, cb) {
           docker.createContainer({
             Image: fixtures.getRandomImageName()
-          }, function (err, container) {
+          }, function (err) {
             if (err) { throw err; }
-            containers.push(container);
             cb();
           });
         }, cb);
       },
       function createInstances (cb) {
         var instances = db.collection('instances');
-        async.eachSeries(containers, function (container, cb) {
-          // insert standard instances
-          instances.insert({
-            container: {
-              dockerContainer: container.Id
-            }
-          }, function (err, _instance) {
-            if (err) { throw err; }
-            instanceDocuments.push(_instance[0]);
-            cb();
-          });
-        }, cb);
+        docker.listContainers({all: true}, function (err, containers) {
+          async.eachSeries(containers, function (container, cb) {
+            // insert standard instances
+            instances.insert({
+              container: {
+                dockerContainer: container.Id
+              }
+            }, function (err, _instance) {
+              if (err) { throw err; }
+              instanceDocuments.push(_instance[0]);
+              cb();
+            });
+          }, cb);
+        });
       },
     ], function () {
       pruneOrphanContainers(function () {
-        expect(Container.prototype.remove.called).to.equal(false);
-        done();
+        //expect(Container.prototype.remove.called).to.equal(false);
+        docker.listContainers({all: true}, function (err, containers) {
+          if (err) { throw err; }
+          expect(containers.length).to.equal(numContainers);
+          done();
+        });
       });
     });
   });
 
   it('should only remove orphaned containers from dock', function (done) {
-
-    done();
+    var numContainers = 5;
+    var numOrphans = 3;
+    async.series([
+      function createContainers (cb) {
+        async.times(numContainers, function (n, cb) {
+          docker.createContainer({
+            Image: fixtures.getRandomImageName()
+          }, function (err) {
+            if (err) { throw err; }
+            cb();
+          });
+        }, cb);
+      },
+      function createInstances (cb) {
+        var instances = db.collection('instances');
+        docker.listContainers({all: true}, function (err, containers) {
+          async.eachSeries(
+            containers.slice(0, numContainers-numOrphans), function (container, cb) {
+            // insert standard instances
+            instances.insert({
+              container: {
+                dockerContainer: container.Id
+              }
+            }, function (err) {
+              if (err) { throw err; }
+              cb();
+            });
+          }, cb);
+        });
+      },
+    ], function () {
+      pruneOrphanContainers(function () {
+        expect(Container.prototype.remove.callCount).to.equal(numOrphans);
+        docker.listContainers({all: true}, function (err, containers) {
+          if (err) { throw err; }
+          expect(containers.length).to.equal(numContainers-numOrphans);
+          done();
+        });
+      });
+    });
   });
 });

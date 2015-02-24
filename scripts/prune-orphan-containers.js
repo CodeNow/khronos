@@ -76,6 +76,7 @@ module.exports = function(finalCB) {
               '$in': containerSet.map(pluck('Id'))
             }
           };
+          debug.log('query', query);
           mongodb.fetchInstances(query, function (err, instances) {
             if (err) { return doWhilstIteratorCB(err); }
             /**
@@ -97,7 +98,7 @@ module.exports = function(finalCB) {
              * instance documents for a match. If no match found, this container is an
              * orphan.
              */
-            var foundInstancesContainerIds = instances.map(pluck('contextVersion.containerId'));
+            var foundInstancesContainerIds = instances.map(pluck('container.dockerContainer'));
             async.eachSeries(containerSet,
             function (container, eachCB) {
               // have container, is it in the list of "foundInstancesContainerIds" ????

@@ -24,7 +24,8 @@ module.exports = {
    */
   getRandomImageName: function () {
     return process.env.KHRONOS_DOCKER_REGISTRY+
-      randomHash().substr(0, 6)+
+      '/'+
+      (Math.random()*999999 | 0)+
       '/'+
       randomHash().substr(0, 24)+
       ':'+

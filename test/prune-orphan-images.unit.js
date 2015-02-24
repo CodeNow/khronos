@@ -82,10 +82,7 @@ describe('prune-orphan-images'.bold.underline.green, function() {
               }
               eachCB();
             });
-          }, function () {
-            debug.log('removed each image');
-            cb();
-          });
+          }, cb);
         });
       },
       function deleteContextVersions (cb) {
