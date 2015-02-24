@@ -1,28 +1,26 @@
 'use strict';
 
+require('../lib/loadenv');
+require('colors');
+
 var Lab = require('lab');
 var MongoClient = require('mongodb').MongoClient;
 var ObjectID = require('mongodb').ObjectID;
 var async = require('async');
 var chai = require('chai');
 var dockerMock = require('docker-mock');
-var rewire = require('rewire');
+var mavisMock = require('./mocks/mavis');
 var sinon = require('sinon');
 
 var lab = exports.lab = Lab.script();
 
-var describe = lab.describe;
-var it = lab.it;
+var after = lab.after;
+var afterEach = lab.afterEach;
 var before = lab.before;
 var beforeEach = lab.beforeEach;
-//var after = lab.after;
-var afterEach = lab.afterEach;
+var describe = lab.describe;
 var expect = chai.expect;
-
-require('../lib/loadenv');
-var mavisMock = require('./mocks/mavis');
-
-dockerMock.listen(process.env.KHRONOS_DOCKER_PORT);
+var it = lab.it;
 
 // set non-default port for testing
 var Docker = require('dockerode');
@@ -32,75 +30,71 @@ var docker = new Docker({
 });
 
 // replace private variables for testing
-var pruneOrphanImages = rewire('../scripts/prune-orphan-images');
+var debug = require('../lib/models/debug/debug')(__filename);
+var mongodb = require('../lib/models/mongodb/mongodb');
+var pruneOrphanImages = require('../scripts/prune-orphan-images');
 
 var Image = require('dockerode/lib/image');
 sinon.spy(Image.prototype, 'remove');
-
-describe('prune-orphan-images', function() {
-
+describe('prune-orphan-images'.bold.underline.green, function() {
   var db;
+  var server;
+
+  after(function (done) {
+    server.close(done);
+  });
 
   before(function (done) {
-    MongoClient.connect(process.env.KHRONOS_MONGO, function (err, _db) {
-      if (err) { throw err; }
-      db = _db;
+    server = dockerMock.listen(process.env.KHRONOS_DOCKER_PORT);
+    async.parallel([
+      /* mongodb.connect to initialize connection of mongodb instance shared by script modules */
+      mongodb.connect.bind(mongodb),
+      MongoClient.connect.bind(MongoClient, process.env.KHRONOS_MONGO)
+    ], function (err, results) {
+      if (err) {
+        debug.log(err);
+      }
+      db = results[1];
       done();
     });
   });
-var i = 0;
+
   beforeEach(function (done) {
     mavisMock();
-    i++;
     done();
   });
 
-  afterEach(function (done2) {
+  afterEach(function (done) {
     if (Image.prototype.remove.reset) {
       Image.prototype.remove.reset();
     }
-    function done () {
-      console.log('DONE', i);
-      done2();
-    }
-    var d = require('domain').create();
-
-    d.run(stuff);
-    d.on('error', function (err) {
-     console.log(err.stack);
-    });
-    function stuff () {
-      async.series([
-        function deleteImages (cb) {
-          docker.listImages(function (err, images) {
-            if (err) {
-              console.log(err);
-              cb();
-            }
-            async.forEach(images, function (image, eachCB) {
-              docker.getImage(image.Id).remove(function (err) {
-                if (err) {
-                  console.log('err', err);
-                }
-                eachCB();
-              });
-            }, function () {
-              console.log('removed each image');
-              cb();
-            });
-          });
-        },
-        function deleteContextVersions (cb) {
-          db.collection('contextversions').drop(function () {
-            console.log('dropped contextversions collection');
+    async.series([
+      function deleteImages (cb) {
+        docker.listImages(function (err, images) {
+          if (err) {
+            debug.log(err);
             cb();
-          });
-        }
-      ], function () {
-        console.log('finished afterEach');
-        done();
-      });
-    }
+          }
+          async.forEach(images, function (image, eachCB) {
+            docker.getImage(image.Id).remove(function (err) {
+              if (err) {
+                debug.log('err', err);
+              }
+              eachCB();
+            });
+          }, cb);
+        });
+      },
+      function deleteContextVersions (cb) {
+        db.collection('contextversions').drop(function () {
+          debug.log('dropped contextversions collection');
+          cb();
+        });
+      }
+    ], function () {
+      debug.log('finished afterEach');
+      done();
+    });
   });
 
   describe('success scenarios', function () {
@@ -114,6 +108,13 @@ var i = 0;
     });
 
     describe('dock with images', function () {
+      beforeEach(function (done) {
+        if (Image.prototype.remove.reset) {
+          Image.prototype.remove.reset();
+        }
+        done();
+      });
+
       it('should run successfully with no orphaned images on dock', function (done) {
         var cvs = [];
         async.series([
@@ -121,6 +122,7 @@ var i = 0;
             var contextVersions = db.collection('contextversions');
             async.times(4, function (n, cb) {
               contextVersions.insert({}, function (err, _cv) {
+                if (err) { throw err; }
                 cvs.push(_cv[0]);
                 cb();
               });
@@ -128,7 +130,7 @@ var i = 0;
           },
           function createImages (cb) {
             async.eachLimit(cvs, 1, function (cv, cb) { // bit of a concurrency bug in tests
-              var cvId = cv['_id']+''; // must cast to string
+              var cvId = cv._id+''; // must cast to string
               docker.createImage({
                 fromImage: 'registry.runnable.com/1616464/'+cvId,
                 tag: cvId
@@ -141,37 +143,46 @@ var i = 0;
         ], function (err) {
           if (err) { throw err; }
           pruneOrphanImages(function () {
-            expect(Image.prototype.remove.called).to.equal(false);
-            done();
+            docker.listImages({}, function (err, images) {
+              if (err) {
+                throw err;
+              }
+              expect(images.length).to.equal(cvs.length);
+              expect(Image.prototype.remove.called).to.equal(false);
+              done();
+            });
           });
         });
       });
 
-      it('should only remove orphaned images from dock', {timeout: 1000*5}, function (done) {
+      it('should only remove orphaned images from dock ', {timeout: 1000*5}, function (done) {
         var cvs = [];
         var orphans = [];
         async.series([
           function createCVs (cb) {
             var contextVersions = db.collection('contextversions');
-            async.times(1, function (n, cb) {
+            async.times(10, function (n, cb) {
               contextVersions.insert({}, function (err, _cv) {
+                if (err) { throw err; }
                 cvs.push(_cv[0]);
                 cb();
               });
             }, cb);
           },
           function createImages (cb) {
-            // creating orphans
+            // creating orphans (images without associated context versions)
             orphans.push({'_id': new ObjectID('999017345affa9400d894407')});
             orphans.push({'_id': new ObjectID('999015ac341e8eb10b4a0328')});
             orphans.push({'_id': new ObjectID('999015ac341e8eb10b4a0329')});
             cvs = cvs.concat(orphans);
-            async.eachLimit(cvs, 1, function (cv, cb) { // bit of a concurrency bug in tests
-              var cvId = cv['_id']+''; // must cast to string
+            // will make 6 images, 3 of which will be orphans
+            async.eachLimit(cvs, 1, function (cv, cb) {
+              var cvId = cv._id+''; // must cast to string
               docker.createImage({
                 fromImage: 'registry.runnable.com/1616464/'+cvId,
                 tag: cvId
-              }, function (err) {
+              }, function (err, data) {
+                data.on('data', function () {});
                 if (err) { throw err; }
                 cb();
               });
@@ -179,9 +190,17 @@ var i = 0;
           }
         ], function (err) {
           if (err) { throw err; }
-          pruneOrphanImages(function () {
-            expect(Image.prototype.remove.callCount).to.equal(orphans.length);
-            done();
+          docker.listImages({}, function (err, images) {
+            if (err) { throw err; }
+            expect(images.length).to.equal(cvs.length);
+            pruneOrphanImages(function () {
+              docker.listImages({}, function (err, images) {
+                if (err) { throw err; }
+                expect(images.length).to.equal(cvs.length - orphans.length);
+                expect(Image.prototype.remove.callCount).to.equal(orphans.length);
+                done();
+              });
+            });
           });
         });
       });

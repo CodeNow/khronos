@@ -1,5 +1,6 @@
 {
     // Settings
+    "esnext"        : true,
     "maxerr"        : 100,    // Maximum error before stopping.
     "unused"        : true,   // Warn about unused variables
 
