@@ -10,8 +10,7 @@ He is also known for creating schemes which are executed at opportune times.
 NODE_ENV=production|staging npm start
 
 // Testing
-make test
-make test-dry
+npm test
 
 // Individual tests
 NODE_ENV=test NODE_PATH=lib/ node node_modules/lab/bin/lab test/___.unit.js
