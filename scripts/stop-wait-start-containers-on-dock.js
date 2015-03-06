@@ -92,9 +92,10 @@ async.series([
               // it's owned and created by the user, so it's not an org
               var baseCommand = 'runnable instance:' + instances[instanceId].lowerName;
               var e = clone(env);
-              e.RUNNABLE_ACCESS_TOKEN = u.token;
+              e.RUNNABLE_GITHUB_TOKEN = u.token;
               e.NO_COOKIE = true;
               if (!dry) {
+                console.log('running', baseCommand + ' stop');
                 exec(baseCommand + ' stop',
                   { env: e },
                   function (err, stdout, stderr) {
@@ -103,6 +104,7 @@ async.series([
                       console.error(err, stderr.toString());
                     }
                     console.log(stdout);
+                    console.error(stderr);
                     delete instances[instanceId];
                     startCommands.push({
                       cmd: baseCommand + ' start',
@@ -159,7 +161,6 @@ async.series([
             'accept': 'application/json'
           }
         };
-        console.log(opts.url);
         request.get(opts, function (err, res, body) {
           if (err || res.statusCode !== 200) {
             console.error('failed to get orgs for', u.login);
@@ -186,12 +187,14 @@ async.series([
               e.RUNNABLE_GITHUB_TOKEN = u.token;
               e.NO_COOKIE = true;
               if (!dry) {
+                console.log('running', baseCommand + ' stop');
                 exec(baseCommand + ' stop', { env: e }, function (err, stdout, stderr) {
                   if (err) {
                     console.error('could not stop instance', instances[instanceId].lowerName);
                     console.error(err, stderr.toString());
                   }
                   console.log(stdout);
+                  console.error(stderr);
                   delete instances[instanceId];
                   startCommands.push({
                     cmd: baseCommand + ' start',
@@ -238,7 +241,8 @@ async.series([
       startCommands,
       function (cmd, cb) {
         if (!dry) {
-          exec(cmd.cmd, { env: cmd.e }, function (err, stdout, stderr) {
+          console.log('running', cmd.cmd);
+          exec(cmd.cmd, cmd.env, function (err, stdout, stderr) {
             if (err) {
               console.error('could not start instance', cmd.cmd);
               console.error(err);
@@ -247,6 +251,7 @@ async.series([
               console.log('started', cmd.cmd);
               console.log(stdout.toString());
             }
+            cb();
           });
         } else {
           console.log('starting', cmd.cmd);
