@@ -1,3 +1,9 @@
+/**
+ * This script fetches all the _running_ containers on a dock and sends
+ * commands via `runnable-cli` to stop them. Once stopped, it waits for the
+ * user to type "GO RUNNABLE" before it starts the containers back up again.
+ * It will do user containers as well as org containers.
+ */
 
 var async = require('async');
 var clone = require('101/clone');
