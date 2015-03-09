@@ -223,7 +223,7 @@ async.series([
       startCommands,
       function (cmd, cb) {
         if (!dry) {
-          runCommand(cmd, { env: cmd.env }, cb);
+          runCommand(cmd.cmd, { env: cmd.env }, cb);
         } else {
           console.log('running', cmd.cmd);
           cb();
