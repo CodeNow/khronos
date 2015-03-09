@@ -1,4 +1,3 @@
-'use strict';
 
 var async = require('async');
 var clone = require('101/clone');
@@ -88,44 +87,29 @@ async.series([
               console.log('found an instance that I do not know about? confused.');
               return cb();
             }
+            // check to see if the owner === created by (means it's not an org)
             if (instances[instanceId].createdBy.github === instances[instanceId].owner.github) {
               // it's owned and created by the user, so it's not an org
               var baseCommand = 'runnable instance:' + instances[instanceId].lowerName;
               var e = clone(env);
               e.RUNNABLE_GITHUB_TOKEN = u.token;
               e.NO_COOKIE = true;
-              if (!dry) {
-                console.log('running', baseCommand + ' stop');
-                exec(baseCommand + ' stop',
-                  { env: e },
-                  function (err, stdout, stderr) {
-                    if (err) {
-                      console.error('could not stop instance', instances[instanceId].lowerName);
-                      console.error(err, stderr.toString());
-                    }
-                    console.log(stdout);
-                    console.error(stderr);
-                    delete instances[instanceId];
-                    startCommands.push({
-                      cmd: baseCommand + ' start',
-                      env: e
-                    });
-                    // don't pass the error. just accept that the stop failed.
-                    cb();
-                  }
-                );
-              } else {
-                console.log('running runnable-cli to restart instance',
-                  instances[instanceId].lowerName);
+              function stopFinish (err) {
                 delete instances[instanceId];
                 startCommands.push({
                   cmd: baseCommand + ' start',
                   env: e
                 });
-                console.log('and assumed it worked');
-                cb();
+                cb(); // just ignore that it didn't stop
+              }
+              if (!dry) {
+                runCommand(baseCommand + ' stop', { env: e }, stopFinish);
+              } else {
+                console.log('running', baseCommand, 'stop');
+                stopFinish();
               }
             } else {
+              // an org owns this one, don't do anything yet
               cb();
             }
           },
@@ -140,7 +124,8 @@ async.series([
       console.log('no org instances to restart! noop.');
       return cb();
     }
-    console.log('have', Object.keys(instances).length, 'more to restart');
+    console.log('have', Object.keys(instances).length, 'more to restart (org instances');
+    // for each of the users
     async.eachSeries(
       Object.keys(users),
       function (u, cb) {
@@ -149,8 +134,11 @@ async.series([
           console.warn('we cannot restart instances w/o a user token. skipping', u.login);
           return cb();
         }
-        console.log('hello again,', u.login);
+        console.log('getting orgs for', u.login);
+        // get all the instances they created
         var instanceIds = u.instances.reduce(function (memo, curr) {
+          // filter out the onces that we haven't stopped yet
+          // (if it's in `instances`, we haven't stopped it yet)
           if (instances[curr]) { memo.push(curr); }
           return memo;
         }, []);
@@ -161,16 +149,19 @@ async.series([
             'accept': 'application/json'
           }
         };
+        // get the orgs of the user
         request.get(opts, function (err, res, body) {
           if (err || res.statusCode !== 200) {
             console.error('failed to get orgs for', u.login);
             return cb();
           }
           body = JSON.parse(body);
+          // for each of the instances, restart them
           async.eachSeries(
             instanceIds,
             function (instanceId, cb) {
               var targetOwnerId = instances[instanceId].owner.github.toString();
+              // find the org that owns this instance
               var org = find(body, function (o) {
                 return o.id.toString() === targetOwnerId;
               });
@@ -179,41 +170,26 @@ async.series([
                 console.error('cannot stop', instances[instanceId].lowerName);
                 return cb();
               }
-              var baseCommand = [
-                'runnable',
-                org.login + ':instance:' + instances[instanceId].lowerName
-              ].join(' ');
+              // this just has a different format so that we can access the org name
+              var baseCommand = 'runnable ' +
+                org.login + ':instance:' + instances[instanceId].lowerName;
               var e = clone(env);
               e.RUNNABLE_GITHUB_TOKEN = u.token;
               e.NO_COOKIE = true;
-              if (!dry) {
-                console.log('running', baseCommand + ' stop');
-                exec(baseCommand + ' stop', { env: e }, function (err, stdout, stderr) {
-                  if (err) {
-                    console.error('could not stop instance', instances[instanceId].lowerName);
-                    console.error(err, stderr.toString());
-                  }
-                  console.log(stdout);
-                  console.error(stderr);
-                  delete instances[instanceId];
-                  startCommands.push({
-                    cmd: baseCommand + ' start',
-                    env: e
-                  });
-                  // don't pass the error. just accept that the stop failed.
-                  cb();
-                });
-              } else {
-                console.log('running runnable-cli to stop instance',
-                  org.login,
-                  instances[instanceId].lowerName);
+              function stopFinish (err) {
                 delete instances[instanceId];
                 startCommands.push({
                   cmd: baseCommand + ' start',
                   env: e
                 });
-                console.log('and assumed it worked');
+                // don't pass the error. just accept that the stop failed.
                 cb();
+              }
+              if (!dry) {
+                runCommand(baseCommand + ' stop', { env: e }, stopFinish);
+              } else {
+                console.log('running', baseCommand, 'stop');
+                stopFinish();
               }
             },
             cb);
@@ -241,21 +217,9 @@ async.series([
       startCommands,
       function (cmd, cb) {
         if (!dry) {
-          console.log('running', cmd.cmd);
-          exec(cmd.cmd, cmd.env, function (err, stdout, stderr) {
-            if (err) {
-              console.error('could not start instance', cmd.cmd);
-              console.error(err);
-              console.log(stderr.toString());
-            } else {
-              console.log('started', cmd.cmd);
-              console.log(stdout.toString());
-            }
-            cb();
-          });
+          runCommand(cmd, { env: cmd.env }, cb);
         } else {
-          console.log('starting', cmd.cmd);
-          console.log('started', cmd.cmd);
+          console.log('running', cmd.cmd);
           cb();
         }
       },
@@ -270,6 +234,23 @@ async.series([
   console.log('done!');
   process.exit(0);
 });
+
+
+function runCommand (cmd, opts, cb) {
+  console.log('running', cmd);
+  exec(
+    cmd,
+    opts,
+    function (err, stdout, stderr) {
+      if (err) {
+        console.error('err running command', cmd, err);
+      }
+      console.log(stdout);
+      console.error(stderr);
+      cb(err);
+    }
+  );
+}
 
 function toInt (s) {
   return parseInt(s, 10);
