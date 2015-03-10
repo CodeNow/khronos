@@ -33,33 +33,22 @@ var docker = new Docker({
 
 var debug = require('../lib/models/debug/debug')(__filename);
 var mongodb = require('../lib/models/mongodb/mongodb');
-var pruneOrphanContainers = rewire('../scripts/prune-orphan-containers');
+var pruneImageBuilderContainers = rewire('../scripts/prune-image-builder-containers');
 
 var Container = require('dockerode/lib/container');
 
-describe('prune-orphan-containers'.bold.underline.green, function() {
-  var db;
+describe('prune-image-builder-containers'.bold.underline.green, function() {
   var server;
 
   after(function (done) {
-    Container.prototype.remove.restore();
     server.close(done);
+    Container.prototype.remove.restore();
   });
 
   before(function (done) {
     sinon.spy(Container.prototype, 'remove');
     server = dockerMock.listen(process.env.KHRONOS_DOCKER_PORT);
-    async.parallel([
-      /* mongodb.connect to initialize connection of mongodb instance shared by script modules */
-      mongodb.connect.bind(mongodb),
-      MongoClient.connect.bind(MongoClient, process.env.KHRONOS_MONGO)
-    ], function (err, results) {
-      if (err) {
-        debug.log(err);
-      }
-      db = results[1];
-      done();
-    });
+    done();
   });
 
   beforeEach(function (done) {
@@ -69,34 +58,6 @@ describe('prune-orphan-containers'.bold.underline.green, function() {
 
   afterEach(function(done) {
     async.series([
-      function deleteImages (cb) {
-        docker.listImages(function (err, images) {
-          if (err) {
-            debug.log(err);
-            cb();
-          }
-          async.forEach(images, function (image, eachCB) {
-            docker.getImage(image.Id).remove(function (err) {
-              if (err) {
-                debug.log('err', err);
-              }
-              eachCB();
-            });
-          }, function () {
-            cb();
-          });
-        });
-      },
-      function deleteContextVersions (cb) {
-        db.collection('contextversions').drop(function () {
-          cb();
-        });
-      },
-      function deleteInstances (cb) {
-        db.collection('instances').drop(function () {
-          cb();
-        });
-      },
       function deleteContainers (cb) {
         docker.listContainers({all: true}, function (err, containers) {
           if (err) { throw err; }
@@ -115,14 +76,13 @@ describe('prune-orphan-containers'.bold.underline.green, function() {
   });
 
   it('should run successfully if no containers on dock', function (done) {
-    pruneOrphanContainers(function () {
+    pruneImageBuilderContainers(function () {
       expect(Container.prototype.remove.called).to.equal(false);
       done();
     });
   });
 
-  it('should run successfully if no orphaned containers on dock', function (done) {
-    var instanceDocuments = [];
+  it('should run successfully if no image builder containers on dock', function (done) {
     var numContainers = 5;
     async.series([
       function createContainers (cb) {
@@ -135,26 +95,8 @@ describe('prune-orphan-containers'.bold.underline.green, function() {
           });
         }, cb);
       },
-      function createInstances (cb) {
-        var instances = db.collection('instances');
-        docker.listContainers({all: true}, function (err, containers) {
-          async.eachSeries(containers, function (container, cb) {
-            // insert standard instances
-            instances.insert({
-              container: {
-                dockerContainer: container.Id
-              }
-            }, function (err, _instance) {
-              if (err) { throw err; }
-              instanceDocuments.push(_instance[0]);
-              cb();
-            });
-          }, cb);
-        });
-      }
     ], function () {
-      pruneOrphanContainers(function () {
-        //expect(Container.prototype.remove.called).to.equal(false);
+      pruneImageBuilderContainers(function () {
         docker.listContainers({all: true}, function (err, containers) {
           if (err) { throw err; }
           expect(containers.length).to.equal(numContainers);
@@ -163,7 +105,7 @@ describe('prune-orphan-containers'.bold.underline.green, function() {
       });
     });
   });
-
+/*
   it('should only remove orphaned containers from dock', function (done) {
     var numContainers = 5;
     var numOrphans = 3;
@@ -206,4 +148,6 @@ describe('prune-orphan-containers'.bold.underline.green, function() {
       });
     });
   });
+*/
+
 });
