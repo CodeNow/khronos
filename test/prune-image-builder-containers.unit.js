@@ -4,7 +4,6 @@ require('../lib/loadenv');
 require('colors');
 
 var Lab = require('lab');
-var MongoClient = require('mongodb').MongoClient;
 var async = require('async');
 var chai = require('chai');
 var dockerMock = require('docker-mock');
@@ -32,7 +31,6 @@ var docker = new Docker({
 });
 
 var debug = require('../lib/models/debug/debug')(__filename);
-var mongodb = require('../lib/models/mongodb/mongodb');
 var pruneImageBuilderContainers = rewire('../scripts/prune-image-builder-containers');
 
 var Container = require('dockerode/lib/container');
