@@ -4,6 +4,7 @@
  * user to type "GO RUNNABLE" before it starts the containers back up again.
  * It will do user containers as well as org containers.
  */
+'use strict';
 
 var async = require('async');
 var clone = require('101/clone');
@@ -100,14 +101,14 @@ async.series([
               var e = clone(env);
               e.RUNNABLE_GITHUB_TOKEN = u.token;
               e.NO_COOKIE = true;
-              function stopFinish (err) {
+              var stopFinish = function () {
                 delete instances[instanceId];
                 startCommands.push({
                   cmd: baseCommand + ' start',
                   env: e
                 });
                 cb(); // just ignore that it didn't stop
-              }
+              };
               if (!dry) {
                 runCommand(baseCommand + ' stop', { env: e }, stopFinish);
               } else {
@@ -182,7 +183,7 @@ async.series([
               var e = clone(env);
               e.RUNNABLE_GITHUB_TOKEN = u.token;
               e.NO_COOKIE = true;
-              function stopFinish (err) {
+              var stopFinish = function () {
                 delete instances[instanceId];
                 startCommands.push({
                   cmd: baseCommand + ' start',
@@ -190,7 +191,7 @@ async.series([
                 });
                 // don't pass the error. just accept that the stop failed.
                 cb();
-              }
+              };
               if (!dry) {
                 runCommand(baseCommand + ' stop', { env: e }, stopFinish);
               } else {
@@ -223,7 +224,7 @@ async.series([
       startCommands,
       function (cmd, cb) {
         if (!dry) {
-          runCommand(cmd.cmd, { env: cmd.env }, cb);
+          runCommand(cmd.cmd, { env: cmd.env }, function () { cb(); });
         } else {
           console.log('running', cmd.cmd);
           cb();
