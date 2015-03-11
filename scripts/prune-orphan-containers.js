@@ -15,6 +15,13 @@ var dockerModule = require('models/docker/docker');
 var mavis = require('models/mavis/mavis')();
 var mongodb = require('models/mongodb/mongodb');
 
+var TEST_IMAGE_TAG =
+    new RegExp('^'+process.env.KHRONOS_DOCKER_REGISTRY+'\/[0-9]+\/[A-z0-9]+:[A-z0-9]+');
+var IMAGE_FILTERS = [
+  TEST_IMAGE_TAG,
+  /^[A-z0-9]{12}$/
+];
+
 module.exports = function(finalCB) {
   var orphanedContainersCount = 0;
   var totalContainersCount = 0;
@@ -36,7 +43,7 @@ module.exports = function(finalCB) {
       var docker = dockerModule();
       docker.connect(dock);
       async.series([
-        docker.getContainers.bind(docker),
+        docker.getContainers.bind(docker, IMAGE_FILTERS),
         fetchInstancesAndPrune
       ], function () {
         totalContainersCount += docker.containers.length;

@@ -39,8 +39,8 @@ describe('prune-image-builder-containers'.bold.underline.green, function() {
   var server;
 
   after(function (done) {
-    server.close(done);
     Container.prototype.remove.restore();
+    server.close(done);
   });
 
   before(function (done) {
@@ -103,13 +103,13 @@ describe('prune-image-builder-containers'.bold.underline.green, function() {
       });
     });
   });
-/*
-  it('should only remove orphaned containers from dock', function (done) {
-    var numContainers = 5;
-    var numOrphans = 3;
+
+  it('should only remove image builder containers from dock', function (done) {
+    var numRegularContainers = 5;
+    var numImageBuilderContainers = 2;
     async.series([
-      function createContainers (cb) {
-        async.times(numContainers, function (n, cb) {
+      function createRegularContainers (cb) {
+        async.times(numRegularContainers, function (n, cb) {
           docker.createContainer({
             Image: fixtures.getRandomImageName()
           }, function (err) {
@@ -118,34 +118,28 @@ describe('prune-image-builder-containers'.bold.underline.green, function() {
           });
         }, cb);
       },
-      function createInstances (cb) {
-        var instances = db.collection('instances');
-        docker.listContainers({all: true}, function (err, containers) {
-          async.eachSeries(
-            containers.slice(0, numContainers-numOrphans), function (container, cb) {
-            // insert standard instances
-            instances.insert({
-              container: {
-                dockerContainer: container.Id
-              }
-            }, function (err) {
-              if (err) { throw err; }
-              cb();
-            });
-          }, cb);
-        });
-      },
+      function createImageBuilderContainers (cb) {
+        async.times(numImageBuilderContainers, function (n, cb) {
+          docker.createContainer({
+            Image: 'runnable/image-builder'
+          }, function (err) {
+            if (err) { throw err; }
+            cb();
+          });
+        }, cb);
+      }
     ], function () {
-      pruneOrphanContainers(function () {
-        expect(Container.prototype.remove.callCount).to.equal(numOrphans);
-        docker.listContainers({all: true}, function (err, containers) {
-          if (err) { throw err; }
-          expect(containers.length).to.equal(numContainers-numOrphans);
-          done();
+      docker.listContainers({all: true}, function (err, containers) {
+        expect(containers.length).to.equal(numRegularContainers+numImageBuilderContainers);
+        pruneImageBuilderContainers(function () {
+          expect(Container.prototype.remove.callCount).to.equal(numImageBuilderContainers);
+          docker.listContainers({all: true}, function (err, containers) {
+            if (err) { throw err; }
+            expect(containers.length).to.equal(numRegularContainers);
+            done();
+          });
         });
       });
     });
   });
-*/
-
 });

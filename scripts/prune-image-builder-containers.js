@@ -5,7 +5,6 @@
 'use strict';
 
 var async = require('async');
-var find = require('101/find');
 
 var datadog = require('models/datadog/datadog')(__filename);
 var debug = require('models/debug/debug')(__filename);
@@ -13,13 +12,14 @@ var dockerModule = require('models/docker/docker');
 var mavis = require('models/mavis/mavis')();
 
 var IMAGE_BUILDER_REGEX = new RegExp(process.env.KHRONOS_IMAGE_BUILDER_CONTAINER_TAG);
+var IMAGE_FILTERS = [
+  IMAGE_BUILDER_REGEX
+];
 
 module.exports = function(finalCB) {
-
   var totalContainersCount = 0;
   var totalImageBuilderContainersCount = 0;
   var successfullyDeletedContainersCount = 0;
-
   datadog.startTiming('complete-prune-image-builder-containers');
   // for each dock
     // find all containers with tag 'registry.runnable.io'
@@ -31,7 +31,6 @@ module.exports = function(finalCB) {
     }
     processOrphanContainers();
   });
-
   function processOrphanContainers () {
     async.each(mavis.docks,
     function (dock, dockCB) {
@@ -39,7 +38,7 @@ module.exports = function(finalCB) {
       var docker = dockerModule();
       docker.connect(dock);
       async.series([
-        docker.getContainers.bind(docker),
+        docker.getContainers.bind(docker, IMAGE_FILTERS),
         pruneImageBuilderContainers
       ], function () {
         totalContainersCount += docker.containers.length;
@@ -47,17 +46,9 @@ module.exports = function(finalCB) {
         dockCB();
       });
       function pruneImageBuilderContainers (pruneCB) {
-        /**
-         * Find + remove containers w/ tags matching docker image builder containers
-         */
-        var imageBuilderContainers = docker.containers.filter(function (container) {
-          return container.RepoTags && find(container.RepoTags, function (tag) {
-            return IMAGE_BUILDER_REGEX.test(tag);
-          });
-        });
-        debug.log('Found '+imageBuilderContainers.length+' image-builder containers');
-        totalImageBuilderContainersCount += imageBuilderContainers.length;
-        async.eachSeries(imageBuilderContainers, function (container, cb) {
+        debug.log('Found '+docker.containers.length+' image-builder containers');
+        totalImageBuilderContainersCount += docker.containers.length;
+        async.eachSeries(docker.containers, function (container, cb) {
           docker.removeContainer(container.Id, function (err) {
             if (!err) {
               successfullyDeletedContainersCount++;
