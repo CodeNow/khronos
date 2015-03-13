@@ -27,7 +27,7 @@ module.exports = function(finalCB) {
   mavis.getDocks(function (err) {
     if (err) {
       debug.log(err);
-      finalCB(err);
+      return finalCB(err);
     }
     processOrphanContainers();
   });
