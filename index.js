@@ -10,12 +10,15 @@ var debug = require('models/debug/debug')(__filename);
 var mongodb = require('models/mongodb/mongodb');
 
 var pruneExpiredContextVersions = require('./scripts/prune-expired-context-versions');
+var pruneImageBuilderContainers = require('./scripts/prune-image-builder-containers');
 var pruneOrphanContainers = require('./scripts/prune-orphan-containers');
 var pruneOrphanImages = require('./scripts/prune-orphan-images');
+
 // functions to be run sequentially for both
 // manual run and cron run
 var seriesFunctions = [
   pruneExpiredContextVersions,
+  pruneImageBuilderContainers,
   pruneOrphanContainers,
   // pruneOrphanImages must be run after pruneOrphanContainers
   pruneOrphanImages
