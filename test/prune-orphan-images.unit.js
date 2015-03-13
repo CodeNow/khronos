@@ -35,16 +35,17 @@ var mongodb = require('../lib/models/mongodb/mongodb');
 var pruneOrphanImages = require('../scripts/prune-orphan-images');
 
 var Image = require('dockerode/lib/image');
-sinon.spy(Image.prototype, 'remove');
 describe('prune-orphan-images'.bold.underline.green, function() {
   var db;
   var server;
 
   after(function (done) {
+    Image.prototype.remove.restore();
     server.close(done);
   });
 
   before(function (done) {
+    sinon.spy(Image.prototype, 'remove');
     server = dockerMock.listen(process.env.KHRONOS_DOCKER_PORT);
     async.parallel([
       /* mongodb.connect to initialize connection of mongodb instance shared by script modules */
@@ -134,7 +135,8 @@ describe('prune-orphan-images'.bold.underline.green, function() {
               docker.createImage({
                 fromImage: 'registry.runnable.com/1616464/'+cvId,
                 tag: cvId
-              }, function (err) {
+              }, function (err, data) {
+                data.on('data', function () {});
                 if (err) { throw err; }
                 cb();
               });
