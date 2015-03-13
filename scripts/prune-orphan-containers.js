@@ -1,5 +1,5 @@
 /**
- * Prune containers from each dock if no corresponding instance document exisits
+ * Prune containers from each dock if no corresponding instance document exists
  * @module scripts/prune-orphan-containers
  */
 'use strict';
