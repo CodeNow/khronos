@@ -1,6 +1,6 @@
 'use strict';
 
-require('../lib/loadenv');
+require('loadenv')('khronos-test');
 require('colors');
 
 //var createCounter = require('callback-count');

@@ -1,6 +1,10 @@
-'use strict';
+/**
+ * @module index
+ */
+kuse strict';
 
-require('loadenv');
+require('loadenv')('khronos');
+
 var CronJob = require('cron').CronJob;
 var async = require('async');
 
