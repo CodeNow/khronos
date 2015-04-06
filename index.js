@@ -3,7 +3,7 @@
  */
 'use strict';
 
-require('loadenv')('khronos');
+require('loadenv')('khronos:env');
 
 var CronJob = require('cron').CronJob;
 var async = require('async');
