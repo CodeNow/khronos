@@ -1,7 +1,7 @@
 /**
  * @module index
  */
-kuse strict';
+'use strict';
 
 require('loadenv')('khronos');
 
