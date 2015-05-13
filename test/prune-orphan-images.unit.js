@@ -76,7 +76,7 @@ describe('prune-orphan-images'.bold.underline.green, function() {
       function deleteImages (cb) {
         docker.listImages(function (err, images) {
           if (err) {
-            console.log('error list images', err);
+            debug.log('error list images', err);
             debug.log(err);
             return cb();
           }
