@@ -12,14 +12,16 @@ var ObjectID = require('mongodb').ObjectID;
 var async = require('async');
 var chai = require('chai');
 var dockerMock = require('docker-mock');
-var mavisMock = require('./mocks/mavis');
 var sinon = require('sinon');
+
+var dockerNockMock = require('./mocks/docker');
+var mavisMock = require('./mocks/mavis');
 
 var lab = exports.lab = Lab.script();
 
-var after = lab.after;
+//var after = lab.after;
 var afterEach = lab.afterEach;
-var before = lab.before;
+//var before = lab.before;
 var beforeEach = lab.beforeEach;
 var describe = lab.describe;
 var expect = chai.expect;
@@ -42,12 +44,12 @@ describe('prune-orphan-images'.bold.underline.green, function() {
   var db;
   var server;
 
-  after(function (done) {
+  afterEach(function (done) {
     Image.prototype.remove.restore();
     server.close(done);
   });
 
-  before(function (done) {
+  beforeEach(function (done) {
     sinon.spy(Image.prototype, 'remove');
     server = dockerMock.listen(process.env.KHRONOS_DOCKER_PORT);
     async.parallel([
@@ -55,9 +57,7 @@ describe('prune-orphan-images'.bold.underline.green, function() {
       mongodb.connect.bind(mongodb),
       MongoClient.connect.bind(MongoClient, process.env.KHRONOS_MONGO)
     ], function (err, results) {
-      if (err) {
-        debug.log(err);
-      }
+      if (err) { debug.log(err); }
       db = results[1];
       done();
     });
@@ -160,7 +160,7 @@ describe('prune-orphan-images'.bold.underline.green, function() {
         });
       });
 
-      it('should only remove orphaned images from dock ', {timeout: 1000*5}, function (done) {
+      it('should only remove orphaned images from dock ', {timeout: 5000}, function (done) {
         var cvs = [];
         var orphans = [];
         async.series([
@@ -180,7 +180,7 @@ describe('prune-orphan-images'.bold.underline.green, function() {
             orphans.push({'_id': new ObjectID('999015ac341e8eb10b4a0328')});
             orphans.push({'_id': new ObjectID('999015ac341e8eb10b4a0329')});
             cvs = cvs.concat(orphans);
-            // will make 6 images, 3 of which will be orphans
+            // will make 13 images, 3 of which will be orphans
             async.eachLimit(cvs, 1, function (cv, cb) {
               var cvId = cv._id+''; // must cast to string
               docker.createImage({
@@ -207,6 +207,17 @@ describe('prune-orphan-images'.bold.underline.green, function() {
               });
             });
           });
+        });
+      });
+    });
+
+    describe('special situations', function () {
+      it('should also remove malformed repository name images from dock', function (done) {
+        // hijack docker response, don't use docker-listener just mock docker for this request
+        dockerNockMock();
+        // spy on remove method and verify called
+        pruneOrphanImages(function () {
+          done();
         });
       });
     });
