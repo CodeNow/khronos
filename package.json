@@ -8,7 +8,7 @@
   "scripts": {
     "test-watch": "node_modules/.bin/rerun-script test",
     "start": "NODE_PATH=./lib node --harmony --use_strict ./index.js",
-    "test": "DEBUG=* NODE_PATH=./lib lab -v -i 12",
+    "test": "NODE_PATH=./lib lab -v",
     "test-dry": "NODE_PATH=./lib lab -d -v",
     "test-cov-html": "NODE_PATH=./lib lab -r html -o coverage.html",
     "dry": "NODE_ENV=staging NODE_PATH=./lib MANUAL_RUN=true DEBUG=khronos* DRY_RUN=true node --harmony --use_strict ./index.js",

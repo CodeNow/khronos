@@ -19,9 +19,9 @@ var mavisMock = require('./mocks/mavis');
 
 var lab = exports.lab = Lab.script();
 
-//var after = lab.after;
+var after = lab.after;
 var afterEach = lab.afterEach;
-//var before = lab.before;
+var before = lab.before;
 var beforeEach = lab.beforeEach;
 var describe = lab.describe;
 var expect = chai.expect;
@@ -44,12 +44,12 @@ describe('prune-orphan-images'.bold.underline.green, function() {
   var db;
   var server;
 
-  afterEach(function (done) {
+  after(function (done) {
     Image.prototype.remove.restore();
     server.close(done);
   });
 
-  beforeEach(function (done) {
+  before(function (done) {
     sinon.spy(Image.prototype, 'remove');
     server = dockerMock.listen(process.env.KHRONOS_DOCKER_PORT);
     async.parallel([
@@ -76,8 +76,9 @@ describe('prune-orphan-images'.bold.underline.green, function() {
       function deleteImages (cb) {
         docker.listImages(function (err, images) {
           if (err) {
+            console.log('error list images', err);
             debug.log(err);
-            cb();
+            return cb();
           }
           async.forEach(images, function (image, eachCB) {
             docker.getImage(image.Id).remove(function (err) {
@@ -200,7 +201,7 @@ describe('prune-orphan-images'.bold.underline.green, function() {
             expect(images.length).to.equal(cvs.length);
             pruneOrphanImages(function () {
               docker.listImages({}, function (err, images) {
-                if (err) { throw err; }
+               if (err) { throw err; }
                 expect(images.length).to.equal(cvs.length - orphans.length);
                 expect(Image.prototype.remove.callCount).to.equal(orphans.length);
                 done();
@@ -209,15 +210,17 @@ describe('prune-orphan-images'.bold.underline.green, function() {
           });
         });
       });
-    });
 
-    describe('special situations', function () {
-      it('should also remove malformed repository name images from dock', function (done) {
-        // hijack docker response, don't use docker-listener just mock docker for this request
-        dockerNockMock();
-        // spy on remove method and verify called
-        pruneOrphanImages(function () {
-          done();
+      describe('special situations', function () {
+        it('should also remove malformed repository name images from dock', function (done) {
+          // hijack docker response, don't use docker-listener just mock docker for this request
+          var scope = dockerNockMock();
+          // spy on remove method and verify called
+          pruneOrphanImages(function () {
+            expect(scope.isDone()).to.equal(true);
+            dockerNockMock.removeNock();
+            done();
+          });
         });
       });
     });
