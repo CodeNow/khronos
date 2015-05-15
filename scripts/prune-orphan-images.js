@@ -2,6 +2,8 @@
  * Fetch list of images on each dock, verify each image is attached to a context-version in mongodb.
  * Only fetch images with tag indicating image is in our runnable registry.
  * If no associated cv is found, remove image from dock.
+ *
+ * 05/13 - expanding functionality to prune images with base image name <none>
  * @module scripts/prune-orphan-images
  */
 'use strict';
@@ -38,12 +40,29 @@ module.exports = function(finalCB) {
       docker.connect(dock);
       async.series([
         docker.getImages.bind(docker),
+        deleteTaglessImages,
         fetchContextVersionsAndPrune
       ], function () {
         totalImagesCount += docker.images.length;
         debug.log('completed dock:', dock);
         dockCB();
       });
+      /**
+       * Delete images from docks that do not have tags
+       */
+      function deleteTaglessImages (cb) {
+        debug.log('deleteTaglessImages deleting '+
+                 docker.taglessImages.count+
+                 ' images');
+        // increase concurrency carefully, avoid overloading dockerd
+        async.eachLimit(docker.taglessImages, 2, function (image, cb) {
+          debug.log('removing tagless image '+image.Id, image.RepoTags);
+          docker.removeImage(image.Id, function (err) {
+            if (err) { debug.log(err); }
+            cb();
+          });
+        }, cb);
+      }
       function fetchContextVersionsAndPrune (fetchCVCB) {
         // chunk check context versions in db for batch of 100 images
         var chunkSize = 100;
