@@ -54,7 +54,8 @@ module.exports = function(finalCB) {
         debug.log('deleteTaglessImages deleting '+
                  docker.taglessImages.count+
                  ' images');
-        async.eachLimit(docker.taglessImages, 1, function (image, cb) {
+        // increase concurrency carefully, avoid overloading dockerd
+        async.eachLimit(docker.taglessImages, 2, function (image, cb) {
           debug.log('removing tagless image '+image.Id, image.RepoTags);
           docker.removeImage(image.Id, function (err) {
             if (err) { debug.log(err); }
