@@ -1,6 +1,9 @@
+/**
+ * @module test/prune-orphan-images.unit
+ */
 'use strict';
 
-require('../lib/loadenv');
+require('loadenv')('khronos:test');
 require('colors');
 
 var Lab = require('lab');

@@ -1,6 +1,9 @@
+/**
+ * @module test/prune-expired-context-versions.unit
+ */
 'use strict';
 
-require('../lib/loadenv');
+require('loadenv')('khronos:test');
 require('colors');
 
 //var createCounter = require('callback-count');
