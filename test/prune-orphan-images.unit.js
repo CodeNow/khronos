@@ -77,7 +77,6 @@ describe('prune-orphan-images'.bold.underline.green, function() {
         docker.listImages(function (err, images) {
           if (err) {
             debug.log('error list images', err);
-            debug.log(err);
             return cb();
           }
           async.forEach(images, function (image, eachCB) {

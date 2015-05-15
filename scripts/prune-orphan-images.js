@@ -56,7 +56,10 @@ module.exports = function(finalCB) {
                  ' images');
         async.eachLimit(docker.taglessImages, 1, function (image, cb) {
           debug.log('removing tagless image '+image.Id, image.RepoTags);
-          docker.removeImage(image.Id, cb);
+          docker.removeImage(image.Id, function (err) {
+            if (err) { debug.log(err); }
+            cb();
+          });
         }, cb);
       }
       function fetchContextVersionsAndPrune (fetchCVCB) {
