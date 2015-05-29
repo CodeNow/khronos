@@ -1,5 +1,5 @@
 KHRONOS
-=======
+======= 
 
 KHRONOS is the Titan god of time and the ages, and is described as destructive and all-devouring. 
 He rules runnable during the so-called Golden Age, after deposing his father (runnable one-point-o). 
