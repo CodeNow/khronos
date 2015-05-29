@@ -1,6 +1,9 @@
+/**
+ * @module test/prune-orphan-containers.unit
+ */
 'use strict';
 
-require('../lib/loadenv');
+require('loadenv')('khronos:test');
 require('colors');
 
 var Lab = require('lab');
@@ -36,17 +39,18 @@ var mongodb = require('../lib/models/mongodb/mongodb');
 var pruneOrphanContainers = rewire('../scripts/prune-orphan-containers');
 
 var Container = require('dockerode/lib/container');
-sinon.spy(Container.prototype, 'remove');
 
 describe('prune-orphan-containers'.bold.underline.green, function() {
   var db;
   var server;
 
   after(function (done) {
+    Container.prototype.remove.restore();
     server.close(done);
   });
 
   before(function (done) {
+    sinon.spy(Container.prototype, 'remove');
     server = dockerMock.listen(process.env.KHRONOS_DOCKER_PORT);
     async.parallel([
       /* mongodb.connect to initialize connection of mongodb instance shared by script modules */
@@ -150,7 +154,7 @@ describe('prune-orphan-containers'.bold.underline.green, function() {
             });
           }, cb);
         });
-      },
+      }
     ], function () {
       pruneOrphanContainers(function () {
         //expect(Container.prototype.remove.called).to.equal(false);

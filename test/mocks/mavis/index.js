@@ -1,3 +1,7 @@
+/**
+ * Mock Mavis API responses
+ * @module test/mocks/mavis/index
+ */
 'use strict';
 
 var docks = require('./docks');
