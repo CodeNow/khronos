@@ -20,9 +20,6 @@ var mavis = require('models/mavis/mavis')();
 module.exports = function(finalCb) {
   var totalContainersCount = 0;
   datadog.startTiming('complete-prune-weave-containers');
-  // for each dock
-    // find all containers with tag 'registry.runnable.io'
-    // query mongodb instances and if any container is not in db, remove it from dock
   mavis.getDocks(function (err) {
     if (err) {
       debug.log(err);
