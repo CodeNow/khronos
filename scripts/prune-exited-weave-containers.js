@@ -39,7 +39,10 @@ module.exports = function(finalCb) {
       async.series([
         docker.getContainers.bind(docker, {status: 'exited'}, WEAVE_CONTAINER_NAMES),
         removeDeadWeaveContainersOnDock
-      ], function () {
+      ], function (err) {
+        if (err) {
+          debug.log(err);
+        }
         totalContainersCount += docker.containers.length;
         debug.log('completed dock:', dock);
         dockCb();
@@ -51,7 +54,12 @@ module.exports = function(finalCb) {
         async.eachSeries(docker.containers,
         function (container, eachCb) {
           debug.log('removing weave container: '+container.Id);
-          docker.removeContainer(container.Id, eachCb);
+          docker.removeContainer(container.Id, function (err) {
+            if (err) {
+              debug.log(err);
+            }
+            eachCb();
+          });
         },
         pruneCb);
       }
