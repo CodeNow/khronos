@@ -38,7 +38,7 @@ module.exports = function(finalCB) {
       var docker = dockerModule();
       docker.connect(dock);
       async.series([
-        docker.getContainers.bind(docker, IMAGE_FILTERS),
+        docker.getContainers.bind(docker, {all: true}, IMAGE_FILTERS),
         pruneImageBuilderContainers
       ], function () {
         totalContainersCount += docker.containers.length;
