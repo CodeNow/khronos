@@ -13,6 +13,7 @@ var datadog = require('models/datadog/datadog')(__filename);
 var debug = require('models/debug/debug')(__filename);
 var mongodb = require('models/mongodb/mongodb');
 
+var pruneExitedWeaveContainers = require('./scripts/prune-exited-weave-containers');
 var pruneExpiredContextVersions = require('./scripts/prune-expired-context-versions');
 var pruneImageBuilderContainers = require('./scripts/prune-image-builder-containers');
 var pruneOrphanContainers = require('./scripts/prune-orphan-containers');
@@ -25,7 +26,8 @@ var seriesFunctions = [
   pruneImageBuilderContainers,
   pruneOrphanContainers,
   // pruneOrphanImages must be run after pruneOrphanContainers
-  pruneOrphanImages
+  pruneOrphanImages,
+  pruneExitedWeaveContainers
 ];
 debug.log('khronos started '+new Date().toString());
 process.on('exit', function () {

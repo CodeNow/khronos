@@ -1,5 +1,5 @@
 /**
- * @module test/prune-orphan-containers.unit
+ * @module test/prune-exited-weave-containers.unit.js
  */
 'use strict';
 
@@ -7,7 +7,6 @@ require('loadenv')('khronos:test');
 require('colors');
 
 var Lab = require('lab');
-var MongoClient = require('mongodb').MongoClient;
 var async = require('async');
 var chai = require('chai');
 var dockerMock = require('docker-mock');
@@ -34,13 +33,11 @@ var docker = new Docker({
 });
 
 var debug = require('../lib/models/debug/debug')(__filename);
-var mongodb = require('../lib/models/mongodb/mongodb');
-var pruneOrphanContainers = rewire('../scripts/prune-orphan-containers');
+var pruneExitedWeaveContainers = rewire('../scripts/prune-exited-weave-containers');
 
 var Container = require('dockerode/lib/container');
 
-describe('prune-orphan-containers'.bold.underline.green, function() {
-  var db;
+describe('prune-exited-weave-containers'.bold.underline.green, function() {
   var server;
 
   after(function (done) {
@@ -51,17 +48,7 @@ describe('prune-orphan-containers'.bold.underline.green, function() {
   before(function (done) {
     sinon.spy(Container.prototype, 'remove');
     server = dockerMock.listen(process.env.KHRONOS_DOCKER_PORT);
-    async.parallel([
-      /* mongodb.connect to initialize connection of mongodb instance shared by script modules */
-      mongodb.connect.bind(mongodb),
-      MongoClient.connect.bind(MongoClient, process.env.KHRONOS_MONGO)
-    ], function (err, results) {
-      if (err) {
-        debug.log(err);
-      }
-      db = results[1];
-      done();
-    });
+    done();
   });
 
   beforeEach(function (done) {
@@ -89,16 +76,6 @@ describe('prune-orphan-containers'.bold.underline.green, function() {
           });
         });
       },
-      function deleteContextVersions (cb) {
-        db.collection('contextversions').drop(function () {
-          cb();
-        });
-      },
-      function deleteInstances (cb) {
-        db.collection('instances').drop(function () {
-          cb();
-        });
-      },
       function deleteContainers (cb) {
         docker.listContainers({all: true}, function (err, containers) {
           if (err) { throw err; }
@@ -117,14 +94,13 @@ describe('prune-orphan-containers'.bold.underline.green, function() {
   });
 
   it('should run successfully if no containers on dock', function (done) {
-    pruneOrphanContainers(function () {
+    pruneExitedWeaveContainers(function () {
       expect(Container.prototype.remove.called).to.equal(false);
       done();
     });
   });
 
-  it('should run successfully if no orphaned containers on dock', function (done) {
-    var instanceDocuments = [];
+  it('should run successfully if no weave containers on dock', function (done) {
     var numContainers = 5;
     async.series([
       function createContainers (cb) {
@@ -136,27 +112,9 @@ describe('prune-orphan-containers'.bold.underline.green, function() {
             cb();
           });
         }, cb);
-      },
-      function createInstances (cb) {
-        var instances = db.collection('instances');
-        docker.listContainers({all: true}, function (err, containers) {
-          async.eachSeries(containers, function (container, cb) {
-            // insert standard instances
-            instances.insert({
-              container: {
-                dockerContainer: container.Id
-              }
-            }, function (err, _instance) {
-              if (err) { throw err; }
-              instanceDocuments.push(_instance[0]);
-              cb();
-            });
-          }, cb);
-        });
       }
     ], function () {
-      pruneOrphanContainers(function () {
-        //expect(Container.prototype.remove.called).to.equal(false);
+      pruneExitedWeaveContainers(function () {
         docker.listContainers({all: true}, function (err, containers) {
           if (err) { throw err; }
           expect(containers.length).to.equal(numContainers);
@@ -166,9 +124,9 @@ describe('prune-orphan-containers'.bold.underline.green, function() {
     });
   });
 
-  it('should only remove orphaned containers from dock', function (done) {
+  it('should only remove dead weave containers', function (done) {
     var numContainers = 5;
-    var numOrphans = 3;
+    var numWeaveContainers = 2;
     async.series([
       function createContainers (cb) {
         async.times(numContainers, function (n, cb) {
@@ -180,32 +138,35 @@ describe('prune-orphan-containers'.bold.underline.green, function() {
           });
         }, cb);
       },
-      function createInstances (cb) {
-        var instances = db.collection('instances');
-        docker.listContainers({all: true}, function (err, containers) {
-          async.eachSeries(
-            containers.slice(0, numContainers-numOrphans), function (container, cb) {
-            // insert standard instances
-            instances.insert({
-              container: {
-                dockerContainer: container.Id
-              }
-            }, function (err) {
+      function createWeaveContainers (cb) {
+        async.times(numWeaveContainers, function (n, cb) {
+          docker.createContainer({
+            Image: 'zettio/weavetools:0.9.0'
+          }, function (err) {
+            if (err) { throw err; }
+            cb();
+          });
+        }, cb);
+      }
+    ], function () {
+      async.series([
+        function (cb) {
+          docker.listContainers({all: true}, function (err, containers) {
+            expect(containers.length).to.equal(numContainers + numWeaveContainers);
+            cb();
+          });
+        },
+        function (cb) {
+          pruneExitedWeaveContainers(function () {
+            docker.listContainers({all: true}, function (err, containers) {
               if (err) { throw err; }
+              expect(containers.length).to.equal(numContainers);
               cb();
             });
-          }, cb);
-        });
-      },
-    ], function () {
-      pruneOrphanContainers(function () {
-        expect(Container.prototype.remove.callCount).to.equal(numOrphans);
-        docker.listContainers({all: true}, function (err, containers) {
-          if (err) { throw err; }
-          expect(containers.length).to.equal(numContainers-numOrphans);
-          done();
-        });
-      });
+          });
+        }
+      ], done);
     });
   });
+
 });
