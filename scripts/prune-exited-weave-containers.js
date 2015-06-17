@@ -7,7 +7,8 @@
 // substrings of weave container names
 var WEAVE_CONTAINER_NAMES = [
   /zettio\/weavetools/,
-  /weaveworks\/weave/
+  /weaveworks\/weave/,
+  /weaveworks\/weaveexec/
 ];
 
 var async = require('async');
@@ -37,7 +38,9 @@ module.exports = function(finalCb) {
       var docker = dockerModule();
       docker.connect(dock);
       async.series([
-        docker.getContainers.bind(docker, {status: 'exited'}, WEAVE_CONTAINER_NAMES),
+        docker.getContainers.bind(docker, {
+          filters: JSON.stringify({'status': ['exited']})
+        }, WEAVE_CONTAINER_NAMES),
         removeDeadWeaveContainersOnDock
       ], function (err) {
         if (err) {
@@ -54,7 +57,7 @@ module.exports = function(finalCb) {
         async.eachSeries(docker.containers,
         function (container, eachCb) {
           debug.log('removing weave container: '+container.Id);
-          docker.removeContainer(container.Id, function (err) {
+          docker.removeStoppedContainer(container.Id, function (err) {
             if (err) {
               debug.log(err);
             }
