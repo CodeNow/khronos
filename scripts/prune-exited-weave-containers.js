@@ -39,7 +39,7 @@ module.exports = function(finalCb) {
       docker.connect(dock);
       async.series([
         docker.getContainers.bind(docker, {
-          filter: JSON.stringify({status: 'exited'})
+          filters: JSON.stringify({'status': ['exited']})
         }, WEAVE_CONTAINER_NAMES),
         removeDeadWeaveContainersOnDock
       ], function (err) {
