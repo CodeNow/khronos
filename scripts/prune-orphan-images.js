@@ -39,7 +39,7 @@ module.exports = function(finalCB) {
       var docker = dockerModule();
       docker.connect(dock);
       async.series([
-        docker.getImages.bind(docker, 60*60*24), // min age: 1 day
+        docker.getImages.bind(docker, parseInt(process.env.KHRONOS_MIN_IMAGE_AGE)), // min age: 1 day
         deleteTaglessImages,
         fetchContextVersionsAndPrune
       ], function () {
