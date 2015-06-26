@@ -160,9 +160,11 @@ describe('prune-orphan-images'.bold.underline.green, function() {
         });
       });
 
-      it('should only remove orphaned images from dock ', {timeout: 5000}, function (done) {
+      it('should only remove orphaned images from dock that are older than 1 day',
+         {timeout: 5000}, function (done) {
         var cvs = [];
         var orphans = [];
+        var youngOrphans = [];
         async.series([
           function createCVs (cb) {
             var contextVersions = db.collection('contextversions');
@@ -179,12 +181,15 @@ describe('prune-orphan-images'.bold.underline.green, function() {
             orphans.push({'_id': new ObjectID('999017345affa9400d894407')});
             orphans.push({'_id': new ObjectID('999015ac341e8eb10b4a0328')});
             orphans.push({'_id': new ObjectID('999015ac341e8eb10b4a0329')});
-            cvs = cvs.concat(orphans);
+            youngOrphans.push({'_id': new ObjectID('999015ac341e8eb10b4a0344'), 'brandNew': true});
+            cvs = cvs.concat(orphans).concat(youngOrphans);
             // will make 13 images, 3 of which will be orphans
             async.eachLimit(cvs, 1, function (cv, cb) {
               var cvId = cv._id+''; // must cast to string
               docker.createImage({
                 fromImage: 'registry.runnable.com/1616464/'+cvId,
+                // Docker Mock ONLY
+                Created: (cv.brandNew) ? (new Date() / 1000 | 0) : 100,
                 tag: cvId
               }, function (err, data) {
                 data.on('data', function () {});
@@ -200,7 +205,7 @@ describe('prune-orphan-images'.bold.underline.green, function() {
             expect(images.length).to.equal(cvs.length);
             pruneOrphanImages(function () {
               docker.listImages({}, function (err, images) {
-               if (err) { throw err; }
+                if (err) { throw err; }
                 expect(images.length).to.equal(cvs.length - orphans.length);
                 expect(Image.prototype.remove.callCount).to.equal(orphans.length);
                 done();
