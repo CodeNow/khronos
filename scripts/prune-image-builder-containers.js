@@ -53,8 +53,10 @@ module.exports = function(finalCB) {
         async.eachSeries(docker.containers, function (container, cb) {
           docker.removeContainer(container.Id, function (err) {
             if (!err) {
+              debug.log('error removing image builder container: '+container.Id);
               successfullyDeletedContainersCount++;
             }
+            debug.log('successfully removed image builder container: '+container.Id);
             cb();
           });
         }, pruneCB);
