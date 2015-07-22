@@ -8,11 +8,11 @@
 
 var async = require('async');
 
-var debug = require('models/debug/debug')(__filename);
+var log = require('logger').getChild(__filename);
 var mongodb = require('models/mongodb/mongodb');
 
 module.exports = function(finalCB) {
-  debug.log('process-expired-context-versions...');
+  log.info('process-expired-context-versions start');
   /**
    * query for contextversion documents
    * meeting expired criteria
@@ -34,10 +34,15 @@ module.exports = function(finalCB) {
   };
   mongodb.fetchContextVersions(expiredQuery, function (err, results) {
     if (err) {
-      debug.log('failed to fetch context versions', err);
+      log.error({
+        expiredQuery: expiredQuery,
+        err: err
+      }, 'mongodb.fetchContextVersions fetch error');
       return finalCB(err);
     }
-    debug.log('context-versions fetch complete', results.length);
+    log.trace({
+      resultsLength: results.length
+    }, 'context-versions fetch complete');
     async.filter(results, function (cv, cb) {
       /**
        * For every contextversion document that matches expired critera
@@ -56,7 +61,9 @@ module.exports = function(finalCB) {
         cb(true);
       });
       function notUsedInTwoWeeks (cb) {
-        debug.log('determine if cv used in last two weeks: '+cv._id);
+        log.trace({
+          cvId: cv._id
+        }, 'notUsedInTwoWeeks');
         var query = {
           'build.created': {
             '$gte': twoWeeksAgo
@@ -64,22 +71,48 @@ module.exports = function(finalCB) {
           'contextVersions': cv._id
         };
         mongodb.countBuilds(query, function (err, count) {
-          if (err) { return cb(err); }
+          if (err) {
+            log.error({
+              query: query
+            }, 'notUsedInTwoWeeks mongodb.countBuilds error');
+            return cb(err);
+          }
           if (!count) {
+            log.trace('notUsedInTwoWeeks mongodb.countBuilds !count');
             return cb();
           }
+          log.trace({
+            cvId: cv._id,
+            count: count
+          }, 'notUsedInTwoWeeks mongodb.countBuilds success');
           cb(new Error());
         });
       }
       function notCurrentlyAttachedToInstance (cb) {
+        log.trace({
+          cvId: cv._id
+        }, 'notCurrentlyAttachedToInstance');
         var query = {
           'contextVersion._id': cv._id
         };
         mongodb.countInstances(query, function (err, count) {
-          if (err) { return cb(err); }
+          if (err) {
+            log.error({
+              cvId: cv._id,
+              err: err
+            }, 'notCurrentlyAttachedToInstance mongodb.countInstances error');
+            return cb(err);
+          }
           if (!count) {
+            log.trace({
+              cvId: cv._id
+            }, 'notCurrentlyAttachedToInstance mongodb.countInstances !count');
             return cb();
           }
+          log.trace({
+            cvId: cv._id,
+            count: count
+          }, 'notCurrentlyAttachedToInstance mongodb.countInstances success');
           cb(new Error());
         });
       }
@@ -104,41 +137,69 @@ module.exports = function(finalCB) {
         restoreContextVersion
       ], function () {
         if (err) {
-          debug.log(err);
+          log.error({
+            err: err
+          }, 'prune-expired-context-versions error');
         }
-        debug.log('-----------------------------------------------------------------------');
-        debug.log('finished pruneExpiredContextVersions');
+        log.info('prune-expired-context-versions success');
         finalCB();
       });
       function removeContextVersions (removeCB) {
+        log.trace({
+          query: query
+        }, 'removeContextVersions');
         mongodb.removeContextVersions(query, function (err) {
           if (err) {
-            debug.log(err);
+            log.error({
+              query: query,
+              err: err
+            }, 'removeContextVersions error');
           }
           else {
-            debug.log('removed '+cvblIds.length+' context versions');
+            log.trace({
+              contextVersionsRemovedLength: cvblIds.length
+            }, 'removeContextVersions success');
           }
           removeCB();
         });
       }
       function restoreContextVersion (restoreCB) {
+        log.trace({
+          contextVersionBlackListLength: contextVersionBlackList.length
+        }, 'restoreContextVersion');
         async.eachSeries(contextVersionBlackList, function (contextVersion, cb) {
           var query = {
             'contextVersion._id': mongodb.newObjectID(contextVersion._id)
           };
+          log.trace({
+            cvId: contextVersion._id
+          }, 'restoreContextVersion async.eachSeries(contextVersionBlackList) pre-count-instances');
           mongodb.countInstances(query, function (err, count) {
             if (err) {
-              debug.log(err);
+              log.error({
+                cvId: contextVersion._id,
+                err: err
+              }, 'restoreContextVersion mongodb.countInstances error');
             }
             if (!count) {
               return cb();
             }
             // we have an instance that the contextVersion has been attached to,
             // must restore contextVersion
-            debug.log('restoring contextversion id: '+contextVersion._id);
+            log.trace({
+              cvId: contextVersion._id
+            }, 'restoreContextVersion');
             mongodb.insertContextVersion(contextVersion, function (err) {
               if (err) {
-                debug.log(err);
+                log.error({
+                  cvId: contextVersion._id,
+                  err: err
+                }, 'restoreContextVersion mongodb.insertContextVersion error');
+              }
+              else {
+                log.trace({
+                  cvId: contextVersion._id
+                }, 'restoreContextVersion mongodb.insertContextVersion success');
               }
               cb();
             });
