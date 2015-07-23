@@ -35,7 +35,6 @@ var docker = new Docker({
 });
 
 // replace private variables for testing
-var debug = require('../lib/models/debug/debug')(__filename);
 var mongodb = require('../lib/models/mongodb/mongodb');
 var pruneOrphanImages = require('../scripts/prune-orphan-images');
 
@@ -57,7 +56,7 @@ describe('prune-orphan-images'.bold.underline.green, function() {
       mongodb.connect.bind(mongodb),
       MongoClient.connect.bind(MongoClient, process.env.KHRONOS_MONGO)
     ], function (err, results) {
-      if (err) { debug.log(err); }
+      if (err) { console.log(err); }
       db = results[1];
       done();
     });
@@ -76,13 +75,13 @@ describe('prune-orphan-images'.bold.underline.green, function() {
       function deleteImages (cb) {
         docker.listImages(function (err, images) {
           if (err) {
-            debug.log('error list images', err);
+            console.log('error list images', err);
             return cb();
           }
           async.forEach(images, function (image, eachCB) {
             docker.getImage(image.Id).remove(function (err) {
               if (err) {
-                debug.log('err', err);
+                console.log('err', err);
               }
               eachCB();
             });
@@ -91,12 +90,12 @@ describe('prune-orphan-images'.bold.underline.green, function() {
       },
       function deleteContextVersions (cb) {
         db.collection('contextversions').drop(function () {
-          debug.log('dropped contextversions collection');
+          console.log('dropped contextversions collection');
           cb();
         });
       }
     ], function () {
-      debug.log('finished afterEach');
+      console.log('finished afterEach');
       done();
     });
   });

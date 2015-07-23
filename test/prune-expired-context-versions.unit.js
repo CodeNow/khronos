@@ -25,7 +25,6 @@ var describe = lab.describe;
 var expect = chai.expect;
 var it = lab.it;
 
-var debug = require('../lib/models/debug/debug')(__filename);
 var mongodb = require('../lib/models/mongodb/mongodb');
 var pruneExpiredContextVersions = require('../scripts/prune-expired-context-versions');
 
@@ -39,7 +38,7 @@ describe('prune-expired-context-versions'.bold.underline.green, function() {
       MongoClient.connect.bind(MongoClient, process.env.KHRONOS_MONGO)
     ], function (err, results) {
       if (err) {
-        debug.log(err);
+        console.log(err);
       }
       db = results[1];
       done();

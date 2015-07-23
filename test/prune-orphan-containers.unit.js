@@ -33,7 +33,6 @@ var docker = new Docker({
   port: process.env.KHRONOS_DOCKER_PORT
 });
 
-var debug = require('../lib/models/debug/debug')(__filename);
 var mongodb = require('../lib/models/mongodb/mongodb');
 var pruneOrphanContainers = rewire('../scripts/prune-orphan-containers');
 
@@ -57,7 +56,7 @@ describe('prune-orphan-containers'.bold.underline.green, function() {
       MongoClient.connect.bind(MongoClient, process.env.KHRONOS_MONGO)
     ], function (err, results) {
       if (err) {
-        debug.log(err);
+        console.log(err);
       }
       db = results[1];
       done();
@@ -74,13 +73,13 @@ describe('prune-orphan-containers'.bold.underline.green, function() {
       function deleteImages (cb) {
         docker.listImages(function (err, images) {
           if (err) {
-            debug.log(err);
+            console.log(err);
             cb();
           }
           async.forEach(images, function (image, eachCB) {
             docker.getImage(image.Id).remove(function (err) {
               if (err) {
-                debug.log('err', err);
+                console.log('err', err);
               }
               eachCB();
             });
@@ -111,7 +110,7 @@ describe('prune-orphan-containers'.bold.underline.green, function() {
       if (Container.prototype.remove.reset) {
         Container.prototype.remove.reset();
       }
-      debug.log('finished afterEach');
+      console.log('finished afterEach');
       done();
     });
   });
