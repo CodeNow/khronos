@@ -242,7 +242,7 @@ module.exports = function(finalCB) {
               }, 'removeImage error');
             }
             else {
-              log.error({
+              log.trace({
                 err: err,
                 imageTag: imageTag,
                 dock: dock
