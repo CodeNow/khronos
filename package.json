@@ -1,6 +1,6 @@
 {
   "name": "khronos",
-  "version": "1.7.0",
+  "version": "1.7.1",
   "engine": "0.12.0",
   "engineStrict": true,
   "description": "scripts run via cronjobs to maintain docks",
