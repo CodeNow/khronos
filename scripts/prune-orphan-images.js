@@ -13,12 +13,13 @@ var equals = require('101/equals');
 var findIndex = require('101/find-index');
 
 var datadog = require('models/datadog/datadog')(__filename);
-var debug = require('models/debug/debug')(__filename);
 var dockerModule = require('models/docker/docker');
+var log = require('logger').getChild(__filename);
 var mavis = require('models/mavis/mavis')();
 var mongodb = require('models/mongodb/mongodb');
 
 module.exports = function(finalCB) {
+  log.info('prune-orphan-images start');
   var orphanedImagesCount = 0;
   var totalImagesCount = 0;
   datadog.startTiming('complete-prune-orphan-images');
@@ -27,15 +28,20 @@ module.exports = function(finalCB) {
     // query mongodb context-versions and if any image is not in db, remove it from dock
   mavis.getDocks(function (err) {
     if (err) {
-      debug.log(err);
+      log.error({
+        err: err
+      }, 'mavis.getDocks error');
       finalCB(err);
     }
     processOrphans();
   });
   function processOrphans () {
+    log.trace('processOrphans');
     async.each(mavis.docks,
     function (dock, dockCB) {
-      debug.log('beginning dock:', dock);
+      log.trace({
+        dock: dock
+      }, 'processOrphans async.each');
       var docker = dockerModule();
       docker.connect(dock);
       async.series([
@@ -43,28 +49,65 @@ module.exports = function(finalCB) {
                               parseInt(process.env.KHRONOS_MIN_IMAGE_AGE)),
         deleteTaglessImages,
         fetchContextVersionsAndPrune
-      ], function () {
+      ], function (err) {
+        if (err) {
+          log.error({
+            err: err,
+            dock: dock,
+            dockerImagesLength: docker.images.length
+          }, 'processOrphans complete error');
+        }
+        else {
+          log.trace({
+            dock: dock,
+            dockerImagesLength: docker.images.length
+          }, 'processOrphans complete success');
+        }
         totalImagesCount += docker.images.length;
-        debug.log('completed dock:', dock);
         dockCB();
       });
       /**
        * Delete images from docks that do not have tags
        */
       function deleteTaglessImages (cb) {
-        debug.log('deleteTaglessImages deleting '+
-                 docker.taglessImages.count+
-                 ' images');
+        log.trace({
+          taglessImagesCount: docker.taglessImages.count,
+          dock: dock
+        }, 'deleteTaglessImages');
         // increase concurrency carefully, avoid overloading dockerd
         async.eachLimit(docker.taglessImages, 2, function (image, cb) {
-          debug.log('removing tagless image '+image.Id, image.RepoTags);
+          log.trace({
+            imageId: image.Id,
+            repoTags: image.RepoTags,
+            taglessImagesCount: docker.taglessImages,
+            dock: dock
+          }, 'deleteTaglessImages pre docker.removeImage');
           docker.removeImage(image.Id, function (err) {
-            if (err) { debug.log(err); }
+            if (err) {
+              log.error({
+                err: err,
+                imageId: image.Id,
+                repoTags: image.RepoTags,
+                taglessImagesCount: docker.taglessImages,
+                dock: dock
+              }, 'deleteTaglessImages docker.removeImage complete error');
+            }
+            else {
+              log.trace({
+                imageId: image.Id,
+                repoTags: image.RepoTags,
+                taglessImagesCount: docker.taglessImages,
+                dock: dock
+              }, 'deleteTaglessImages docker.removeImage complete success');
+            }
             cb();
           });
         }, cb);
       }
       function fetchContextVersionsAndPrune (fetchCVCB) {
+        log.trace({
+          dock: dock
+        }, 'fetchContextVersionsAndPrune');
         // chunk check context versions in db for batch of 100 images
         var chunkSize = 100;
         var lowerBound = 0;
@@ -86,7 +129,12 @@ module.exports = function(finalCB) {
           fetchCVCB
         );
         function doWhilstIterator (doWhilstIteratorCB) {
-          debug.log('fetching context-versions '+lowerBound+' - '+upperBound);
+          log.trace({
+            dock: dock,
+            lowerBound: lowerBound,
+            upperBound: upperBound,
+            imageTagSetLength: imageTagSet.length
+          }, 'fetchContextVersionsAndPrune doWhilstIterator');
           /**
            * construct query of context-version ids by iterating over each image
            * and producting an array of ObjectID's for images' corresponding
@@ -106,8 +154,29 @@ module.exports = function(finalCB) {
               '$in': cvIds
             }
           };
+          log.trace({
+            dock: dock,
+            query: query
+          }, 'fetchContextVersionsAndPrune doWhilstIterator '+
+            'mongodb.fetchContextVersions pre-query');
           mongodb.fetchContextVersions(query, function (err, contextVersions) {
-            if (err) { return doWhilstIteratorCB(err); }
+            if (err) {
+              log.error({
+                err: err,
+                dock: dock,
+                query: query
+              }, 'fetchContextVersionsAndPrune doWhilstIterator '+
+                'mongodb.fetchContextVersions error');
+              return doWhilstIteratorCB(err);
+            }
+            else {
+              log.trace({
+                contextVersionsLength: contextVersions.length,
+                dock: dock,
+                query: query
+              }, 'fetchContextVersionsAndPrune doWhilstIterator '+
+                'mongodb.fetchContextVersions success');
+            }
             /**
              * The difference between the range (upperBound-lowerBound) and the number
              * of contextVersions that were retrieved is the number of orphaned images
@@ -115,10 +184,22 @@ module.exports = function(finalCB) {
              */
             var numberMissing = (upperBound - lowerBound) - contextVersions.length;
             if (!numberMissing) {
-              debug.log('all images in set '+lowerBound+'-'+upperBound+' found, proceeding...');
+              log.trace({
+                numberMissing: numberMissing,
+                upperBound: upperBound,
+                lowerBound: lowerBound,
+                contextVersionsLength: contextVersions.length,
+                dock: dock
+              }, 'doWhilstIterator: no missing context-versions in set');
               return doWhilstIteratorCB();
             }
-            debug.log(numberMissing+' images on box not in database, cleaning up...');
+            log.trace({
+              numberMissing: numberMissing,
+              upperBound: upperBound,
+              lowerBound: lowerBound,
+              contextVersionsLength: contextVersions.length,
+              dock: dock
+            }, 'doWhilstIterator: found missing context-versions in set');
             // track total number of orphaned images that were discovered in this cron iteration
             orphanedImagesCount += numberMissing;
             // need array of mongids in string format to perform search
@@ -140,30 +221,51 @@ module.exports = function(finalCB) {
                 // image has corresponding cv, continue (not orphan)
                 return eachCB();
               }
-              debug.log('cv not found for image: '+imageTag);
+              log.trace({
+                imageTag: imageTag
+              }, 'cv not found for image');
               removeImage(imageTag, eachCB);
             }, doWhilstIteratorCB);
           });
         }
         function removeImage(imageTag, cb) {
+          log.trace({
+            imageTag: imageTag,
+            dock: dock
+          }, 'removeImage');
           docker.removeImage(imageTag, function (err) {
             if (err) {
-              debug.log(
-                'failed to remove image: '+imageTag+' on dock: '+dock);
-              debug.log(err);
+              log.error({
+                err: err,
+                imageTag: imageTag,
+                dock: dock
+              }, 'removeImage error');
             }
             else {
-              debug.log('removed image: '+imageTag+' on dock: '+dock);
+              log.trace({
+                err: err,
+                imageTag: imageTag,
+                dock: dock
+              }, 'removeImage success');
             }
             cb();
           });
         }
       }
     }, function (err) {
-      debug.log('completed prune-orphan-images');
-      debug.log('found & removed '+orphanedImagesCount+' orphaned images of '+
-               totalImagesCount+' total images');
-      debug.log('-----------------------------------------------------------------------');
+      if (err) {
+        log.error({
+          err: err,
+          orphanedImagesCount: orphanedImagesCount,
+          totalImagesCount: totalImagesCount
+        }, 'prune-orphan-images complete error');
+      }
+      else {
+        log.info({
+          orphanedImagesCount: orphanedImagesCount,
+          totalImagesCount: totalImagesCount
+        }, 'prune-orphan-images complete success');
+      }
       datadog.endTiming('complete-prune-orphan-images');
       finalCB(err);
     });

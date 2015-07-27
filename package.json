@@ -11,7 +11,7 @@
     "test": "NODE_PATH=./lib lab -v",
     "test-dry": "NODE_PATH=./lib lab -d -v",
     "test-cov-html": "NODE_PATH=./lib lab -r html -o coverage.html",
-    "dry": "NODE_ENV=staging NODE_PATH=./lib MANUAL_RUN=true DEBUG=khronos* DRY_RUN=true node --harmony --use_strict ./index.js",
+    "dry": "NODE_ENV=staging NODE_PATH=./lib MANUAL_RUN=true DEBUG=none DRY_RUN=true node --harmony --use_strict ./index.js",
     "lint": "jshint ."
   },
   "watches": {
@@ -35,9 +35,11 @@
   "dependencies": {
     "101": "^1.0.0",
     "async": "^0.9.0",
+    "bunyan": "^1.4.0",
+    "bunyan-logentries": "^1.1.2",
+    "bunyan-loggly": "0.0.5",
     "callback-count": "^0.1.0",
     "cron": "^1.0.6",
-    "debug": "^2.1.1",
     "dockerode": "^2.0.4",
     "keypather": "^1.10.1",
     "loadenv": "^1.0.3",

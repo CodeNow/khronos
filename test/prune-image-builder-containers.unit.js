@@ -33,7 +33,6 @@ var docker = new Docker({
   port: process.env.KHRONOS_DOCKER_PORT
 });
 
-var debug = require('../lib/models/debug/debug')(__filename);
 var pruneImageBuilderContainers = rewire('../scripts/prune-image-builder-containers');
 
 var Container = require('dockerode/lib/container');
@@ -71,7 +70,7 @@ describe('prune-image-builder-containers'.bold.underline.green, function() {
       if (Container.prototype.remove.reset) {
         Container.prototype.remove.reset();
       }
-      debug.log('finished afterEach');
+      console.log('finished afterEach');
       done();
     });
   });

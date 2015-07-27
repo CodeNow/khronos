@@ -32,7 +32,6 @@ var docker = new Docker({
   port: process.env.KHRONOS_DOCKER_PORT
 });
 
-var debug = require('../lib/models/debug/debug')(__filename);
 var pruneExitedWeaveContainers = rewire('../scripts/prune-exited-weave-containers');
 
 var Container = require('dockerode/lib/container');
@@ -61,13 +60,13 @@ describe('prune-exited-weave-containers'.bold.underline.green, function() {
       function deleteImages (cb) {
         docker.listImages(function (err, images) {
           if (err) {
-            debug.log(err);
+            console.log(err);
             cb();
           }
           async.forEach(images, function (image, eachCB) {
             docker.getImage(image.Id).remove(function (err) {
               if (err) {
-                debug.log('err', err);
+                console.log('err', err);
               }
               eachCB();
             });
@@ -88,7 +87,7 @@ describe('prune-exited-weave-containers'.bold.underline.green, function() {
       if (Container.prototype.remove.reset) {
         Container.prototype.remove.reset();
       }
-      debug.log('finished afterEach');
+      console.log('finished afterEach');
       done();
     });
   });

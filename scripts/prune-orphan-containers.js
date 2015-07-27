@@ -10,8 +10,8 @@ var findIndex = require('101/find-index');
 var pluck = require('101/pluck');
 
 var datadog = require('models/datadog/datadog')(__filename);
-var debug = require('models/debug/debug')(__filename);
 var dockerModule = require('models/docker/docker');
+var log = require('logger').getChild(__filename);
 var mavis = require('models/mavis/mavis')();
 var mongodb = require('models/mongodb/mongodb');
 
@@ -23,6 +23,7 @@ var IMAGE_FILTERS = [
 ];
 
 module.exports = function(finalCB) {
+  log.info('prune-orphan-containers start');
   var orphanedContainersCount = 0;
   var totalContainersCount = 0;
   datadog.startTiming('complete-prune-orphan-containers');
@@ -31,26 +32,44 @@ module.exports = function(finalCB) {
     // query mongodb instances and if any container is not in db, remove it from dock
   mavis.getDocks(function (err) {
     if (err) {
-      debug.log(err);
+      log.error({
+        err: err
+      }, 'prune-orphan-containers mavis.getDocks error');
       finalCB(err);
     }
     processOrphanContainers();
   });
   function processOrphanContainers () {
+    log.trace('processOrphanContainers');
     async.each(mavis.docks,
     function (dock, dockCB) {
-      debug.log('beginning dock:', dock);
+      log.trace({
+        dock: dock
+      }, 'processOrphanContainers async.each');
       var docker = dockerModule();
       docker.connect(dock);
       async.series([
         docker.getContainers.bind(docker, {all: true}, IMAGE_FILTERS),
         fetchInstancesAndPrune
-      ], function () {
+      ], function (err) {
+        if (err) {
+          log.error({
+            err: err,
+            dock: dock
+          }, 'processOrphanContainers complete error');
+        }
+        else {
+          log.trace({
+            dock: dock
+          }, 'processOrphanContainers complete success');
+        }
         totalContainersCount += docker.containers.length;
-        debug.log('completed dock:', dock);
         dockCB();
       });
       function fetchInstancesAndPrune (fetchCVCB) {
+        log.trace({
+          dock: dock
+        }, 'fetchInstancesAndPrune');
         // chunk check context versions in db for batch of 100 images
         var chunkSize = 100;
         var lowerBound = 0;
@@ -74,7 +93,11 @@ module.exports = function(finalCB) {
           fetchCVCB
         );
         function doWhilstIterator (doWhilstIteratorCB) {
-          debug.log('fetching instances '+lowerBound+' - '+upperBound);
+          log.trace({
+            dock: dock,
+            lowerBound: lowerBound,
+            upperBound: upperBound
+          }, 'fetchInstancesAndPrune doWhilstIterator');
           /**
            * construct query for instances by iterating over each container
            */
@@ -83,9 +106,19 @@ module.exports = function(finalCB) {
               '$in': containerSet.map(pluck('Id'))
             }
           };
-          debug.log('query', query);
+          log.trace({
+            dock: dock,
+            query: query
+          }, 'mongodb.fetchInstances pre-fetch');
           mongodb.fetchInstances(query, function (err, instances) {
-            if (err) { return doWhilstIteratorCB(err); }
+            if (err) {
+              log.error({
+                err: err,
+                dock: dock,
+                query: query
+              }, 'fetchInstancesAndPrune doWhilstIterator mongodb.fetchInstances error');
+              return doWhilstIteratorCB(err);
+            }
             /**
              * The difference between the range (upperBound-lowerBound) and the number
              * of instances that were retrieved is the number of orphaned containers
@@ -93,10 +126,22 @@ module.exports = function(finalCB) {
              */
             var numberMissing = (upperBound - lowerBound) - instances.length;
             if (!numberMissing) {
-              debug.log('all containers in set '+lowerBound+'-'+upperBound+' found, proceeding...');
+              log.trace({
+                numberMissing: numberMissing,
+                upperBound: upperBound,
+                lowerBound: lowerBound,
+                instancesLength: instances.length,
+                dock: dock
+              }, 'doWhilstIterator: no missing containers in set');
               return doWhilstIteratorCB();
             }
-            debug.log(numberMissing+' containers on box not in database, cleaning up...');
+            log.trace({
+              numberMissing: numberMissing,
+              upperBound: upperBound,
+              lowerBound: lowerBound,
+              instancesLength: instances.length,
+              dock: dock
+            }, 'doWhilstIterator: found missing containers in set');
             // track total number of orphaned containers that were discovered in this cron iteration
             orphanedContainersCount += numberMissing;
             /**
@@ -113,17 +158,28 @@ module.exports = function(finalCB) {
                 // container has corresponding Instance, continue (not orphan)
                 return eachCB();
               }
-              debug.log('Instance not found for container: '+container.Id);
+              log.trace({
+                containerId: container.Id
+              }, 'matching instance not found for container, removing container');
               docker.removeContainer(container.Id, eachCB);
             }, doWhilstIteratorCB);
           });
         }
       }
     }, function (err) {
-      debug.log('completed prune-orphan-containers');
-      debug.log('found & removed '+orphanedContainersCount+' orphaned containers of '+
-                totalContainersCount+' total containers');
-      debug.log('-----------------------------------------------------------------------');
+      if (err) {
+        log.error({
+          err: err,
+          orphanedContainersCount: orphanedContainersCount,
+          totalContainersCount: totalContainersCount
+        }, 'prune-orphan-containers completed error');
+      }
+      else {
+        log.info({
+          orphanedContainersCount: orphanedContainersCount,
+          totalContainersCount: totalContainersCount
+        }, 'prune-orphan-containers completed success');
+      }
       datadog.endTiming('complete-prune-orphan-images');
       finalCB(err);
     });

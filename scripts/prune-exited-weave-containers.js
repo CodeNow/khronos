@@ -14,8 +14,8 @@ var WEAVE_CONTAINER_NAMES = [
 var async = require('async');
 
 var datadog = require('models/datadog/datadog')(__filename);
-var debug = require('models/debug/debug')(__filename);
 var dockerModule = require('models/docker/docker');
+var log = require('logger').getChild(__filename);
 var mavis = require('models/mavis/mavis')();
 
 module.exports = function(finalCb) {
@@ -23,7 +23,9 @@ module.exports = function(finalCb) {
   datadog.startTiming('complete-prune-weave-containers');
   mavis.getDocks(function (err) {
     if (err) {
-      debug.log(err);
+      log.error({
+        err: err
+      }, 'module.exports mavisGetDocks error');
       finalCb(err);
     }
     removeDeadWeaveContainers();
@@ -44,10 +46,16 @@ module.exports = function(finalCb) {
         removeDeadWeaveContainersOnDock
       ], function (err) {
         if (err) {
-          debug.log(err);
+          log.error({
+            err: err
+          }, 'removeDeadWeaveContainers finalCb error');
+        }
+        else {
+          log.trace({
+            dock: dock
+          }, 'removeDeadWeaveContainers completed');
         }
         totalContainersCount += docker.containers.length;
-        debug.log('completed dock:', dock);
         dockCb();
       });
       /**
@@ -56,10 +64,19 @@ module.exports = function(finalCb) {
       function removeDeadWeaveContainersOnDock(pruneCb) {
         async.eachSeries(docker.containers,
         function (container, eachCb) {
-          debug.log('removing weave container: '+container.Id);
+          log.trace({
+            containerId: container.Id
+          }, 'removeDeadWeaveContainersOnDock pre-remove request');
           docker.removeStoppedContainer(container.Id, function (err) {
             if (err) {
-              debug.log(err);
+              log.error({
+                containerId: container.Id
+              }, 'removeDeadWeaveContainersOnDock removeStoppedContainer error');
+            }
+            else {
+              log.trace({
+                containerId: container.Id
+              }, 'removeDeadWeaveContainersOnDock removeStoppedContainer success');
             }
             eachCb();
           });
@@ -68,13 +85,9 @@ module.exports = function(finalCb) {
       }
     },
     function finished () {
-      debug.log('completed remove dead weave containers');
-      debug.log([
-        'found and removed',
-        totalContainersCount,
-        'dead weave containers'
-      ].join(' '));
-      debug.log('-----------------------------------------------------------------------');
+      log.info({
+        totalContainersRemoved: totalContainersCount
+      }, 'Finished prune-exited-weave-containers');
       datadog.endTiming('complete-prune-weave-containers');
       finalCb();
     });
