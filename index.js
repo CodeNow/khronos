@@ -8,9 +8,9 @@ require('loadenv')('khronos:env');
 var CronJob = require('cron').CronJob;
 var async = require('async');
 
-var datadog = require('models/datadog/datadog')(__filename);
+var datadog = require('models/datadog')(__filename);
 var log = require('logger').getChild(__filename);
-var mongodb = require('models/mongodb/mongodb');
+var mongodb = require('models/mongodb');
 var pruneExitedWeaveContainers = require('./scripts/prune-exited-weave-containers');
 var pruneExpiredContextVersions = require('./scripts/prune-expired-context-versions');
 var pruneImageBuilderContainers = require('./scripts/prune-image-builder-containers');
@@ -64,4 +64,3 @@ mongodb.connect(function (err) {
     });
   }
 });
-
