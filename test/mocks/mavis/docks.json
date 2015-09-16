@@ -1,5 +1,20 @@
-[{
-  "numContainers": 0,
-  "numBuilds": 0,
-  "host": "http://localhost:5454"
-}]
+[
+  {
+    "numContainers": 0,
+    "numBuilds": 0,
+    "host": "http://10.0.207.131:4242",
+    "tags": "13801594,run,build"
+  },
+  {
+    "numContainers": 75,
+    "numBuilds": 42,
+    "host": "http://10.0.1.5:4242",
+    "tags": "2335750,build,run"
+  },
+  {
+    "numContainers": 45,
+    "numBuilds": 99,
+    "host": "http://10.0.244.63:4242",
+    "tags": "13801594,run,build"
+  }
+]
