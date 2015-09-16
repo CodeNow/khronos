@@ -35,7 +35,7 @@ var docker = new Docker({
 });
 
 // replace private variables for testing
-var mongodb = require('../lib/models/mongodb/mongodb');
+var mongodb = require('../lib/models/mongodb');
 var pruneOrphanImages = require('../scripts/prune-orphan-images');
 
 var Image = require('dockerode/lib/image');

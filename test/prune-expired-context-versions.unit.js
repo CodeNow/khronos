@@ -25,7 +25,7 @@ var describe = lab.describe;
 var expect = chai.expect;
 var it = lab.it;
 
-var mongodb = require('../lib/models/mongodb/mongodb');
+var mongodb = require('../lib/models/mongodb');
 var pruneExpiredContextVersions = require('../scripts/prune-expired-context-versions');
 
 describe('prune-expired-context-versions'.bold.underline.green, function() {

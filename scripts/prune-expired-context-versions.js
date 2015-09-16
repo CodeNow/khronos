@@ -9,7 +9,7 @@
 var async = require('async');
 
 var log = require('logger').getChild(__filename);
-var mongodb = require('models/mongodb/mongodb');
+var mongodb = require('models/mongodb');
 
 module.exports = function(finalCB) {
   log.info('process-expired-context-versions start');

@@ -9,11 +9,11 @@ var equals = require('101/equals');
 var findIndex = require('101/find-index');
 var pluck = require('101/pluck');
 
-var datadog = require('models/datadog/datadog')(__filename);
-var dockerModule = require('models/docker/docker');
+var datadog = require('models/datadog')(__filename);
+var dockerModule = require('models/docker');
 var log = require('logger').getChild(__filename);
-var mavis = require('models/mavis/mavis')();
-var mongodb = require('models/mongodb/mongodb');
+var mavis = require('models/mavis')();
+var mongodb = require('models/mongodb');
 
 var TEST_IMAGE_TAG =
     new RegExp('^'+process.env.KHRONOS_DOCKER_REGISTRY+'\/[0-9]+\/[A-z0-9]+:[A-z0-9]+');

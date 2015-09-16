@@ -12,11 +12,11 @@ var async = require('async');
 var equals = require('101/equals');
 var findIndex = require('101/find-index');
 
-var datadog = require('models/datadog/datadog')(__filename);
-var dockerModule = require('models/docker/docker');
+var datadog = require('models/datadog')(__filename);
+var dockerModule = require('models/docker');
 var log = require('logger').getChild(__filename);
-var mavis = require('models/mavis/mavis')();
-var mongodb = require('models/mongodb/mongodb');
+var mavis = require('models/mavis')();
+var mongodb = require('models/mongodb');
 
 module.exports = function(finalCB) {
   log.info('prune-orphan-images start');

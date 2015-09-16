@@ -6,10 +6,10 @@
 
 var async = require('async');
 
-var datadog = require('models/datadog/datadog')(__filename);
-var dockerModule = require('models/docker/docker');
+var datadog = require('models/datadog')(__filename);
+var dockerModule = require('models/docker');
 var log = require('logger').getChild(__filename);
-var mavis = require('models/mavis/mavis')();
+var mavis = require('models/mavis')();
 
 var IMAGE_BUILDER_REGEX = new RegExp(process.env.KHRONOS_IMAGE_BUILDER_CONTAINER_TAG);
 var IMAGE_FILTERS = [

@@ -13,10 +13,10 @@ var WEAVE_CONTAINER_NAMES = [
 
 var async = require('async');
 
-var datadog = require('models/datadog/datadog')(__filename);
-var dockerModule = require('models/docker/docker');
+var datadog = require('models/datadog')(__filename);
+var dockerModule = require('models/docker');
 var log = require('logger').getChild(__filename);
-var mavis = require('models/mavis/mavis')();
+var mavis = require('models/mavis')();
 
 module.exports = function(finalCb) {
   var totalContainersCount = 0;

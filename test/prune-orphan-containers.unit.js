@@ -33,7 +33,7 @@ var docker = new Docker({
   port: process.env.KHRONOS_DOCKER_PORT
 });
 
-var mongodb = require('../lib/models/mongodb/mongodb');
+var mongodb = require('../lib/models/mongodb');
 var pruneOrphanContainers = rewire('../scripts/prune-orphan-containers');
 
 var Container = require('dockerode/lib/container');
