@@ -28,10 +28,8 @@ describe('Mavis Model', function () {
     mavis.getDocks(function (err, docks) {
       request.get.restore();
       assert.isNull(err);
-      assert.lengthOf(docks, 3, 'number of docks');
-      expectedHosts.forEach(function (h) {
-        assert.include(docks, h,  'expected dock');
-      });
+      assert.lengthOf(docks, 1, 'number of docks');
+      assert.include(docks, 'http://localhost:5454',  'expected dock');
       done();
     });
   });

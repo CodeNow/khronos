@@ -7,24 +7,24 @@ require('loadenv')('khronos:test');
 require('colors');
 
 var Lab = require('lab');
-var MongoClient = require('mongodb').MongoClient;
-var async = require('async');
-var chai = require('chai');
-var dockerMock = require('docker-mock');
-var fixtures = require('./fixtures');
-var mavisMock = require('./mocks/mavis');
-var rewire = require('rewire');
-var sinon = require('sinon');
-
 var lab = exports.lab = Lab.script();
-
 var after = lab.after;
 var afterEach = lab.afterEach;
 var before = lab.before;
 var beforeEach = lab.beforeEach;
 var describe = lab.describe;
-var expect = chai.expect;
+var expect = require('chai').expect;
 var it = lab.it;
+
+var Container = require('dockerode/lib/container');
+var MongoClient = require('mongodb').MongoClient;
+var async = require('async');
+var dockerMock = require('docker-mock');
+var fixtures = require('../fixtures');
+var mavisMock = require('../mocks/mavis');
+var mongodb = require('models/mongodb');
+var rewire = require('rewire');
+var sinon = require('sinon');
 
 // set non-default port for testing
 var Docker = require('dockerode');
@@ -33,10 +33,7 @@ var docker = new Docker({
   port: process.env.KHRONOS_DOCKER_PORT
 });
 
-var mongodb = require('../lib/models/mongodb');
-var pruneOrphanContainers = rewire('../scripts/prune-orphan-containers');
-
-var Container = require('dockerode/lib/container');
+var pruneOrphanContainers = rewire('../../scripts/prune-orphan-containers');
 
 describe('prune-orphan-containers'.bold.underline.green, function() {
   var db;

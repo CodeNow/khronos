@@ -7,25 +7,24 @@ require('loadenv')('khronos:test');
 require('colors');
 
 var Lab = require('lab');
-var MongoClient = require('mongodb').MongoClient;
-var ObjectID = require('mongodb').ObjectID;
-var async = require('async');
-var chai = require('chai');
-var dockerMock = require('docker-mock');
-var sinon = require('sinon');
-
-var dockerNockMock = require('./mocks/docker');
-var mavisMock = require('./mocks/mavis');
-
 var lab = exports.lab = Lab.script();
-
 var after = lab.after;
 var afterEach = lab.afterEach;
 var before = lab.before;
 var beforeEach = lab.beforeEach;
 var describe = lab.describe;
-var expect = chai.expect;
+var expect = require('chai').expect;
 var it = lab.it;
+
+var Image = require('dockerode/lib/image');
+var MongoClient = require('mongodb').MongoClient;
+var ObjectID = require('mongodb').ObjectID;
+var async = require('async');
+var dockerMock = require('docker-mock');
+var dockerNockMock = require('../mocks/docker');
+var mavisMock = require('../mocks/mavis');
+var mongodb = require('models/mongodb');
+var sinon = require('sinon');
 
 // set non-default port for testing
 var Docker = require('dockerode');
@@ -35,10 +34,8 @@ var docker = new Docker({
 });
 
 // replace private variables for testing
-var mongodb = require('../lib/models/mongodb');
-var pruneOrphanImages = require('../scripts/prune-orphan-images');
+var pruneOrphanImages = require('../../scripts/prune-orphan-images');
 
-var Image = require('dockerode/lib/image');
 describe('prune-orphan-images'.bold.underline.green, function() {
   var db;
   var server;

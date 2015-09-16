@@ -11,85 +11,79 @@ var WEAVE_CONTAINER_NAMES = [
   /weaveworks\/weaveexec/
 ];
 
+var Mavis = require('models/mavis');
 var async = require('async');
-
 var datadog = require('models/datadog')(__filename);
 var dockerModule = require('models/docker');
 var log = require('logger').getChild(__filename);
-var mavis = require('models/mavis')();
 
-module.exports = function(finalCb) {
-  var totalContainersCount = 0;
-  datadog.startTiming('complete-prune-weave-containers');
-  mavis.getDocks(function (err) {
-    if (err) {
-      log.error({
-        err: err
-      }, 'module.exports mavisGetDocks error');
-      finalCb(err);
-    }
-    removeDeadWeaveContainers();
-  });
+module.exports = {
+  run: function (finalCb) {
+    var mavis = new Mavis();
+    datadog.startTiming('complete-prune-weave-containers');
 
-  /**
-   * Remove all dead weave containers
-   */
-  function removeDeadWeaveContainers() {
-    async.each(mavis.docks,
-    function (dock, dockCb) {
-      var docker = dockerModule();
-      docker.connect(dock);
-      async.series([
-        docker.getContainers.bind(docker, {
-          filters: JSON.stringify({'status': ['exited']})
-        }, WEAVE_CONTAINER_NAMES),
-        removeDeadWeaveContainersOnDock
-      ], function (err) {
-        if (err) {
-          log.error({
-            err: err
-          }, 'removeDeadWeaveContainers finalCb error');
-        }
-        else {
-          log.trace({
-            dock: dock
-          }, 'removeDeadWeaveContainers completed');
-        }
-        totalContainersCount += docker.containers.length;
-        dockCb();
-      });
-      /**
-       * Remove all containers found in docker API query
-       */
-      function removeDeadWeaveContainersOnDock(pruneCb) {
-        async.eachSeries(docker.containers,
-        function (container, eachCb) {
-          log.trace({
-            containerId: container.Id
-          }, 'removeDeadWeaveContainersOnDock pre-remove request');
-          docker.removeStoppedContainer(container.Id, function (err) {
-            if (err) {
-              log.error({
-                containerId: container.Id
-              }, 'removeDeadWeaveContainersOnDock removeStoppedContainer error');
-            }
-            else {
-              log.trace({
-                containerId: container.Id
-              }, 'removeDeadWeaveContainersOnDock removeStoppedContainer success');
-            }
-            eachCb();
-          });
-        },
-        pruneCb);
+    async.waterfall([
+      mavis.getDocks.bind(mavis),
+      module.exports._removeDeadWeaveContainers
+    ], function (err) {
+      if (err) {
+        log.error({ err: err }, 'ERROR IN prune-exited-weave-containers');
+        return finalCb(err);
       }
-    },
-    function finished () {
-      log.info({
-        totalContainersRemoved: totalContainersCount
-      }, 'Finished prune-exited-weave-containers');
+      log.info('Finished prune-exited-weave-containers');
       datadog.endTiming('complete-prune-weave-containers');
       finalCb();
     });
+  },
+  _removeDeadWeaveContainers: function (docks, cb) {
+    async.each(docks, module.exports._cleanWeaveFromDock, cb);
+  },
+  _cleanWeaveFromDock: function (dock, cb) {
+    var docker = dockerModule();
+    docker.connect(dock);
+    async.series([
+      function getDockerContainers (cb) {
+        // FIXME(bryan): don't filter in docker model
+        var dockerOpts = {
+          filters: JSON.stringify({ 'status': ['exited'] })
+        };
+        docker.getContainers(dockerOpts, WEAVE_CONTAINER_NAMES, cb);
+      },
+      function (cb) {
+        module.exports._removeDeadWeaveContainersOnDock(docker, cb);
+      }
+    ], function (err) {
+      if (err) {
+        // FIXME(bryan): report the error, but don't call it back?
+        log.error({ err: err }, '_cleanWeaveFromDock error');
+        return cb(err);
+      }
+      log.trace({
+        containersRemoved: docker.containers.length,
+        dock: dock
+      }, '_cleanWeaveFromDock completed');
+      cb();
+    });
+  },
+  _removeDeadWeaveContainersOnDock: function (docker, cb) {
+    async.eachSeries(
+      docker.containers,
+      function (container, eachSeriesCallback) {
+        log.trace({
+          containerId: container.Id
+        }, '_removeDeadWeaveContainersOnDock pre-remove request');
+        docker.removeStoppedContainer(container.Id, function (err) {
+          if (err) {
+            log.error({
+              containerId: container.Id
+            }, '_removeDeadWeaveContainersOnDock removeStoppedContainer error');
+          }
+          log.trace({
+            containerId: container.Id
+          }, '_removeDeadWeaveContainersOnDock removeStoppedContainer success');
+          eachSeriesCallback();
+        });
+      },
+      cb);
   }
 };

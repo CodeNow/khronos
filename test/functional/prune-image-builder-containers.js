@@ -1,5 +1,5 @@
 /**
- * @module test/prune-exited-weave-containers.unit.js
+ * @module test/prune-image-builder-containers.unit
  */
 'use strict';
 
@@ -7,23 +7,22 @@ require('loadenv')('khronos:test');
 require('colors');
 
 var Lab = require('lab');
-var async = require('async');
-var chai = require('chai');
-var dockerMock = require('docker-mock');
-var fixtures = require('./fixtures');
-var mavisMock = require('./mocks/mavis');
-var rewire = require('rewire');
-var sinon = require('sinon');
-
 var lab = exports.lab = Lab.script();
-
 var after = lab.after;
 var afterEach = lab.afterEach;
 var before = lab.before;
 var beforeEach = lab.beforeEach;
 var describe = lab.describe;
-var expect = chai.expect;
+var expect = require('chai').expect;
 var it = lab.it;
+
+var Container = require('dockerode/lib/container');
+var async = require('async');
+var dockerMock = require('docker-mock');
+var fixtures = require('../fixtures');
+var mavisMock = require('../mocks/mavis');
+var rewire = require('rewire');
+var sinon = require('sinon');
 
 // set non-default port for testing
 var Docker = require('dockerode');
@@ -32,11 +31,9 @@ var docker = new Docker({
   port: process.env.KHRONOS_DOCKER_PORT
 });
 
-var pruneExitedWeaveContainers = rewire('../scripts/prune-exited-weave-containers');
+var pruneImageBuilderContainers = rewire('../../scripts/prune-image-builder-containers');
 
-var Container = require('dockerode/lib/container');
-
-describe('prune-exited-weave-containers'.bold.underline.green, function() {
+describe('prune-image-builder-containers'.bold.underline.green, function() {
   var server;
 
   after(function (done) {
@@ -57,24 +54,6 @@ describe('prune-exited-weave-containers'.bold.underline.green, function() {
 
   afterEach(function(done) {
     async.series([
-      function deleteImages (cb) {
-        docker.listImages(function (err, images) {
-          if (err) {
-            console.log(err);
-            cb();
-          }
-          async.forEach(images, function (image, eachCB) {
-            docker.getImage(image.Id).remove(function (err) {
-              if (err) {
-                console.log('err', err);
-              }
-              eachCB();
-            });
-          }, function () {
-            cb();
-          });
-        });
-      },
       function deleteContainers (cb) {
         docker.listContainers({all: true}, function (err, containers) {
           if (err) { throw err; }
@@ -93,39 +72,14 @@ describe('prune-exited-weave-containers'.bold.underline.green, function() {
   });
 
   it('should run successfully if no containers on dock', function (done) {
-    pruneExitedWeaveContainers(function () {
+    pruneImageBuilderContainers(function () {
       expect(Container.prototype.remove.called).to.equal(false);
       done();
     });
   });
 
-  it('should run successfully if no weave containers on dock', function (done) {
+  it('should run successfully if no image builder containers on dock', function (done) {
     var numContainers = 5;
-    async.series([
-      function createContainers (cb) {
-        async.times(numContainers, function (n, cb) {
-          docker.createContainer({
-            Image: fixtures.getRandomImageName()
-          }, function (err) {
-            if (err) { throw err; }
-            cb();
-          });
-        }, cb);
-      }
-    ], function () {
-      pruneExitedWeaveContainers(function () {
-        docker.listContainers({all: true}, function (err, containers) {
-          if (err) { throw err; }
-          expect(containers.length).to.equal(numContainers);
-          done();
-        });
-      });
-    });
-  });
-
-  it('should only remove dead weave containers', function (done) {
-    var numContainers = 5;
-    var numWeaveContainers = 2;
     async.series([
       function createContainers (cb) {
         async.times(numContainers, function (n, cb) {
@@ -137,10 +91,35 @@ describe('prune-exited-weave-containers'.bold.underline.green, function() {
           });
         }, cb);
       },
-      function createWeaveContainers (cb) {
-        async.times(numWeaveContainers, function (n, cb) {
+    ], function () {
+      pruneImageBuilderContainers(function () {
+        docker.listContainers({all: true}, function (err, containers) {
+          if (err) { throw err; }
+          expect(containers.length).to.equal(numContainers);
+          done();
+        });
+      });
+    });
+  });
+
+  it('should only remove image builder containers from dock', function (done) {
+    var numRegularContainers = 5;
+    var numImageBuilderContainers = 2;
+    async.series([
+      function createRegularContainers (cb) {
+        async.times(numRegularContainers, function (n, cb) {
           docker.createContainer({
-            Image: 'zettio/weavetools:0.9.0'
+            Image: fixtures.getRandomImageName()
+          }, function (err) {
+            if (err) { throw err; }
+            cb();
+          });
+        }, cb);
+      },
+      function createImageBuilderContainers (cb) {
+        async.times(numImageBuilderContainers, function (n, cb) {
+          docker.createContainer({
+            Image: 'runnable/image-builder'
           }, function (err) {
             if (err) { throw err; }
             cb();
@@ -148,24 +127,17 @@ describe('prune-exited-weave-containers'.bold.underline.green, function() {
         }, cb);
       }
     ], function () {
-      async.series([
-        function (cb) {
+      docker.listContainers({all: true}, function (err, containers) {
+        expect(containers.length).to.equal(numRegularContainers+numImageBuilderContainers);
+        pruneImageBuilderContainers(function () {
+          expect(Container.prototype.remove.callCount).to.equal(numImageBuilderContainers);
           docker.listContainers({all: true}, function (err, containers) {
-            expect(containers.length).to.equal(numContainers + numWeaveContainers);
-            cb();
+            if (err) { throw err; }
+            expect(containers.length).to.equal(numRegularContainers);
+            done();
           });
-        },
-        function (cb) {
-          pruneExitedWeaveContainers(function () {
-            docker.listContainers({all: true}, function (err, containers) {
-              if (err) { throw err; }
-              expect(containers.length).to.equal(numContainers);
-              cb();
-            });
-          });
-        }
-      ], done);
+        });
+      });
     });
   });
-
 });

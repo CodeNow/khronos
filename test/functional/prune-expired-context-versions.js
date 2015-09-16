@@ -6,29 +6,24 @@
 require('loadenv')('khronos:test');
 require('colors');
 
-//var createCounter = require('callback-count');
-//var dockerMock = require('docker-mock');
 var Lab = require('lab');
-var MongoClient = require('mongodb').MongoClient;
-var ObjectID = require('mongodb').ObjectID;
-var async = require('async');
-var chai = require('chai');
-var sinon = require('sinon');
-
 var lab = exports.lab = Lab.script();
-
-//var after = lab.after;
 var afterEach = lab.afterEach;
 var before = lab.before;
 var beforeEach = lab.beforeEach;
 var describe = lab.describe;
-var expect = chai.expect;
+var expect = require('chai').expect;
 var it = lab.it;
 
-var mongodb = require('../lib/models/mongodb');
-var pruneExpiredContextVersions = require('../scripts/prune-expired-context-versions');
+var MongoClient = require('mongodb').MongoClient;
+var ObjectID = require('mongodb').ObjectID;
+var async = require('async');
+var mongodb = require('models/mongodb');
+var sinon = require('sinon');
 
-describe('prune-expired-context-versions'.bold.underline.green, function() {
+var pruneExpiredContextVersions = require('../../scripts/prune-expired-context-versions');
+
+describe('prune-expired-context-versions'.bold.underline.green, function () {
   var db;
   before(function (done) {
     sinon.spy(mongodb, 'fetchContextVersions');
