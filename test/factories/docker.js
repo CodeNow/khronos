@@ -40,9 +40,17 @@ module.exports = {
       return shasum.digest('hex');
     }
   },
+  createContainer: function (docker, image, cb) {
+    docker.createContainer({ Image: image }, cb);
+  },
+  createWeaveContainers: function (docker, num, cb) {
+    async.times(num, function (n, cb) {
+      module.exports.createContainer(docker, 'zettio/weavetools:0.9.0', cb);
+    }, cb);
+  },
   createRandomContainers: function (docker, num, cb) {
     async.times(num, function (n, cb) {
-      docker.createContainer({ Image: module.exports.getRandomImageName() }, cb);
+      module.exports.createContainer(docker, module.exports.getRandomImageName(), cb);
     }, cb);
   }
 };

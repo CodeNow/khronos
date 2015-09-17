@@ -70,11 +70,7 @@ describe('prune-exited-weave-containers'.bold.underline.green, function () {
   });
 
   describe('on a populated dock', function () {
-    beforeEach(function (done) {
-      async.times(5, function (n, cb) {
-        docker.createContainer({ Image: fixtures.getRandomImageName() }, cb);
-      }, done);
-    });
+    beforeEach(dockerFactory.createRandomContainers.bind(null, docker, 5));
 
     it('should run successfully if no weave containers on dock', function (done) {
       sinon.spy(pruneExitedWeaveContainers, '_removeDeadWeaveContainersOnDock');
@@ -93,11 +89,7 @@ describe('prune-exited-weave-containers'.bold.underline.green, function () {
     });
 
     describe('where weave containers are present', function () {
-      beforeEach(function (done) {
-        async.times(2, function (n, cb) {
-          docker.createContainer({ Image: 'zettio/weavetools:0.9.0' }, cb);
-        }, done);
-      });
+      beforeEach(dockerFactory.createWeaveContainers.bind(null, docker, 2));
 
       it('should only remove dead weave containers', function (done) {
         pruneExitedWeaveContainers.run(function (err) {
