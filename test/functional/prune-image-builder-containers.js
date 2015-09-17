@@ -18,8 +18,8 @@ var it = lab.it;
 
 var Container = require('dockerode/lib/container');
 var async = require('async');
+var dockerFactory = require('../factories/docker');
 var dockerMock = require('docker-mock');
-var fixtures = require('../fixtures');
 var mavisMock = require('../mocks/mavis');
 var rewire = require('rewire');
 var sinon = require('sinon');
@@ -81,14 +81,7 @@ describe('prune-image-builder-containers'.bold.underline.green, function() {
     var numContainers = 5;
     async.series([
       function createContainers (cb) {
-        async.times(numContainers, function (n, cb) {
-          docker.createContainer({
-            Image: fixtures.getRandomImageName()
-          }, function (err) {
-            if (err) { throw err; }
-            cb();
-          });
-        }, cb);
+        dockerFactory.createRandomContainers(docker, numContainers, cb);
       },
     ], function () {
       pruneImageBuilderContainers(function () {
@@ -106,14 +99,7 @@ describe('prune-image-builder-containers'.bold.underline.green, function() {
     var numImageBuilderContainers = 2;
     async.series([
       function createRegularContainers (cb) {
-        async.times(numRegularContainers, function (n, cb) {
-          docker.createContainer({
-            Image: fixtures.getRandomImageName()
-          }, function (err) {
-            if (err) { throw err; }
-            cb();
-          });
-        }, cb);
+        dockerFactory.createRandomContainers(docker, numRegularContainers, cb);
       },
       function createImageBuilderContainers (cb) {
         async.times(numImageBuilderContainers, function (n, cb) {

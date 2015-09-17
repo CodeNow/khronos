@@ -18,7 +18,6 @@ var IMAGE_FILTERS = [
 module.exports = function (finalCb) {
   log.trace('prune-image-builder-containers start');
   var mavis = new Mavis();
-  var totalContainersCount = 0;
   var totalImageBuilderContainersCount = 0;
   var successfullyDeletedContainersCount = 0;
   datadog.startTiming('complete-prune-image-builder-containers');

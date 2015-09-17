@@ -19,8 +19,8 @@ var it = lab.it;
 var Container = require('dockerode/lib/container');
 var MongoClient = require('mongodb').MongoClient;
 var async = require('async');
+var dockerFactory = require('../factories/docker');
 var dockerMock = require('docker-mock');
-var fixtures = require('../fixtures');
 var mavisMock = require('../mocks/mavis');
 var mongodb = require('models/mongodb');
 var rewire = require('rewire');
@@ -123,14 +123,7 @@ describe('prune-orphan-containers'.bold.underline.green, function() {
     var numContainers = 5;
     async.series([
       function createContainers (cb) {
-        async.times(numContainers, function (n, cb) {
-          docker.createContainer({
-            Image: fixtures.getRandomImageName()
-          }, function (err) {
-            if (err) { throw err; }
-            cb();
-          });
-        }, cb);
+        dockerFactory.createRandomContainers(docker, numContainers, cb);
       },
       function createInstances (cb) {
         var instances = db.collection('instances');
@@ -166,14 +159,7 @@ describe('prune-orphan-containers'.bold.underline.green, function() {
     var numOrphans = 3;
     async.series([
       function createContainers (cb) {
-        async.times(numContainers, function (n, cb) {
-          docker.createContainer({
-            Image: fixtures.getRandomImageName()
-          }, function (err) {
-            if (err) { throw err; }
-            cb();
-          });
-        }, cb);
+        dockerFactory.createRandomContainers(docker, numContainers, cb);
       },
       function createInstances (cb) {
         var instances = db.collection('instances');

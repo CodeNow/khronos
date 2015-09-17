@@ -17,10 +17,8 @@ var expect = require('chai').expect;
 var it = lab.it;
 
 var Container = require('dockerode/lib/container');
-var async = require('async');
 var dockerFactory = require('../factories/docker');
 var dockerMock = require('docker-mock');
-var fixtures = require('../fixtures');
 var mavisMock = require('../mocks/mavis');
 var sinon = require('sinon');
 

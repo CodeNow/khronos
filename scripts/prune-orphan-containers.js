@@ -134,12 +134,13 @@ module.exports = function (finalCb) {
                 instancesLength: instances.length,
                 dock: dock
               }, 'doWhilstIterator: found missing containers in set');
-              // track total number of orphaned containers that were discovered in this cron iteration
+              // track total number of orphaned containers that were discovered
+              // in this cron iteration
               orphanedContainersCount += numberMissing;
               /**
                * determine which containers in containerSet do not have corresponding instances
-               * by iterating over each container in containerSet, and searching through the retrieved
-               * instance documents for a match. If no match found, this container is an
+               * by iterating over each container in containerSet, and searching through the
+               * retrieved instance documents for a match. If no match found, this container is an
                * orphan.
                */
               var foundInstancesContainerIds = instances.map(pluck('container.dockerContainer'));
