@@ -7,7 +7,7 @@
 var Mavis = require('models/mavis');
 var async = require('async');
 var datadog = require('models/datadog')(__filename);
-var dockerModule = require('models/docker');
+var Docker = require('models/docker');
 var log = require('logger').getChild(__filename);
 
 var IMAGE_BUILDER_REGEX = new RegExp(process.env.KHRONOS_IMAGE_BUILDER_CONTAINER_TAG);
@@ -38,9 +38,8 @@ module.exports = function (finalCb) {
         log.trace({
           dock: dock
         }, 'processOrphanContainers async.each');
-        var docker = dockerModule();
-        docker.connect(dock);
-        async.series([
+        var docker = new Docker(dock);
+        async.waterfall([
           docker.getContainers.bind(docker, {
             filters: JSON.stringify({'status': ['exited']})
           }, IMAGE_FILTERS),
@@ -51,19 +50,17 @@ module.exports = function (finalCb) {
               err: err,
               dock: dock
             }, 'processOrphanContainers error');
+            return dockCB(err);
           }
-          totalContainersCount += docker.containers.length;
-          log.trace({
-            dock: dock
-          }, 'processOrphanContainers completed');
+          log.trace({ dock: dock }, 'processOrphanContainers completed');
           dockCB();
         });
-        function pruneImageBuilderContainers (pruneCB) {
+        function pruneImageBuilderContainers (containers, pruneCB) {
           log.trace({
-            dockerContainersLength: docker.containers.length
+            dockerContainersLength: containers.length
           }, 'pruneImageBuilderContainers');
-          totalImageBuilderContainersCount += docker.containers.length;
-          async.eachSeries(docker.containers, function (container, cb) {
+          totalImageBuilderContainersCount += containers.length;
+          async.eachSeries(containers, function (container, cb) {
             docker.removeContainer(container.Id, function (err) {
               if (err) {
                 log.error({

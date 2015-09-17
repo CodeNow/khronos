@@ -1,6 +1,7 @@
 'use strict';
 
 var async = require('async');
+var crypto = require('crypto');
 
 module.exports = {
   deleteAllImagesAndContainers: function (docker, cb) {
@@ -24,5 +25,24 @@ module.exports = {
         docker.getContainer(container.Id).remove(cb);
       }, cb);
     });
+  },
+  getRandomImageName: function () {
+    return process.env.KHRONOS_DOCKER_REGISTRY +
+      '/' +
+      (Math.random()*999999 | 0) +
+      '/' +
+      randomHash().substr(0, 24) +
+      ':' +
+      randomHash().substr(0, 24);
+
+    function randomHash () {
+      var shasum = crypto.createHash('sha256').update(Math.random() + '');
+      return shasum.digest('hex');
+    }
+  },
+  createRandomContainers: function (docker, num, cb) {
+    async.times(num, function (n, cb) {
+      docker.createContainer({ Image: module.exports.getRandomImageName() }, cb);
+    }, cb);
   }
 };

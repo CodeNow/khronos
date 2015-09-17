@@ -10,7 +10,7 @@ var findIndex = require('101/find-index');
 var pluck = require('101/pluck');
 
 var datadog = require('models/datadog')(__filename);
-var dockerModule = require('models/docker');
+var Docker = require('models/docker');
 var log = require('logger').getChild(__filename);
 var Mavis = require('models/mavis');
 var mongodb = require('models/mongodb');
@@ -43,9 +43,8 @@ module.exports = function (finalCb) {
         log.trace({
           dock: dock
         }, 'processOrphanContainers async.each');
-        var docker = dockerModule();
-        docker.connect(dock);
-        async.series([
+        var docker = new Docker(dock);
+        async.waterfall([
           docker.getContainers.bind(docker, {all: true}, IMAGE_FILTERS),
           fetchInstancesAndPrune
         ], function (err) {
@@ -54,26 +53,22 @@ module.exports = function (finalCb) {
               err: err,
               dock: dock
             }, 'processOrphanContainers complete error');
+            return dockCB(err);
           }
-          else {
-            log.trace({
-              dock: dock
-            }, 'processOrphanContainers complete success');
-          }
-          totalContainersCount += docker.containers.length;
+          log.trace({ dock: dock }, 'processOrphanContainers complete success');
           dockCB();
         });
-        function fetchInstancesAndPrune (fetchCVCB) {
+        function fetchInstancesAndPrune (containers, fetchCVCB) {
           log.trace({
             dock: dock
           }, 'fetchInstancesAndPrune');
           // chunk check context versions in db for batch of 100 images
           var chunkSize = 100;
           var lowerBound = 0;
-          var upperBound = Math.min(chunkSize, docker.containers.length);
+          var upperBound = Math.min(chunkSize, containers.length);
           var containerSet = [];
-          if (docker.containers.length) {
-            containerSet = docker.containers.slice(lowerBound, upperBound);
+          if (containers.length) {
+            containerSet = containers.slice(lowerBound, upperBound);
           }
           /**
            * Chunk requests to mongodb to avoid potential memory/heap size issues
@@ -83,8 +78,8 @@ module.exports = function (finalCb) {
             doWhilstIterator,
             function check () {
               lowerBound = upperBound;
-              upperBound = Math.min(upperBound+chunkSize, docker.containers.length);
-              containerSet = docker.containers.slice(lowerBound, upperBound);
+              upperBound = Math.min(upperBound+chunkSize, containers.length);
+              containerSet = containers.slice(lowerBound, upperBound);
               return containerSet.length;
             },
             fetchCVCB

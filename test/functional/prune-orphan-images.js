@@ -86,15 +86,12 @@ describe('prune-orphan-images'.bold.underline.green, function() {
         });
       },
       function deleteContextVersions (cb) {
-        db.collection('contextversions').drop(function () {
-          console.log('dropped contextversions collection');
-          cb();
+        db.collection('contextversions').drop(function (err) {
+          if (err && err.message === 'ns not found') { return cb(); }
+          cb(err);
         });
       }
-    ], function () {
-      console.log('finished afterEach');
-      done();
-    });
+    ], done);
   });
 
   describe('success scenarios', function () {

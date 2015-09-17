@@ -66,7 +66,6 @@ describe('prune-image-builder-containers'.bold.underline.green, function() {
       if (Container.prototype.remove.reset) {
         Container.prototype.remove.reset();
       }
-      console.log('finished afterEach');
       done();
     });
   });

@@ -14,7 +14,7 @@ var WEAVE_CONTAINER_NAMES = [
 var Mavis = require('models/mavis');
 var async = require('async');
 var datadog = require('models/datadog')(__filename);
-var dockerModule = require('models/docker');
+var Docker = require('models/docker');
 var log = require('logger').getChild(__filename);
 
 module.exports = {
@@ -39,9 +39,8 @@ module.exports = {
     async.each(docks, module.exports._cleanWeaveFromDock, cb);
   },
   _cleanWeaveFromDock: function (dock, cb) {
-    var docker = dockerModule();
-    docker.connect(dock);
-    async.series([
+    var docker = new Docker(dock);
+    async.waterfall([
       function getDockerContainers (cb) {
         // FIXME(bryan): don't filter in docker model
         var dockerOpts = {
@@ -49,8 +48,8 @@ module.exports = {
         };
         docker.getContainers(dockerOpts, WEAVE_CONTAINER_NAMES, cb);
       },
-      function (cb) {
-        module.exports._removeDeadWeaveContainersOnDock(docker, cb);
+      function (containers, cb) {
+        module.exports._removeDeadWeaveContainersOnDock(docker, containers, cb);
       }
     ], function (err) {
       if (err) {
@@ -58,16 +57,13 @@ module.exports = {
         log.error({ err: err }, '_cleanWeaveFromDock error');
         return cb(err);
       }
-      log.trace({
-        containersRemoved: docker.containers.length,
-        dock: dock
-      }, '_cleanWeaveFromDock completed');
+      log.trace({ dock: dock }, '_cleanWeaveFromDock completed');
       cb();
     });
   },
-  _removeDeadWeaveContainersOnDock: function (docker, cb) {
+  _removeDeadWeaveContainersOnDock: function (docker, containers, cb) {
     async.eachSeries(
-      docker.containers,
+      containers,
       function (container, eachSeriesCallback) {
         log.trace({
           containerId: container.Id

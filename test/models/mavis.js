@@ -1,5 +1,7 @@
 'use strict';
 
+require('loadenv')('khronos:test');
+
 var Lab = require('lab');
 var lab = exports.lab = Lab.script();
 var beforeEach = lab.beforeEach;
@@ -22,7 +24,6 @@ describe('Mavis Model', function () {
 
   it('should fetch docks', function (done) {
     var docks = require('../mocks/mavis/docks.json');
-    var expectedHosts = docks.map(pluck('host'));
     sinon.stub(request, 'get').yields(null, {}, JSON.stringify(docks));
 
     mavis.getDocks(function (err, docks) {

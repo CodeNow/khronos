@@ -13,7 +13,7 @@ var equals = require('101/equals');
 var findIndex = require('101/find-index');
 
 var datadog = require('models/datadog')(__filename);
-var dockerModule = require('models/docker');
+var Docker = require('models/docker');
 var log = require('logger').getChild(__filename);
 var Mavis = require('models/mavis');
 var mongodb = require('models/mongodb');
@@ -37,47 +37,42 @@ module.exports = function(finalCb) {
     async.each(
       docks,
       function (dock, dockCB) {
-        log.trace({
-          dock: dock
-        }, 'processOrphans async.each');
-        var docker = dockerModule();
-        docker.connect(dock);
-        async.series([
-          docker.getImages.bind(docker,
-                                parseInt(process.env.KHRONOS_MIN_IMAGE_AGE)),
-          deleteTaglessImages,
+        log.trace({ dock: dock }, 'processOrphans async.each');
+        var docker = new Docker(dock);
+        var maxImageAge = parseInt(process.env.KHRONOS_MIN_IMAGE_AGE);
+        async.waterfall([
+          docker.getImages.bind(docker, maxImageAge),
+          function (images, taglessImages, cb) {
+            deleteTaglessImages(taglessImages, function (err) {
+              cb(err, images);
+            });
+          },
           fetchContextVersionsAndPrune
         ], function (err) {
           if (err) {
             log.error({
               err: err,
-              dock: dock,
-              dockerImagesLength: docker.images.length
+              dock: dock
             }, 'processOrphans complete error');
+            return dockCB(err);
           }
-          else {
-            log.trace({
-              dock: dock,
-              dockerImagesLength: docker.images.length
-            }, 'processOrphans complete success');
-          }
-          totalImagesCount += docker.images.length;
+          log.trace({ dock: dock }, 'processOrphans complete success');
           dockCB();
         });
         /**
          * Delete images from docks that do not have tags
          */
-        function deleteTaglessImages (cb) {
+        function deleteTaglessImages (taglessImages, cb) {
           log.trace({
-            taglessImagesCount: docker.taglessImages.count,
+            taglessImagesCount: taglessImages.count,
             dock: dock
           }, 'deleteTaglessImages');
           // increase concurrency carefully, avoid overloading dockerd
-          async.eachLimit(docker.taglessImages, 2, function (image, cb) {
+          async.eachLimit(taglessImages, 2, function (image, eachCb) {
             log.trace({
               imageId: image.Id,
               repoTags: image.RepoTags,
-              taglessImagesCount: docker.taglessImages,
+              taglessImagesCount: taglessImages,
               dock: dock
             }, 'deleteTaglessImages pre docker.removeImage');
             docker.removeImage(image.Id, function (err) {
@@ -86,32 +81,29 @@ module.exports = function(finalCb) {
                   err: err,
                   imageId: image.Id,
                   repoTags: image.RepoTags,
-                  taglessImagesCount: docker.taglessImages,
+                  taglessImagesCount: taglessImages,
                   dock: dock
                 }, 'deleteTaglessImages docker.removeImage complete error');
+                return eachCb(err);
               }
-              else {
-                log.trace({
-                  imageId: image.Id,
-                  repoTags: image.RepoTags,
-                  taglessImagesCount: docker.taglessImages,
-                  dock: dock
-                }, 'deleteTaglessImages docker.removeImage complete success');
-              }
-              cb();
+              log.trace({
+                imageId: image.Id,
+                repoTags: image.RepoTags,
+                taglessImagesCount: taglessImages,
+                dock: dock
+              }, 'deleteTaglessImages docker.removeImage complete success');
+              eachCb();
             });
           }, cb);
         }
-        function fetchContextVersionsAndPrune (fetchCVCB) {
-          log.trace({
-            dock: dock
-          }, 'fetchContextVersionsAndPrune');
+        function fetchContextVersionsAndPrune (images, fetchCVCB) {
+          log.trace({ dock: dock }, 'fetchContextVersionsAndPrune');
           // chunk check context versions in db for batch of 100 images
           var chunkSize = 100;
           var lowerBound = 0;
-          var upperBound = Math.min(chunkSize, docker.images.length);
+          var upperBound = Math.min(chunkSize, images.length);
           var imageTagSet = [];
-          if (docker.images.length) { imageTagSet = docker.images.slice(lowerBound, upperBound); }
+          if (images.length) { imageTagSet = images.slice(lowerBound, upperBound); }
           /**
            * Chunk requests to mongodb to avoid potential memory/heap size issues
            * when working with large numbers of images and context-version documents
@@ -120,8 +112,8 @@ module.exports = function(finalCb) {
             doWhilstIterator,
             function check () {
               lowerBound = upperBound;
-              upperBound = Math.min(upperBound+chunkSize, docker.images.length);
-              imageTagSet = docker.images.slice(lowerBound, upperBound);
+              upperBound = Math.min(upperBound+chunkSize, images.length);
+              imageTagSet = images.slice(lowerBound, upperBound);
               return imageTagSet.length;
             },
             fetchCVCB
@@ -138,8 +130,8 @@ module.exports = function(finalCb) {
              * and producting an array of ObjectID's for images' corresponding
              * context-versions
              */
-            var regexImageTagCV =
-              new RegExp('^'+process.env.KHRONOS_DOCKER_REGISTRY+'\/[0-9]+\/([A-z0-9]+):([A-z0-9]+)');
+            var regexImageTagCV = new RegExp('^' + process.env.KHRONOS_DOCKER_REGISTRY +
+              '\/[0-9]+\/([A-z0-9]+):([A-z0-9]+)');
             var cvIds = imageTagSet.map(function (imageTag) {
               // regexExecResult =
               //   registry.runnable.io/<session-user>:<context-version-Id> [2] is
