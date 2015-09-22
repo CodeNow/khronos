@@ -14,7 +14,7 @@ var assert = require('chai').assert;
 var sinon = require('sinon');
 var url = require('url');
 
-var Docker = require('models/docker');
+var Docker = require('../../lib/models/docker');
 var docker = new Docker(url.format({
   protocol: 'http:',
   hostname: process.env.KHRONOS_DOCKER_HOST,
@@ -31,7 +31,8 @@ describe('Docker Model', function () {
       Image: 'ubuntu'
     }];
     beforeEach(function (done) {
-      sinon.stub(Dockerode.prototype, 'listContainers').yieldsAsync(null, mockContainers);
+      sinon.stub(Dockerode.prototype, 'listContainers')
+        .yieldsAsync(null, mockContainers);
       done();
     });
     afterEach(function (done) {
@@ -61,7 +62,8 @@ describe('Docker Model', function () {
       RepoTags: ['<none>']
     }];
     beforeEach(function (done) {
-      sinon.stub(Dockerode.prototype, 'listImages').yieldsAsync(null, mockImages);
+      sinon.stub(Dockerode.prototype, 'listImages')
+        .yieldsAsync(null, mockImages);
       done();
     });
     afterEach(function (done) {

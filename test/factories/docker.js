@@ -29,7 +29,7 @@ module.exports = {
   getRandomImageName: function () {
     return process.env.KHRONOS_DOCKER_REGISTRY +
       '/' +
-      (Math.random()*999999 | 0) +
+      (Math.random() * 999999 | 0) +
       '/' +
       randomHash().substr(0, 24) +
       ':' +
@@ -50,7 +50,10 @@ module.exports = {
   },
   createRandomContainers: function (docker, num, cb) {
     async.times(num, function (n, cb) {
-      module.exports.createContainer(docker, module.exports.getRandomImageName(), cb);
+      module.exports.createContainer(
+        docker,
+        module.exports.getRandomImageName(),
+        cb);
     }, cb);
   }
 };

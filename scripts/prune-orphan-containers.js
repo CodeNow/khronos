@@ -1,3 +1,4 @@
+/* eslint-disable */
 /**
  * Prune containers from each dock if no corresponding instance document exists
  * @module scripts/prune-orphan-containers

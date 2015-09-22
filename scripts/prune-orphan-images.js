@@ -1,3 +1,4 @@
+/* eslint-disable */
 /**
  * Fetch list of images on each dock, verify each image is attached to a context-version in mongodb.
  * Only fetch images with tag indicating image is in our runnable registry.

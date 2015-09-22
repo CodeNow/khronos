@@ -1,3 +1,4 @@
+/* eslint-disable */
 /**
  * Prune image builder containers older than a specified run duration
  * @module scripts/prune-image-builder-containers
