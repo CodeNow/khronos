@@ -48,6 +48,12 @@ module.exports = {
       module.exports.createContainer(docker, 'zettio/weavetools:0.9.0', cb);
     }, cb);
   },
+  createImageBuilderContainers: function (docker, num, cb) {
+    async.times(num, function (n, cb) {
+      var imageName = 'registry.runnable.com/runnable/image-builder:0.9.0';
+      module.exports.createContainer(docker, imageName, cb);
+    }, cb);
+  },
   createRandomContainers: function (docker, num, cb) {
     async.times(num, function (n, cb) {
       module.exports.createContainer(

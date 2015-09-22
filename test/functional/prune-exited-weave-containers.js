@@ -1,6 +1,3 @@
-/**
- * @module test/prune-exited-weave-containers.unit.js
- */
 'use strict';
 
 require('loadenv')('khronos:test');
@@ -20,6 +17,7 @@ var Container = require('dockerode/lib/container');
 var Docker = require('dockerode');
 var dockerFactory = require('../factories/docker');
 var dockerMock = require('docker-mock');
+var Hermes = require('runnable-hermes');
 var ponos = require('ponos');
 var sinon = require('sinon');
 
@@ -34,6 +32,13 @@ describe('Prune Exited Weave Containers', function () {
     'khronos:weave:prune-dock': require('../../lib/tasks/weave/prune-dock'),
     'khronos:weave:prune': require('../../lib/tasks/weave/prune')
   };
+  var hermes = new Hermes({
+    hostname: process.env.RABBITMQ_HOSTNAME,
+    port: process.env.RABBITMQ_PORT,
+    username: process.env.RABBITMQ_USERNAME || 'guest',
+    password: process.env.RABBITMQ_PASSWORD || 'guest',
+    queues: Object.keys(tasks)
+  });
   var dockerMockServer;
   var workerServer;
 
@@ -47,14 +52,11 @@ describe('Prune Exited Weave Containers', function () {
     sinon.spy(Container.prototype, 'remove');
     sinon.spy(tasks, 'khronos:weave:prune-dock');
     sinon.spy(tasks, 'khronos:containers:delete');
-    workerServer = new ponos.Server({ queues: Object.keys(tasks) });
+    workerServer = new ponos.Server({ hermes: hermes });
     workerServer.setAllTasks(tasks)
       .then(workerServer.start())
       .then(function () { done(); })
-      .catch(function (err) {
-        console.error('err', err);
-        done(err);
-      });
+      .catch(done);
   });
   afterEach(function (done) {
     workerServer.stop()

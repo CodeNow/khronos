@@ -8,7 +8,10 @@ var rabbitmq = require('./lib/models/rabbitmq');
 
 var tasks = {
   'khronos:containers:delete': require('./lib/tasks/containers/delete'),
-  // 'khronos:containers:image-builder:prune':
+  'khronos:containers:image-builder:prune':
+    require('./lib/tasks/image-builder/prune'),
+  'khronos:containers:image-builder:prune-dock':
+    require('./lib/tasks/image-builder/prune-dock'),
   // 'khronos:containers:orphan:prune':
   // 'khronos:context-versions:prune':
   // 'khronos:images:orphan:prune':

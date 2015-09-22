@@ -1,129 +1,174 @@
-/* eslint-disable */
-// /**
-//  * @module test/prune-image-builder-containers.unit
-//  */
-// 'use strict';
-//
-// require('loadenv')('khronos:test');
-// require('colors');
-//
-// var Lab = require('lab');
-// var lab = exports.lab = Lab.script();
-// var after = lab.after;
-// var afterEach = lab.afterEach;
-// var before = lab.before;
-// var beforeEach = lab.beforeEach;
-// var describe = lab.describe;
-// var expect = require('chai').expect;
-// var it = lab.it;
-//
-// var Container = require('dockerode/lib/container');
-// var async = require('async');
-// var dockerFactory = require('../factories/docker');
-// var dockerMock = require('docker-mock');
-// var mavisMock = require('../mocks/mavis');
-// var rewire = require('rewire');
-// var sinon = require('sinon');
-//
-// // set non-default port for testing
-// var Docker = require('dockerode');
-// var docker = new Docker({
-//   host: process.env.KHRONOS_DOCKER_HOST,
-//   port: process.env.KHRONOS_DOCKER_PORT
-// });
-//
-// var pruneImageBuilderContainers = rewire('../../scripts/prune-image-builder-containers');
-//
-// describe('prune-image-builder-containers'.bold.underline.green, function() {
-//   var server;
-//
-//   after(function (done) {
-//     Container.prototype.remove.restore();
-//     server.close(done);
-//   });
-//
-//   before(function (done) {
-//     sinon.spy(Container.prototype, 'remove');
-//     server = dockerMock.listen(process.env.KHRONOS_DOCKER_PORT);
-//     done();
-//   });
-//
-//   beforeEach(function (done) {
-//     mavisMock();
-//     done();
-//   });
-//
-//   afterEach(function(done) {
-//     async.series([
-//       function deleteContainers (cb) {
-//         docker.listContainers({all: true}, function (err, containers) {
-//           if (err) { throw err; }
-//           async.eachSeries(containers, function (container, cb) {
-//             docker.getContainer(container.Id).remove(cb);
-//           }, cb);
-//         });
-//       }
-//     ], function () {
-//       if (Container.prototype.remove.reset) {
-//         Container.prototype.remove.reset();
-//       }
-//       done();
-//     });
-//   });
-//
-//   it('should run successfully if no containers on dock', function (done) {
-//     pruneImageBuilderContainers(function () {
-//       expect(Container.prototype.remove.called).to.equal(false);
-//       done();
-//     });
-//   });
-//
-//   it('should run successfully if no image builder containers on dock', function (done) {
-//     var numContainers = 5;
-//     async.series([
-//       function createContainers (cb) {
-//         dockerFactory.createRandomContainers(docker, numContainers, cb);
-//       },
-//     ], function () {
-//       pruneImageBuilderContainers(function () {
-//         docker.listContainers({all: true}, function (err, containers) {
-//           if (err) { throw err; }
-//           expect(containers.length).to.equal(numContainers);
-//           done();
-//         });
-//       });
-//     });
-//   });
-//
-//   it('should only remove image builder containers from dock', function (done) {
-//     var numRegularContainers = 5;
-//     var numImageBuilderContainers = 2;
-//     async.series([
-//       function createRegularContainers (cb) {
-//         dockerFactory.createRandomContainers(docker, numRegularContainers, cb);
-//       },
-//       function createImageBuilderContainers (cb) {
-//         async.times(numImageBuilderContainers, function (n, cb) {
-//           docker.createContainer({
-//             Image: 'runnable/image-builder'
-//           }, function (err) {
-//             if (err) { throw err; }
-//             cb();
-//           });
-//         }, cb);
-//       }
-//     ], function () {
-//       docker.listContainers({all: true}, function (err, containers) {
-//         expect(containers.length).to.equal(numRegularContainers+numImageBuilderContainers);
-//         pruneImageBuilderContainers(function () {
-//           expect(Container.prototype.remove.callCount).to.equal(numImageBuilderContainers);
-//           docker.listContainers({all: true}, function (err, containers) {
-//             if (err) { throw err; }
-//             expect(containers.length).to.equal(numRegularContainers);
-//             done();
-//           });
-//         });
-//       });
-//     });
-//   });
-// });
+'use strict';
+
+require('loadenv')('khronos:test');
+
+var Lab = require('lab');
+var lab = exports.lab = Lab.script();
+var after = lab.after;
+var afterEach = lab.afterEach;
+var before = lab.before;
+var beforeEach = lab.beforeEach;
+var describe = lab.describe;
+var expect = require('chai').expect;
+var it = lab.it;
+
+var async = require('async');
+var Container = require('dockerode/lib/container');
+var Docker = require('dockerode');
+var dockerFactory = require('../factories/docker');
+var dockerMock = require('docker-mock');
+var Hermes = require('runnable-hermes');
+var ponos = require('ponos');
+var sinon = require('sinon');
+
+var docker = new Docker({
+  host: process.env.KHRONOS_DOCKER_HOST,
+  port: process.env.KHRONOS_DOCKER_PORT
+});
+
+describe('Prune Exited Image-Builder Containers', function () {
+  var tasks = {
+    'khronos:containers:delete': require('../../lib/tasks/containers/delete'),
+    'khronos:containers:image-builder:prune':
+      require('../../lib/tasks/image-builder/prune'),
+    'khronos:containers:image-builder:prune-dock':
+      require('../../lib/tasks/image-builder/prune-dock')
+  };
+  var hermes = new Hermes({
+    hostname: process.env.RABBITMQ_HOSTNAME,
+    port: process.env.RABBITMQ_PORT,
+    username: process.env.RABBITMQ_USERNAME || 'guest',
+    password: process.env.RABBITMQ_PASSWORD || 'guest',
+    queues: Object.keys(tasks)
+  });
+  var dockerMockServer;
+  var workerServer;
+  var prevDocks;
+
+  before(function (done) {
+    prevDocks = process.env.KHRONOS_DOCKS;
+    dockerMockServer = dockerMock.listen(process.env.KHRONOS_DOCKER_PORT);
+    done();
+  });
+  beforeEach(function (done) {
+    process.env.KHRONOS_DOCKS =
+      'http://localhost:' + process.env.KHRONOS_DOCKER_PORT;
+    sinon.spy(Container.prototype, 'remove');
+    sinon.spy(tasks, 'khronos:containers:image-builder:prune-dock');
+    sinon.spy(tasks, 'khronos:containers:delete');
+    workerServer = new ponos.Server({ hermes: hermes });
+    workerServer.setAllTasks(tasks)
+      .then(workerServer.start())
+      .then(function () { done(); })
+      .catch(done);
+  });
+  afterEach(function (done) {
+    workerServer.stop()
+      .then(function () { done(); })
+      .catch(done);
+  });
+  afterEach(function (done) {
+    Container.prototype.remove.restore();
+    tasks['khronos:containers:image-builder:prune-dock'].restore();
+    tasks['khronos:containers:delete'].restore();
+    dockerFactory.deleteAllImagesAndContainers(docker, done);
+  });
+  after(function (done) {
+    process.env.KHRONOS_DOCKS = prevDocks;
+    dockerMockServer.close(done);
+  });
+
+  describe('unpopulated dock', function () {
+    it('should run successfully', function (done) {
+      workerServer.hermes.publish('khronos:containers:image-builder:prune', {});
+      async.until(
+        function () {
+          var pruneDockTaskCallCount =
+            tasks['khronos:containers:image-builder:prune-dock'].callCount;
+          return pruneDockTaskCallCount === 1;
+        },
+        function (cb) { setTimeout(cb, 50); },
+        function (err) {
+          if (err) { return done(err); }
+          expect(Container.prototype.remove.callCount).to.equal(0);
+          setTimeout(done, 100);
+        });
+    });
+  });
+
+  describe('on a populated dock', function () {
+    beforeEach(function (done) {
+      dockerFactory.createRandomContainers(docker, 5, done);
+    });
+
+    it('should run with no iamge-builder containers', function (done) {
+      workerServer.hermes.publish('khronos:containers:image-builder:prune', {});
+      async.until(
+        function () {
+          var pruneDockTaskCallCount =
+            tasks['khronos:containers:image-builder:prune-dock'].callCount;
+          return pruneDockTaskCallCount === 1;
+        },
+        function (cb) { setTimeout(cb, 50); },
+        function (err) {
+          if (err) { return done(err); }
+          expect(Container.prototype.remove.callCount).to.equal(0);
+          docker.listContainers(function (err, containers) {
+            if (err) { return done(err); }
+            expect(containers).to.have.length(5);
+            setTimeout(done, 100);
+          });
+        });
+    });
+    it('should run successfully on multiple docks', function (done) {
+      process.env.KHRONOS_DOCKS =
+        process.env.KHRONOS_DOCKS + ',' + process.env.KHRONOS_DOCKS;
+      workerServer.hermes.publish('khronos:containers:image-builder:prune', {});
+      async.until(
+        function () {
+          var pruneDockTaskCallCount =
+            tasks['khronos:containers:image-builder:prune-dock'].callCount;
+          return pruneDockTaskCallCount === 2;
+        },
+        function (cb) { setTimeout(cb, 50); },
+        function (err) {
+          if (err) { return done(err); }
+          expect(Container.prototype.remove.callCount).to.equal(0);
+          docker.listContainers(function (err, containers) {
+            if (err) { return done(err); }
+            expect(containers).to.have.length(5);
+            setTimeout(done, 100);
+          });
+        });
+    });
+
+    describe('where iamge-builder containers are present', function () {
+      beforeEach(function (done) {
+        dockerFactory.createImageBuilderContainers(docker, 2, done);
+      });
+
+      it('should only remove dead weave containers', function (done) {
+        workerServer.hermes.publish(
+          'khronos:containers:image-builder:prune',
+          {});
+        async.until(
+          function () {
+            return tasks['khronos:containers:delete'].callCount === 2;
+          },
+          function (cb) { setTimeout(cb, 10); },
+          function (err) {
+            if (err) { return done(err); }
+            var pruneDockTaskCallCount =
+              tasks['khronos:containers:image-builder:prune-dock'].callCount;
+            expect(pruneDockTaskCallCount).to.equal(1);
+            expect(Container.prototype.remove.callCount).to.equal(2);
+            docker.listContainers(function (err, containers) {
+              if (err) { return done(err); }
+              expect(containers).to.have.length(5);
+              setTimeout(done, 100);
+            });
+          });
+      });
+    });
+  });
+});
