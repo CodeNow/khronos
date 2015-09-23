@@ -7,7 +7,7 @@
   "main": "index.js",
   "scripts": {
     "test-watch": "node_modules/.bin/rerun-script test",
-    "start": "NODE_PATH=./lib node ./index.js",
+    "start": "NODE_PATH=./lib node --abort-on-uncaught-exception ./index.js",
     "test": "NODE_PATH=./lib lab -v",
     "test-dry": "NODE_PATH=./lib lab -d -v",
     "test-cov-html": "NODE_PATH=./lib lab -r html -o coverage.html",
