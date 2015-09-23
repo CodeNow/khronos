@@ -35,13 +35,14 @@ describe('Enqueue Container Jobs Helper', function () {
   });
 
   describe('failures', function () {
-    it('should enforce all three parameters', function (done) {
+    it('should enforce all three parameters for Ryan', function (done) {
       enqueueContainerJobsHelper()
         .then(function () { throw new Error('should have rejected'); })
         .catch(function (err) {
           assert.instanceOf(err, TaskFatalError);
           done();
-        });
+        })
+        .catch(done);
     });
     it('should enfore all three parameters', function (done) {
       enqueueContainerJobsHelper({})
@@ -49,7 +50,8 @@ describe('Enqueue Container Jobs Helper', function () {
         .catch(function (err) {
           assert.instanceOf(err, TaskFatalError);
           done();
-        });
+        })
+        .catch(done);
     });
     it('should enfore all three parameters', function (done) {
       enqueueContainerJobsHelper({}, 'queue:one')
@@ -57,7 +59,8 @@ describe('Enqueue Container Jobs Helper', function () {
         .catch(function (err) {
           assert.instanceOf(err, TaskFatalError);
           done();
-        });
+        })
+        .catch(done);
     });
     it('should enfore all three parameters', function (done) {
       enqueueContainerJobsHelper({}, 'queue:one', '')
@@ -65,7 +68,8 @@ describe('Enqueue Container Jobs Helper', function () {
         .catch(function (err) {
           assert.instanceOf(err, TaskFatalError);
           done();
-        });
+        })
+        .catch(done);
     });
     it('should enfore all three parameters', function (done) {
       enqueueContainerJobsHelper({}, 'queue:one', {})
@@ -73,7 +77,8 @@ describe('Enqueue Container Jobs Helper', function () {
         .catch(function (err) {
           assert.instanceOf(err, TaskFatalError);
           done();
-        });
+        })
+        .catch(done);
     });
     it('should enfore all three parameters', function (done) {
       enqueueContainerJobsHelper('', 'queue:one', [])
@@ -81,7 +86,8 @@ describe('Enqueue Container Jobs Helper', function () {
         .catch(function (err) {
           assert.instanceOf(err, TaskFatalError);
           done();
-        });
+        })
+        .catch(done);
     });
     it('should throw if Docker errors', function (done) {
       Docker.prototype.getContainers.yieldsAsync(new Error('foobar'));
