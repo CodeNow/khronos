@@ -4,13 +4,15 @@
   "description": "Task Runner for various Runnable operations",
   "main": "index.js",
   "scripts": {
-    "test-watch": "rerun-script test",
-    "start": "node ./index.js",
-    "test": "lab -v",
-    "test-dry": "lab -d -v",
-    "test-cov-html": "lab -r html -o coverage.html",
     "dry": "NODE_ENV=staging MANUAL_RUN=true DEBUG=none DRY_RUN=true node ./index.js",
-    "lint": "eslint ."
+    "functional": "npm test -- test/functional",
+    "lint": "eslint .",
+    "start": "node ./index.js",
+    "test-cov-html": "lab -r html -o coverage.html",
+    "test-dry": "lab -d -v",
+    "test-watch": "rerun-script test",
+    "test": "lab -v",
+    "unit": "npm test -- test/unit"
   },
   "watches": {
     "test": [

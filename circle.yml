@@ -11,4 +11,5 @@ test:
     - ulimit -n 10240
   override:
     - npm run lint
-    - npm test
+    - npm run unit
+    - npm run functional
