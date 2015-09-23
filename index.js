@@ -12,7 +12,11 @@ var tasks = {
     require('./lib/tasks/image-builder/prune'),
   'khronos:containers:image-builder:prune-dock':
     require('./lib/tasks/image-builder/prune-dock'),
-  // 'khronos:containers:orphan:prune':
+  'khronos:containers:orphan:prune':
+    require('./lib/tasks/containers/prune-orphans'),
+  'khronos:containers:orphan:prune-dock':
+    require('./lib/tasks/containers/prune-orphans-dock'),
+  'khronos:containers:remove': require('./lib/tasks/containers/remove'),
   // 'khronos:context-versions:prune':
   // 'khronos:images:orphan:prune':
   'khronos:weave:prune-dock': require('./lib/tasks/weave/prune-dock'),

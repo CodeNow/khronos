@@ -10,6 +10,7 @@ var describe = lab.describe;
 var it = lab.it;
 
 var assert = require('chai').assert;
+var Bunyan = require('bunyan');
 var request = require('request');
 var sinon = require('sinon');
 
@@ -18,7 +19,12 @@ var Mavis = require('../../../lib/models/mavis');
 describe('Mavis Model', function () {
   var mavis;
   beforeEach(function (done) {
+    sinon.stub(Bunyan.prototype, 'error').returns();
     mavis = new Mavis();
+    done();
+  });
+  afterEach(function (done) {
+    Bunyan.prototype.error.restore();
     done();
   });
 

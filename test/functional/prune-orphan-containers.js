@@ -1,193 +1,172 @@
-/* eslint-disable */
-// /**
-//  * @module test/prune-orphan-containers.unit
-//  */
-// 'use strict';
-//
-// require('loadenv')('khronos:test');
-// require('colors');
-//
-// var Lab = require('lab');
-// var lab = exports.lab = Lab.script();
-// var after = lab.after;
-// var afterEach = lab.afterEach;
-// var before = lab.before;
-// var beforeEach = lab.beforeEach;
-// var describe = lab.describe;
-// var expect = require('chai').expect;
-// var it = lab.it;
-//
-// var Container = require('dockerode/lib/container');
-// var MongoClient = require('mongodb').MongoClient;
-// var async = require('async');
-// var dockerFactory = require('../factories/docker');
-// var dockerMock = require('docker-mock');
-// var mavisMock = require('../mocks/mavis');
-// var mongodb = require('models/mongodb');
-// var rewire = require('rewire');
-// var sinon = require('sinon');
-//
-// // set non-default port for testing
-// var Docker = require('dockerode');
-// var docker = new Docker({
-//   host: process.env.KHRONOS_DOCKER_HOST,
-//   port: process.env.KHRONOS_DOCKER_PORT
-// });
-//
-// var pruneOrphanContainers = rewire('../../scripts/prune-orphan-containers');
-//
-// describe('prune-orphan-containers'.bold.underline.green, function() {
-//   var db;
-//   var server;
-//
-//   after(function (done) {
-//     Container.prototype.remove.restore();
-//     server.close(done);
-//   });
-//
-//   before(function (done) {
-//     sinon.spy(Container.prototype, 'remove');
-//     server = dockerMock.listen(process.env.KHRONOS_DOCKER_PORT);
-//     async.parallel([
-//       /* mongodb.connect to initialize connection of mongodb instance shared by script modules */
-//       mongodb.connect.bind(mongodb),
-//       MongoClient.connect.bind(MongoClient, process.env.KHRONOS_MONGO)
-//     ], function (err, results) {
-//       if (err) {
-//         console.log(err);
-//       }
-//       db = results[1];
-//       done();
-//     });
-//   });
-//
-//   beforeEach(function (done) {
-//     mavisMock();
-//     done();
-//   });
-//
-//   afterEach(function(done) {
-//     async.series([
-//       function deleteImages (cb) {
-//         docker.listImages(function (err, images) {
-//           if (err) {
-//             console.log(err);
-//             cb();
-//           }
-//           async.forEach(images, function (image, eachCB) {
-//             docker.getImage(image.Id).remove(function (err) {
-//               if (err) {
-//                 console.log('err', err);
-//               }
-//               eachCB();
-//             });
-//           }, function () {
-//             cb();
-//           });
-//         });
-//       },
-//       function deleteContextVersions (cb) {
-//         db.collection('contextversions').drop(function () {
-//           cb();
-//         });
-//       },
-//       function deleteInstances (cb) {
-//         db.collection('instances').drop(function () {
-//           cb();
-//         });
-//       },
-//       function deleteContainers (cb) {
-//         docker.listContainers({all: true}, function (err, containers) {
-//           if (err) { throw err; }
-//           async.eachSeries(containers, function (container, cb) {
-//             docker.getContainer(container.Id).remove(cb);
-//           }, cb);
-//         });
-//       }
-//     ], function () {
-//       if (Container.prototype.remove.reset) {
-//         Container.prototype.remove.reset();
-//       }
-//       done();
-//     });
-//   });
-//
-//   it('should run successfully if no containers on dock', function (done) {
-//     pruneOrphanContainers(function () {
-//       expect(Container.prototype.remove.called).to.equal(false);
-//       done();
-//     });
-//   });
-//
-//   it('should run successfully if no orphaned containers on dock', function (done) {
-//     var instanceDocuments = [];
-//     var numContainers = 5;
-//     async.series([
-//       function createContainers (cb) {
-//         dockerFactory.createRandomContainers(docker, numContainers, cb);
-//       },
-//       function createInstances (cb) {
-//         var instances = db.collection('instances');
-//         docker.listContainers({all: true}, function (err, containers) {
-//           async.eachSeries(containers, function (container, cb) {
-//             // insert standard instances
-//             instances.insert({
-//               container: {
-//                 dockerContainer: container.Id
-//               }
-//             }, function (err, _instance) {
-//               if (err) { throw err; }
-//               instanceDocuments.push(_instance[0]);
-//               cb();
-//             });
-//           }, cb);
-//         });
-//       }
-//     ], function () {
-//       pruneOrphanContainers(function () {
-//         //expect(Container.prototype.remove.called).to.equal(false);
-//         docker.listContainers({all: true}, function (err, containers) {
-//           if (err) { throw err; }
-//           expect(containers.length).to.equal(numContainers);
-//           done();
-//         });
-//       });
-//     });
-//   });
-//
-//   it('should only remove orphaned containers from dock', function (done) {
-//     var numContainers = 5;
-//     var numOrphans = 3;
-//     async.series([
-//       function createContainers (cb) {
-//         dockerFactory.createRandomContainers(docker, numContainers, cb);
-//       },
-//       function createInstances (cb) {
-//         var instances = db.collection('instances');
-//         docker.listContainers({all: true}, function (err, containers) {
-//           async.eachSeries(
-//             containers.slice(0, numContainers-numOrphans), function (container, cb) {
-//             // insert standard instances
-//             instances.insert({
-//               container: {
-//                 dockerContainer: container.Id
-//               }
-//             }, function (err) {
-//               if (err) { throw err; }
-//               cb();
-//             });
-//           }, cb);
-//         });
-//       },
-//     ], function () {
-//       pruneOrphanContainers(function () {
-//         expect(Container.prototype.remove.callCount).to.equal(numOrphans);
-//         docker.listContainers({all: true}, function (err, containers) {
-//           if (err) { throw err; }
-//           expect(containers.length).to.equal(numContainers-numOrphans);
-//           done();
-//         });
-//       });
-//     });
-//   });
-// });
+'use strict';
+
+require('loadenv')('khronos:test');
+
+var Lab = require('lab');
+var lab = exports.lab = Lab.script();
+var after = lab.after;
+var afterEach = lab.afterEach;
+var before = lab.before;
+var beforeEach = lab.beforeEach;
+var describe = lab.describe;
+var expect = require('chai').expect;
+var it = lab.it;
+
+var async = require('async');
+var Container = require('dockerode/lib/container');
+var Docker = require('dockerode');
+var dockerFactory = require('../factories/docker');
+var mongodbFactory = require('../factories/mongodb');
+var dockerMock = require('docker-mock');
+var Hermes = require('runnable-hermes');
+var ponos = require('ponos');
+var sinon = require('sinon');
+
+var docker = new Docker({
+  host: process.env.KHRONOS_DOCKER_HOST,
+  port: process.env.KHRONOS_DOCKER_PORT
+});
+
+describe('Prune Orphaned Containers', function () {
+  var tasks = {
+    'khronos:containers:orphan:prune':
+      require('../../lib/tasks/containers/prune-orphans'),
+    'khronos:containers:orphan:prune-dock':
+      require('../../lib/tasks/containers/prune-orphans-dock'),
+    'khronos:containers:orphan:check-against-mongo':
+      require('../../lib/tasks/containers/check-against-mongo'),
+    'khronos:containers:remove': require('../../lib/tasks/containers/remove')
+  };
+  var hermes = new Hermes({
+    hostname: process.env.RABBITMQ_HOSTNAME,
+    port: process.env.RABBITMQ_PORT,
+    username: process.env.RABBITMQ_USERNAME || 'guest',
+    password: process.env.RABBITMQ_PASSWORD || 'guest',
+    queues: Object.keys(tasks)
+  });
+  var dockerMockServer;
+  var workerServer;
+  var prevMongo;
+
+  before(function (done) {
+    prevMongo = process.env.KHRONOS_MONGO;
+    process.env.KHRONOS_MONGO = 'mongodb://localhost/khronos-test';
+    dockerMockServer = dockerMock.listen(process.env.KHRONOS_DOCKER_PORT);
+    done();
+  });
+  beforeEach(function (done) {
+    process.env.KHRONOS_DOCKS =
+      'http://localhost:' + process.env.KHRONOS_DOCKER_PORT;
+    sinon.spy(Container.prototype, 'remove');
+    sinon.spy(tasks, 'khronos:containers:orphan:prune-dock');
+    sinon.spy(tasks, 'khronos:containers:orphan:check-against-mongo');
+    sinon.spy(tasks, 'khronos:containers:remove');
+    workerServer = new ponos.Server({ hermes: hermes });
+    workerServer.setAllTasks(tasks)
+      .then(workerServer.start())
+      .then(function () { done(); })
+      .catch(done);
+  });
+  afterEach(function (done) {
+    workerServer.stop()
+      .then(function () { done(); })
+      .catch(done);
+  });
+  afterEach(function (done) {
+    process.env.KHRONOS_DOCKS = null;
+    Container.prototype.remove.restore();
+    tasks['khronos:containers:orphan:prune-dock'].restore();
+    tasks['khronos:containers:orphan:check-against-mongo'].restore();
+    tasks['khronos:containers:remove'].restore();
+    async.parallel([
+      dockerFactory.deleteAllImagesAndContainers.bind(dockerFactory, docker),
+      mongodbFactory.removeAllInstances.bind(mongodbFactory)
+    ], done);
+  });
+  after(function (done) {
+    process.env.KHRONOS_MONGO = prevMongo;
+    dockerMockServer.close(done);
+  });
+
+  describe('unpopulated dock', function () {
+    it('should run successfully', function (done) {
+      workerServer.hermes.publish('khronos:containers:orphan:prune', {});
+      async.until(
+        function () {
+          return tasks['khronos:containers:orphan:prune-dock'].callCount === 1;
+        },
+        function (cb) { setTimeout(cb, 50); },
+        function (err) {
+          if (err) { return done(err); }
+          expect(Container.prototype.remove.callCount).to.equal(0);
+          setTimeout(done, 50);
+        });
+    });
+  });
+
+  describe('on a populated dock', function () {
+    var containers = [];
+    beforeEach(function (done) {
+      dockerFactory.createRandomContainers(docker, 5, function (err, data) {
+        if (err) { return done(err); }
+        containers = data;
+        done();
+      });
+    });
+    beforeEach(function (done) {
+      mongodbFactory.createInstanceWithContainers(containers, done);
+    });
+
+    it('should run successfully with no orphans', function (done) {
+      workerServer.hermes.publish('khronos:containers:orphan:prune', {});
+      async.until(
+        function () {
+          var mongoCheckCount =
+            tasks['khronos:containers:orphan:check-against-mongo'].callCount;
+          return mongoCheckCount === 5;
+        },
+        function (cb) { setTimeout(cb, 50); },
+        function (err) {
+          if (err) { return done(err); }
+          var pruneDockCount =
+            tasks['khronos:containers:orphan:prune-dock'].callCount;
+          expect(pruneDockCount).to.equal(1);
+          expect(Container.prototype.remove.callCount).to.equal(0);
+          docker.listContainers(function (err, containers) {
+            if (err) { return done(err); }
+            expect(containers).to.have.length(5);
+            setTimeout(done, 50);
+          });
+        });
+    });
+    it('should run successfully with orphans', function (done) {
+      var rmQuery = { 'container.dockerContainer': containers[0].id };
+      async.series([
+        function (cb) {
+          mongodbFactory.removeInstaceByQuery(rmQuery, cb);
+        },
+        function (cb) {
+          workerServer.hermes.publish('khronos:containers:orphan:prune', {});
+          async.until(
+            function () {
+              var removeContainerCount =
+                tasks['khronos:containers:remove'].callCount;
+              return removeContainerCount === 1;
+            },
+            function (cb) { setTimeout(cb, 50); },
+            function (err) {
+              if (err) { return cb(err); }
+              expect(tasks['khronos:containers:orphan:prune-dock'].calledOnce)
+                .to.equal(true);
+              expect(Container.prototype.remove.callCount).to.equal(1);
+              docker.listContainers(function (err, containers) {
+                if (err) { return cb(err); }
+                expect(containers).to.have.length(4);
+                setTimeout(cb, 100);
+              });
+            });
+        }
+      ], done);
+    });
+  });
+});

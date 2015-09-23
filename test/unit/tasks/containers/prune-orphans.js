@@ -15,10 +15,10 @@ var Mavis = require('../../../../lib/models/mavis');
 var sinon = require('sinon');
 var rabbitmq = require('runnable-hermes');
 
-var imageBuilderPruneTask =
-  require('../../../../lib/tasks/image-builder/prune');
+var pruneOrphanContainersTask =
+  require('../../../../lib/tasks/containers/prune-orphans');
 
-describe('image-builder prune task', function () {
+describe('Prune Orphans Task', function () {
   describe('task', function () {
     beforeEach(function (done) {
       sinon.stub(Bunyan.prototype, 'error').returns();
@@ -41,7 +41,7 @@ describe('image-builder prune task', function () {
       describe('with no docks', function () {
         it('should enqueue no tasks in rabbit', function (done) {
           Mavis.prototype.getDocks.returns([]);
-          imageBuilderPruneTask()
+          pruneOrphanContainersTask()
             .then(function (result) {
               assert.equal(result, 0, 'should have published 0 tasks');
               assert.notOk(rabbitmq.prototype.publish.called, 'no publish');
@@ -57,13 +57,13 @@ describe('image-builder prune task', function () {
         it('should enqueue a task in rabbit', function (done) {
           // this is set above, fwiw
           // Mavis.prototype.getDocks.returns(['http://example.com']);
-          imageBuilderPruneTask()
+          pruneOrphanContainersTask()
             .then(function (result) {
               assert.equal(result, 1, 'should have published 1 task');
               assert.ok(rabbitmq.prototype.publish.calledOnce, '1 publish');
               assert.equal(
                 rabbitmq.prototype.publish.firstCall.args[0],
-                'khronos:containers:image-builder:prune-dock',
+                'khronos:containers:orphan:prune-dock',
                 'publish to the correct queue');
               assert.deepEqual(
                 rabbitmq.prototype.publish.firstCall.args[1],
@@ -81,13 +81,13 @@ describe('image-builder prune task', function () {
             'http://example1.com',
             'http://example2.com'
           ]);
-          imageBuilderPruneTask()
+          pruneOrphanContainersTask()
             .then(function (result) {
               assert.equal(result, 2, 'should have published 1 task');
               assert.ok(rabbitmq.prototype.publish.calledTwice, '2 publishes');
               assert.equal(
                 rabbitmq.prototype.publish.firstCall.args[0],
-                'khronos:containers:image-builder:prune-dock',
+                'khronos:containers:orphan:prune-dock',
                 'publish to the correct queue');
               assert.deepEqual(
                 rabbitmq.prototype.publish.firstCall.args[1],
@@ -95,7 +95,7 @@ describe('image-builder prune task', function () {
                 'enqueued a valid job');
               assert.equal(
                 rabbitmq.prototype.publish.secondCall.args[0],
-                'khronos:containers:image-builder:prune-dock',
+                'khronos:containers:orphan:prune-dock',
                 'publish to the correct queue');
               assert.deepEqual(
                 rabbitmq.prototype.publish.secondCall.args[1],
@@ -112,7 +112,7 @@ describe('image-builder prune task', function () {
       describe('of mavis', function () {
         it('should throw an error', function (done) {
           Mavis.prototype.getDocks.throws(new Error('foobar'));
-          imageBuilderPruneTask()
+          pruneOrphanContainersTask()
             .then(function () {
               throw new Error('task should have failed');
             })
@@ -134,7 +134,7 @@ describe('image-builder prune task', function () {
       describe('of rabbit publishing', function () {
         it('should throw an error', function (done) {
           rabbitmq.prototype.publish.throws(new Error('foobar'));
-          imageBuilderPruneTask()
+          pruneOrphanContainersTask()
             .then(function () {
               throw new Error('task should have failed');
             })

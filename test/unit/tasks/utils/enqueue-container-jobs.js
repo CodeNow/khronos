@@ -36,25 +36,52 @@ describe('Enqueue Container Jobs Helper', function () {
 
   describe('failures', function () {
     it('should enforce all three parameters', function (done) {
-      assert.throws(
-        function () { enqueueContainerJobsHelper(); },
-        TaskFatalError);
-      assert.throws(
-        function () { enqueueContainerJobsHelper({}); },
-        TaskFatalError);
-      assert.throws(
-        function () { enqueueContainerJobsHelper({}, 'queue:one'); },
-        TaskFatalError);
-      assert.throws(
-        function () { enqueueContainerJobsHelper({}, 'queue:one', ''); },
-        TaskFatalError);
-      assert.throws(
-        function () { enqueueContainerJobsHelper({}, 'queue:one', {}); },
-        TaskFatalError);
-      assert.throws(
-        function () { enqueueContainerJobsHelper('', 'queue:one', []); },
-        TaskFatalError);
-      done();
+      enqueueContainerJobsHelper()
+        .then(function () { throw new Error('should have rejected'); })
+        .catch(function (err) {
+          assert.instanceOf(err, TaskFatalError);
+          done();
+        });
+    });
+    it('should enfore all three parameters', function (done) {
+      enqueueContainerJobsHelper({})
+        .then(function () { throw new Error('should have rejected'); })
+        .catch(function (err) {
+          assert.instanceOf(err, TaskFatalError);
+          done();
+        });
+    });
+    it('should enfore all three parameters', function (done) {
+      enqueueContainerJobsHelper({}, 'queue:one')
+        .then(function () { throw new Error('should have rejected'); })
+        .catch(function (err) {
+          assert.instanceOf(err, TaskFatalError);
+          done();
+        });
+    });
+    it('should enfore all three parameters', function (done) {
+      enqueueContainerJobsHelper({}, 'queue:one', '')
+        .then(function () { throw new Error('should have rejected'); })
+        .catch(function (err) {
+          assert.instanceOf(err, TaskFatalError);
+          done();
+        });
+    });
+    it('should enfore all three parameters', function (done) {
+      enqueueContainerJobsHelper({}, 'queue:one', {})
+        .then(function () { throw new Error('should have rejected'); })
+        .catch(function (err) {
+          assert.instanceOf(err, TaskFatalError);
+          done();
+        });
+    });
+    it('should enfore all three parameters', function (done) {
+      enqueueContainerJobsHelper('', 'queue:one', [])
+        .then(function () { throw new Error('should have rejected'); })
+        .catch(function (err) {
+          assert.instanceOf(err, TaskFatalError);
+          done();
+        });
     });
     it('should throw if Docker errors', function (done) {
       Docker.prototype.getContainers.yieldsAsync(new Error('foobar'));

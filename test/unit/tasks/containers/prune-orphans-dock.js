@@ -16,9 +16,10 @@ var sinon = require('sinon');
 var TaskFatalError = require('ponos').TaskFatalError;
 var rabbitmq = require('runnable-hermes');
 
-var weavePruneDock = require('../../../../lib/tasks/weave/prune-dock');
+var enqueueContainerVerificationTask =
+  require('../../../../lib/tasks/containers/prune-orphans-dock');
 
-describe('Delete Weave Container Dock Task', function () {
+describe('Prune Orphans Dock Task', function () {
   beforeEach(function (done) {
     sinon.stub(Bunyan.prototype, 'error').returns();
     sinon.stub(Docker.prototype, 'getContainers').yieldsAsync(null, []);
@@ -39,7 +40,7 @@ describe('Delete Weave Container Dock Task', function () {
   describe('errors', function () {
     describe('invalid arguments', function () {
       it('throws an error when missing dockerHost', function (done) {
-        weavePruneDock({})
+        enqueueContainerVerificationTask({})
           .then(function () {
             throw new Error('task should have thrown an error');
           })
@@ -55,7 +56,7 @@ describe('Delete Weave Container Dock Task', function () {
     describe('if rabbitmq throws an error', function () {
       it('should throw the error', function (done) {
         rabbitmq.prototype.connect.yieldsAsync(new Error('foobar'));
-        weavePruneDock({ dockerHost: 'http://example.com' })
+        enqueueContainerVerificationTask({ dockerHost: 'http://example.com' })
           .then(function () {
             throw new Error('task should have thrown an error');
           })
@@ -71,7 +72,7 @@ describe('Delete Weave Container Dock Task', function () {
     describe('if docker throws an error', function () {
       it('should throw the error', function (done) {
         Docker.prototype.getContainers.yieldsAsync(new Error('foobar'));
-        weavePruneDock({ dockerHost: 'http://example.com' })
+        enqueueContainerVerificationTask({ dockerHost: 'http://example.com' })
           .then(function () {
             throw new Error('task should have thrown an error');
           })
@@ -85,9 +86,10 @@ describe('Delete Weave Container Dock Task', function () {
     });
   });
 
+
   describe('with a no containers on a host', function () {
     it('should not enqueue any task', function (done) {
-      weavePruneDock({ dockerHost: 'http://example.com' })
+      enqueueContainerVerificationTask({ dockerHost: 'http://example.com' })
         .then(function (result) {
           var getStub = Docker.prototype.getContainers;
           assert.ok(getStub.calledOnce, 'get containers called');
@@ -95,6 +97,7 @@ describe('Delete Weave Container Dock Task', function () {
             getStub.firstCall.args[0].filters,
             '{"status":["exited"]}',
             'get called with exited filter');
+          assert.notOk(rabbitmq.prototype.publish.called, 'publish not called');
           assert.equal(result, 0, 'result is 0');
           done();
         })
@@ -112,7 +115,7 @@ describe('Delete Weave Container Dock Task', function () {
     });
 
     it('should enqueue a job to remove the container', function (done) {
-      weavePruneDock({ dockerHost: 'http://example.com' })
+      enqueueContainerVerificationTask({ dockerHost: 'http://example.com' })
         .then(function (result) {
           var getStub = Docker.prototype.getContainers;
           assert.ok(getStub.calledOnce, 'get containers called');
@@ -120,13 +123,24 @@ describe('Delete Weave Container Dock Task', function () {
             getStub.firstCall.args[0].filters,
             '{"status":["exited"]}',
             'get called with exited filter');
+          assert.ok(rabbitmq.prototype.publish.calledOnce, 'publish called');
+          assert.equal(
+            rabbitmq.prototype.publish.firstCall.args[0],
+            'khronos:containers:orphan:check-against-mongo',
+            'publish to the correct queue');
+          assert.deepEqual(
+            rabbitmq.prototype.publish.firstCall.args[1],
+            {
+              dockerHost: 'http://example.com',
+              containerId: 4
+            },
+            'enqueued a valid job');
           assert.equal(result, 1, 'result is 1');
           done();
         })
         .catch(done);
     });
   });
-
 
   describe('with multiple containers on a host', function () {
     beforeEach(function (done) {
@@ -140,7 +154,7 @@ describe('Delete Weave Container Dock Task', function () {
     });
 
     it('should remove all the containers', function (done) {
-      weavePruneDock({ dockerHost: 'http://example.com' })
+      enqueueContainerVerificationTask({ dockerHost: 'http://example.com' })
         .then(function (result) {
           var getStub = Docker.prototype.getContainers;
           assert.ok(getStub.calledOnce, 'get containers called');
@@ -148,6 +162,28 @@ describe('Delete Weave Container Dock Task', function () {
             getStub.firstCall.args[0].filters,
             '{"status":["exited"]}',
             'get called with exited filter');
+          assert.equal(
+            rabbitmq.prototype.publish.firstCall.args[0],
+            'khronos:containers:orphan:check-against-mongo',
+            'publish to the correct queue');
+          assert.deepEqual(
+            rabbitmq.prototype.publish.firstCall.args[1],
+            {
+              dockerHost: 'http://example.com',
+              containerId: 4
+            },
+            'enqueued a valid job');
+          assert.equal(
+            rabbitmq.prototype.publish.secondCall.args[0],
+            'khronos:containers:orphan:check-against-mongo',
+            'publish to the correct queue');
+          assert.deepEqual(
+            rabbitmq.prototype.publish.secondCall.args[1],
+            {
+              dockerHost: 'http://example.com',
+              containerId: 5
+            },
+            'enqueued a valid job');
           assert.equal(result, 2, 'result is 2');
           done();
         })

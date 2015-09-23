@@ -32,10 +32,17 @@ describe('Enqueue Dock Jobs Helper', function () {
     done();
   });
 
+  it('should enforce a target queue', function (done) {
+    enqueueDockJobsHelper()
+      .then(function () { throw new Error('should have thrown'); })
+      .catch(TaskFatalError, function () { done(); })
+      .catch(done);
+  });
   it('should enforce a string target queue', function (done) {
-    assert.throws(function () { enqueueDockJobsHelper(); }, TaskFatalError);
-    assert.throws(function () { enqueueDockJobsHelper(4); }, TaskFatalError);
-    done();
+    enqueueDockJobsHelper(4)
+      .then(function () { throw new Error('should have thrown'); })
+      .catch(TaskFatalError, function () { done(); })
+      .catch(done);
   });
   it('should return a promise resolving the number of jobs', function (done) {
     enqueueDockJobsHelper('queue:one')

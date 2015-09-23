@@ -10,6 +10,7 @@ var describe = lab.describe;
 var it = lab.it;
 var assert = require('chai').assert;
 
+var Bunyan = require('bunyan');
 var Docker = require('../../../../lib/models/docker');
 var sinon = require('sinon');
 var TaskFatalError = require('ponos').TaskFatalError;
@@ -19,6 +20,7 @@ var imageBuilderPruneDock = require('../../../../lib/tasks/weave/prune-dock');
 
 describe('image-builder prune dock task', function () {
   beforeEach(function (done) {
+    sinon.stub(Bunyan.prototype, 'error').returns();
     sinon.stub(Docker.prototype, 'getContainers').yieldsAsync(null, []);
     sinon.stub(rabbitmq.prototype, 'close').yieldsAsync();
     sinon.stub(rabbitmq.prototype, 'connect').yieldsAsync();
@@ -26,6 +28,7 @@ describe('image-builder prune dock task', function () {
     done();
   });
   afterEach(function (done) {
+    Bunyan.prototype.error.restore();
     Docker.prototype.getContainers.restore();
     rabbitmq.prototype.connect.restore();
     rabbitmq.prototype.publish.restore();
@@ -81,7 +84,6 @@ describe('image-builder prune dock task', function () {
       });
     });
   });
-
 
   describe('with a no containers on a host', function () {
     it('should not enqueue any task', function (done) {

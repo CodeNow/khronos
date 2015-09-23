@@ -15,9 +15,9 @@ var Docker = require('../../../../lib/models/docker');
 var sinon = require('sinon');
 var TaskFatalError = require('ponos').TaskFatalError;
 
-var deleteContainer = require('../../../../lib/tasks/containers/delete');
+var removeContainer = require('../../../../lib/tasks/containers/remove');
 
-describe('Delete Container Task', function () {
+describe('Remove Container Task', function () {
   var testJob = {
     dockerHost: 'http://example.com',
     containerId: 4
@@ -25,18 +25,18 @@ describe('Delete Container Task', function () {
 
   beforeEach(function (done) {
     sinon.stub(Bunyan.prototype, 'error').returns();
-    sinon.stub(Docker.prototype, 'removeStoppedContainer').yieldsAsync();
+    sinon.stub(Docker.prototype, 'removeContainer').yieldsAsync();
     done();
   });
   afterEach(function (done) {
     Bunyan.prototype.error.restore();
-    Docker.prototype.removeStoppedContainer.restore();
+    Docker.prototype.removeContainer.restore();
     done();
   });
 
   describe('errors', function () {
     it('should throw an error on missing dockerHost', function (done) {
-      deleteContainer({ dockerHost: 'http://example.com' })
+      removeContainer({ dockerHost: 'http://example.com' })
         .then(function () {
           throw new Error('task should have thrown an error');
         })
@@ -48,7 +48,7 @@ describe('Delete Container Task', function () {
         .catch(done);
     });
     it('should throw an error on missing containerId', function (done) {
-      deleteContainer({ containerId: 'deadbeef' })
+      removeContainer({ containerId: 'deadbeef' })
         .then(function () {
           throw new Error('task should have thrown an error');
         })
@@ -62,9 +62,9 @@ describe('Delete Container Task', function () {
 
     describe('Docker Error', function () {
       it('should thrown the error', function (done) {
-        Docker.prototype.removeStoppedContainer
+        Docker.prototype.removeContainer
           .yieldsAsync(new Error('foobar'));
-        deleteContainer(testJob)
+        removeContainer(testJob)
           .then(function () {
             throw new Error('task should have thrown an error');
           })
@@ -79,9 +79,9 @@ describe('Delete Container Task', function () {
   });
 
   it('should remove a container', function (done) {
-    deleteContainer(testJob)
+    removeContainer(testJob)
       .then(function (result) {
-        var removeStub = Docker.prototype.removeStoppedContainer;
+        var removeStub = Docker.prototype.removeContainer;
         assert.ok(removeStub.calledOnce, 'remove called once');
         var removedId = removeStub.firstCall.args[0];
         assert.equal(removedId, 4, 'removed the correct container');
