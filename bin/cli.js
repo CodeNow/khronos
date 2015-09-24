@@ -4,7 +4,7 @@
 var program = require('commander');
 
 program
-  .version(require('../package.json'))
+  .version(require('../package.json').version)
   .option('-h, --host <hostname:port>', 'rabbitmq hostname and port')
   .option('-j, --job <job>', 'json string job', parseJob)
   .option('-p, --password <password>', 'rabbitmq password')
