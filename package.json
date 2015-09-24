@@ -3,6 +3,7 @@
   "version": "1.7.2",
   "description": "Task Runner for various Runnable operations",
   "main": "index.js",
+  "bin": "./bin/cli.js",
   "scripts": {
     "dry": "NODE_ENV=staging MANUAL_RUN=true DEBUG=none DRY_RUN=true node ./index.js",
     "functional": "npm test -- test/functional",
@@ -36,6 +37,7 @@
     "async": "^1.4.2",
     "bluebird": "^2.10.0",
     "bunyan": "^1.4.0",
+    "commander": "^2.8.1",
     "dockerode": "^2.0.4",
     "keypather": "^1.10.1",
     "loadenv": "^1.0.3",
