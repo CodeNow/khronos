@@ -1,5 +1,4 @@
 /* eslint-disable */
-// eslint-disable-file
 // /**
 //  * @module test/prune-orphan-images.unit
 //  */
