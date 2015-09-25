@@ -16,6 +16,8 @@ var tasks = {
     require('./lib/tasks/containers/prune-orphans'),
   'khronos:containers:orphan:prune-dock':
     require('./lib/tasks/containers/prune-orphans-dock'),
+  'khronos:containers:orphan:check-against-mongo':
+      require('./lib/tasks/containers/check-against-mongo'),
   'khronos:containers:remove': require('./lib/tasks/containers/remove'),
   // 'khronos:context-versions:prune':
   // 'khronos:images:orphan:prune':
