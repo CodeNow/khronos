@@ -9,12 +9,12 @@ var afterEach = lab.afterEach;
 var describe = lab.describe;
 var it = lab.it;
 
-var Dockerode = require('dockerode');
 var assert = require('chai').assert;
+var Dockerode = require('dockerode');
 var sinon = require('sinon');
 var url = require('url');
 
-var Docker = require('../../lib/models/docker');
+var Docker = require('../../../lib/models/docker');
 var docker = new Docker(url.format({
   protocol: 'http:',
   hostname: process.env.KHRONOS_DOCKER_HOST,
@@ -28,7 +28,7 @@ describe('Docker Model', function () {
       Image: 'ubuntu'
     }, {
       Id: 2,
-      Image: 'ubuntu'
+      Image: 'centos'
     }];
     beforeEach(function (done) {
       sinon.stub(Dockerode.prototype, 'listContainers')
@@ -49,19 +49,34 @@ describe('Docker Model', function () {
         done();
       });
     });
+    it('should filter containers', function (done) {
+      var filters = [/centos/];
+      docker.getContainers({}, filters, function (err, containers) {
+        if (err) { return done(err); }
+        assert.lengthOf(containers, 1);
+        assert.deepEqual(containers, [mockContainers[1]]);
+        assert.ok(Dockerode.prototype.listContainers.calledOnce);
+        done();
+      });
+    });
   });
 
   describe('getImages', function () {
-    var mockImages = [{
-      Id: 1,
-      Created: Date.now(),
-      RepoTags: [process.env.KHRONOS_DOCKER_REGISTRY + '/1/ubuntu:latest']
-    }, {
-      Id: 2,
-      Created: Date.now(),
-      RepoTags: ['<none>']
-    }];
+    var mockImages;
     beforeEach(function (done) {
+      mockImages = [{
+        Id: 1,
+        Created: Date.now(),
+        RepoTags: [process.env.KHRONOS_DOCKER_REGISTRY + '/1/ubuntu:latest']
+      }, {
+        Id: 2,
+        Created: Date.now(),
+        RepoTags: ['<none>']
+      }, {
+        Id: 3,
+        Created: Date.now(),
+        RepoTags: ['redis:foot']
+      }];
       sinon.stub(Dockerode.prototype, 'listImages')
         .yieldsAsync(null, mockImages);
       done();
