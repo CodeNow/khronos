@@ -18,8 +18,8 @@ if (!program.queue || !program.job) {
 
 var hostname = 'localhost';
 var port = 5672;
-if (program.hostname) {
-  var split = program.hostname.split(':');
+if (program.host) {
+  var split = program.host.split(':');
   hostname = split[0];
   if (split[1]) { port = split[1]; }
 }
