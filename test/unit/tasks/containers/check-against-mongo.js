@@ -10,14 +10,17 @@ var describe = lab.describe;
 var it = lab.it;
 var assert = require('chai').assert;
 
+// external
 var Bunyan = require('bunyan');
 var Hermes = require('runnable-hermes');
-var MongoDB = require('../../../../lib/models/mongodb');
 var sinon = require('sinon');
 var TaskFatalError = require('ponos').TaskFatalError;
 
-var verifyContainer =
-  require('../../../../lib/tasks/containers/check-against-mongo');
+// internal
+var MongoDB = require('models/mongodb');
+
+// internal (being tested)
+var verifyContainer = require('tasks/containers/check-against-mongo');
 
 describe('Check Container Against Mongo Task', function () {
   var testJob = {

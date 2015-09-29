@@ -10,13 +10,16 @@ var describe = lab.describe;
 var it = lab.it;
 var assert = require('chai').assert;
 
+// external
 var Bunyan = require('bunyan');
-var Mavis = require('../../../../lib/models/mavis');
 var sinon = require('sinon');
 var rabbitmq = require('runnable-hermes');
 
-var pruneOrphanContainersTask =
-  require('../../../../lib/tasks/containers/prune-orphans');
+// internal
+var Mavis = require('models/mavis');
+
+// internal (being tested)
+var pruneOrphanContainersTask = require('tasks/containers/prune-orphans');
 
 describe('Prune Orphans Task', function () {
   describe('task', function () {

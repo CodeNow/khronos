@@ -10,11 +10,15 @@ var describe = lab.describe;
 var it = lab.it;
 var assert = require('chai').assert;
 
-var MongoDB = require('../../../../lib/models/mongodb');
+// external
 var Promise = require('bluebird');
 var sinon = require('sinon');
 
-var mongodbHelper = require('../../../../lib/tasks/utils/mongodb');
+// internal
+var MongoDB = require('models/mongodb');
+
+// internal (being tested)
+var mongodbHelper = require('tasks/utils/mongodb');
 
 describe('MongoDB Helper', function () {
   beforeEach(function (done) {

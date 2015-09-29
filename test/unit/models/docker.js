@@ -9,12 +9,14 @@ var afterEach = lab.afterEach;
 var describe = lab.describe;
 var it = lab.it;
 
+// external
 var assert = require('chai').assert;
 var Dockerode = require('dockerode');
 var sinon = require('sinon');
 var url = require('url');
 
-var Docker = require('../../../lib/models/docker');
+// internal (being tested)
+var Docker = require('models/docker');
 var docker = new Docker(url.format({
   protocol: 'http:',
   hostname: process.env.KHRONOS_DOCKER_HOST,

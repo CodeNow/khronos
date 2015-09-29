@@ -10,12 +10,16 @@ var describe = lab.describe;
 var it = lab.it;
 var assert = require('chai').assert;
 
+// external
 var Bunyan = require('bunyan');
-var Docker = require('../../../../lib/models/docker');
 var sinon = require('sinon');
 var TaskFatalError = require('ponos').TaskFatalError;
 
-var deleteContainer = require('../../../../lib/tasks/containers/delete');
+// internal
+var Docker = require('models/docker');
+
+// internal (being tested)
+var deleteContainer = require('tasks/containers/delete');
 
 describe('Delete Container Task', function () {
   var testJob = {

@@ -10,14 +10,18 @@ var describe = lab.describe;
 var it = lab.it;
 var assert = require('chai').assert;
 
+// external
 var Bunyan = require('bunyan');
-var Docker = require('../../../../lib/models/docker');
 var sinon = require('sinon');
 var TaskFatalError = require('ponos').TaskFatalError;
 var rabbitmq = require('runnable-hermes');
 
+// internal
+var Docker = require('models/docker');
+
+// internal (being tested)
 var enqueueContainerVerificationTask =
-  require('../../../../lib/tasks/containers/prune-orphans-dock');
+  require('tasks/containers/prune-orphans-dock');
 
 describe('Prune Orphans Dock Task', function () {
   beforeEach(function (done) {

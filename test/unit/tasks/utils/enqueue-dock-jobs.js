@@ -10,13 +10,16 @@ var describe = lab.describe;
 var it = lab.it;
 var assert = require('chai').assert;
 
+// external
 var Hermes = require('runnable-hermes');
-var Mavis = require('../../../../lib/models/mavis');
 var sinon = require('sinon');
 var TaskFatalError = require('ponos').TaskFatalError;
 
-var enqueueDockJobsHelper =
-  require('../../../../lib/tasks/utils/enqueue-dock-jobs');
+// internal
+var Mavis = require('models/mavis');
+
+// internal (being tested)
+var enqueueDockJobsHelper = require('tasks/utils/enqueue-dock-jobs');
 
 describe('Enqueue Dock Jobs Helper', function () {
   beforeEach(function (done) {

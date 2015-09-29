@@ -9,12 +9,14 @@ var beforeEach = lab.beforeEach;
 var describe = lab.describe;
 var it = lab.it;
 
+// external
 var assert = require('chai').assert;
 var Bunyan = require('bunyan');
 var request = require('request');
 var sinon = require('sinon');
 
-var Mavis = require('../../../lib/models/mavis');
+// internal (being tested)
+var Mavis = require('models/mavis');
 
 describe('Mavis Model', function () {
   var mavis;

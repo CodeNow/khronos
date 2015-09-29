@@ -15,12 +15,14 @@ var it = lab.it;
 var async = require('async');
 var Container = require('dockerode/lib/container');
 var Docker = require('dockerode');
-var dockerFactory = require('../factories/docker');
-var mongodbFactory = require('../factories/mongodb');
 var dockerMock = require('docker-mock');
 var Hermes = require('runnable-hermes');
 var ponos = require('ponos');
 var sinon = require('sinon');
+
+// internal
+var dockerFactory = require('../factories/docker');
+var mongodbFactory = require('../factories/mongodb');
 
 var docker = new Docker({
   host: process.env.KHRONOS_DOCKER_HOST,

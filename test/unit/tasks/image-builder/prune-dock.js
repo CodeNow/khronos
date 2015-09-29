@@ -10,13 +10,17 @@ var describe = lab.describe;
 var it = lab.it;
 var assert = require('chai').assert;
 
+// external
 var Bunyan = require('bunyan');
-var Docker = require('../../../../lib/models/docker');
 var sinon = require('sinon');
 var TaskFatalError = require('ponos').TaskFatalError;
 var rabbitmq = require('runnable-hermes');
 
-var imageBuilderPruneDock = require('../../../../lib/tasks/weave/prune-dock');
+// internal
+var Docker = require('models/docker');
+
+// internal (being tested)
+var imageBuilderPruneDock = require('tasks/weave/prune-dock');
 
 describe('image-builder prune dock task', function () {
   beforeEach(function (done) {

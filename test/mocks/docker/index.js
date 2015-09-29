@@ -4,8 +4,10 @@
  */
 'use strict';
 
-var images = require('./images');
+// external
 var nock = require('nock');
+
+var images = require('./images');
 
 nock.enableNetConnect();
 

@@ -1,7 +1,10 @@
 'use strict';
 
+// external
 var async = require('async');
-var MongoDB = require('../../lib/models/mongodb');
+
+// internal
+var MongoDB = require('models/mongodb');
 
 module.exports = {
   createInstanceWithContainers: function (containers, cb) {

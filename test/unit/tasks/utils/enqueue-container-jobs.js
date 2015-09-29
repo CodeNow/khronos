@@ -10,13 +10,16 @@ var describe = lab.describe;
 var it = lab.it;
 var assert = require('chai').assert;
 
-var Docker = require('../../../../lib/models/docker');
+// external
 var Hermes = require('runnable-hermes');
 var sinon = require('sinon');
 var TaskFatalError = require('ponos').TaskFatalError;
 
-var enqueueContainerJobsHelper =
-  require('../../../../lib/tasks/utils/enqueue-container-jobs');
+// internal
+var Docker = require('models/docker');
+
+// internal (being tested)
+var enqueueContainerJobsHelper = require('tasks/utils/enqueue-container-jobs');
 
 describe('Enqueue Container Jobs Helper', function () {
   var testJob = { dockerHost: 'http://example.com' };

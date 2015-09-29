@@ -8,11 +8,11 @@
     "dry": "NODE_ENV=staging MANUAL_RUN=true DEBUG=none DRY_RUN=true node ./index.js",
     "functional": "npm test -- test/functional",
     "lint": "eslint .",
-    "start": "node --abort-on-uncaught-exception ./index.js",
-    "test-cov-html": "lab -r html -o coverage.html",
-    "test-dry": "lab -d -v",
+    "start": "NODE_PATH=./lib node --abort-on-uncaught-exception ./index.js",
+    "test-cov-html": "NODE_PATH=./lib lab -r html -o coverage.html",
+    "test-dry": "NODE_PATH=./lib lab -d -v",
     "test-watch": "rerun-script test",
-    "test": "lab -v",
+    "test": "NODE_PATH=./lib lab -v",
     "unit": "npm test -- test/unit"
   },
   "watches": {

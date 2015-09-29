@@ -8,9 +8,11 @@ var describe = lab.describe;
 var it = lab.it;
 var assert = require('chai').assert;
 
+// external
 var TaskFatalError = require('ponos').TaskFatalError;
 
-var rabbitmqFactory = require('../../../lib/models/rabbitmq');
+// internal (being tested)
+var rabbitmqFactory = require('models/rabbitmq');
 
 describe('RabbitMQ Factory', function () {
   it('should have default arguments', function (done) {

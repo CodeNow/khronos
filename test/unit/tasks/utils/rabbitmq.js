@@ -10,12 +10,14 @@ var describe = lab.describe;
 var it = lab.it;
 var assert = require('chai').assert;
 
+// external
 var Hermes = require('runnable-hermes');
 var Promise = require('bluebird');
 var sinon = require('sinon');
 var TaskFatalError = require('ponos').TaskFatalError;
 
-var rabbitmqHelper = require('../../../../lib/tasks/utils/rabbitmq');
+// internal (being tested)
+var rabbitmqHelper = require('tasks/utils/rabbitmq');
 
 describe('RabbitMQ Helper', function () {
   beforeEach(function (done) {
