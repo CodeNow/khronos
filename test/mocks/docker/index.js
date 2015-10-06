@@ -4,14 +4,16 @@
  */
 'use strict';
 
-var images = require('./images');
+// external
 var nock = require('nock');
+
+var images = require('./images');
 
 nock.enableNetConnect();
 
 module.exports = function () {
-  var nockUrl = 'http://'+
-    process.env.KHRONOS_DOCKER_HOST+':'+
+  var nockUrl = 'http://' +
+    process.env.KHRONOS_DOCKER_HOST + ':' +
     process.env.KHRONOS_DOCKER_PORT;
   var scope = nock(nockUrl)
     .get('/images/json?all=true')
@@ -19,7 +21,7 @@ module.exports = function () {
 
   images.forEach(function (image) {
     if (!~image.RepoTags[0].indexOf('\u003cnone\u003e:')) { return; }
-    scope.delete('/images/'+image.Id)
+    scope.delete('/images/' + image.Id)
       .reply(200);
   });
 

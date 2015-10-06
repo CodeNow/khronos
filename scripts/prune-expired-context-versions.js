@@ -1,3 +1,4 @@
+/* eslint-disable */
 /**
  * Query for context versions that are built and older than 2 weeks.
  * Delete CVs and restore if they were attached to an instance between the
@@ -9,7 +10,7 @@
 var async = require('async');
 
 var log = require('logger').getChild(__filename);
-var mongodb = require('models/mongodb/mongodb');
+var mongodb = require('models/mongodb');
 
 module.exports = function(finalCB) {
   log.info('process-expired-context-versions start');
