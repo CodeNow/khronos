@@ -13,7 +13,7 @@ var async = require('async');
 var equals = require('101/equals');
 var findIndex = require('101/find-index');
 
-var datadog = require('models/datadog')(__filename);
+var datadog = require('models/datadog')('prune-orphan-images');
 var Docker = require('models/docker');
 var log = require('logger').getChild(__filename);
 var Mavis = require('models/mavis');
@@ -24,7 +24,7 @@ module.exports = function(finalCb) {
   var mavis = new Mavis();
   var orphanedImagesCount = 0;
   var totalImagesCount = 0;
-  datadog.startTiming('complete-prune-orphan-images');
+  var timer = datadog.timer('complete-prune-orphan-images');
   // for each dock
     // find all images with tag 'registry.runnable.io'
     // query mongodb context-versions and if any image is not in db, remove it from dock
@@ -257,7 +257,7 @@ module.exports = function(finalCb) {
             totalImagesCount: totalImagesCount
           }, 'prune-orphan-images complete success');
         }
-        datadog.endTiming('complete-prune-orphan-images');
+        timer.stop();
         cb(err);
       });
   }
