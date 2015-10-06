@@ -9,6 +9,7 @@
     "functional": "npm test -- test/functional",
     "lint": "eslint .",
     "start": "NODE_PATH=./lib node --abort-on-uncaught-exception ./index.js",
+    "start-json-output": "npm start 2>&1 | bunyan -o json-0 --strict",
     "test-cov-html": "NODE_PATH=./lib lab -r html -o coverage.html",
     "test-dry": "NODE_PATH=./lib lab -d -v",
     "test-watch": "rerun-script test",
