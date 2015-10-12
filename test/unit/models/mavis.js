@@ -7,6 +7,7 @@ var assert = chai.assert;
 
 // external
 var Bunyan = require('bunyan');
+var Promise = require('bluebird');
 var request = require('request');
 var sinon = require('sinon');
 
@@ -66,6 +67,38 @@ describe('Mavis Model', function () {
         assert.match(err.message, /unexpected token/i);
         done();
       });
+  });
+
+  describe('verifyHost', function () {
+    beforeEach(function (done) {
+      sinon.stub(mavis, 'getDocks')
+        .returns(Promise.resolve([{ host: 'http://example.com:5555' }]));
+      done();
+    });
+    afterEach(function (done) {
+      mavis.getDocks.restore();
+      done();
+    });
+    it('should verify a host that exists', function (done) {
+      mavis.verifyHost('http://example.com:5555')
+        .then(function (host) {
+          assert.equal(host, 'http://example.com:5555');
+          done();
+        })
+        .catch(done);
+    });
+    it('should throw with host that does not exist', function (done) {
+      mavis.verifyHost('http://example.com:1234')
+        .then(function () {
+          throw new Error('verifyHost should have thrown');
+        })
+        .catch(function (err) {
+          assert.instanceOf(err, Mavis.InvalidHostError);
+          assert.match(err.message, /no longer exists/);
+          done();
+        })
+        .catch(done);
+    });
   });
 
   describe('defaulting the docks', function () {
