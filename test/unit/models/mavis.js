@@ -72,7 +72,7 @@ describe('Mavis Model', function () {
   describe('verifyHost', function () {
     beforeEach(function (done) {
       sinon.stub(mavis, 'getDocks')
-        .returns(Promise.resolve([{ host: 'http://example.com:5555' }]));
+        .returns(Promise.resolve(['http://example.com:5555']));
       done();
     });
     afterEach(function (done) {
