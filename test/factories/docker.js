@@ -62,5 +62,21 @@ module.exports = {
         module.exports.getRandomImageName(),
         cb);
     }, cb);
+  },
+  listContainersAndAssert: function (docker, fn, cb) {
+    async.retry(
+      { times: 3, interval: 50 },
+      function (retryCb) {
+        docker.listContainers(function (err, containers) {
+          if (err) { return retryCb(err); }
+          try {
+            fn(containers);
+          } catch (err) {
+            return retryCb(err);
+          }
+          retryCb();
+        });
+      },
+      cb);
   }
 };
