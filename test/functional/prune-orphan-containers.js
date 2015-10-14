@@ -83,15 +83,15 @@ describe('Prune Orphaned Containers', function () {
   describe('unpopulated dock', function () {
     it('should run successfully', function (done) {
       workerServer.hermes.publish('khronos:containers:orphan:prune', {});
-      async.until(
+      async.doUntil(
+        function (cb) { setTimeout(cb, 100); },
         function () {
           return tasks['khronos:containers:orphan:prune-dock'].callCount === 1;
         },
-        function (cb) { setTimeout(cb, 50); },
         function (err) {
           if (err) { return done(err); }
           expect(Container.prototype.remove.callCount).to.equal(0);
-          setTimeout(done, 50);
+          setTimeout(done, 100);
         });
     });
   });
@@ -111,24 +111,26 @@ describe('Prune Orphaned Containers', function () {
 
     it('should run successfully with no orphans', function (done) {
       workerServer.hermes.publish('khronos:containers:orphan:prune', {});
-      async.until(
+      async.doUntil(
+        function (cb) { setTimeout(cb, 100); },
         function () {
           var mongoCheckCount =
             tasks['khronos:containers:orphan:check-against-mongo'].callCount;
           return mongoCheckCount === 5;
         },
-        function (cb) { setTimeout(cb, 50); },
         function (err) {
           if (err) { return done(err); }
           var pruneDockCount =
             tasks['khronos:containers:orphan:prune-dock'].callCount;
           expect(pruneDockCount).to.equal(1);
           expect(Container.prototype.remove.callCount).to.equal(0);
-          docker.listContainers(function (err, containers) {
-            if (err) { return done(err); }
-            expect(containers).to.have.length(5);
-            setTimeout(done, 50);
-          });
+          dockerFactory.listContainersAndAssert(
+            docker,
+            function (containers) { expect(containers).to.have.length(5); },
+            function (err) {
+              if (err) { return done(err); }
+              setTimeout(done, 100);
+            });
         });
     });
     it('should run successfully with orphans', function (done) {
@@ -139,23 +141,22 @@ describe('Prune Orphaned Containers', function () {
         },
         function (cb) {
           workerServer.hermes.publish('khronos:containers:orphan:prune', {});
-          async.until(
-            function () {
-              var removeContainerCount =
-                tasks['khronos:containers:remove'].callCount;
-              return removeContainerCount === 1;
-            },
-            function (cb) { setTimeout(cb, 50); },
+          async.doUntil(
+            function (cb) { setTimeout(cb, 100); },
+            function () { return Container.prototype.remove.callCount === 1; },
             function (err) {
               if (err) { return cb(err); }
               expect(tasks['khronos:containers:orphan:prune-dock'].calledOnce)
                 .to.equal(true);
+              expect(tasks['khronos:containers:remove'].callCount).to.equal(1);
               expect(Container.prototype.remove.callCount).to.equal(1);
-              docker.listContainers(function (err, containers) {
-                if (err) { return cb(err); }
-                expect(containers).to.have.length(4);
-                setTimeout(cb, 100);
-              });
+              dockerFactory.listContainersAndAssert(
+                docker,
+                function (containers) { expect(containers).to.have.length(4); },
+                function (err) {
+                  if (err) { return done(err); }
+                  setTimeout(done, 100);
+                });
             });
         }
       ], done);

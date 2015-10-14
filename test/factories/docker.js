@@ -65,7 +65,7 @@ module.exports = {
   },
   listContainersAndAssert: function (docker, fn, cb) {
     async.retry(
-      { times: 3, interval: 50 },
+      { times: 5, interval: 100 },
       function (retryCb) {
         docker.listContainers(function (err, containers) {
           if (err) { return retryCb(err); }

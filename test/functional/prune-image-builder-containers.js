@@ -80,7 +80,7 @@ describe('Prune Exited Image-Builder Containers', function () {
             tasks['khronos:containers:image-builder:prune-dock'].callCount;
           return pruneDockTaskCallCount === 1;
         },
-        function (cb) { setTimeout(cb, 50); },
+        function (cb) { setTimeout(cb, 100); },
         function (err) {
           if (err) { return done(err); }
           expect(Container.prototype.remove.callCount).to.equal(0);
@@ -96,42 +96,46 @@ describe('Prune Exited Image-Builder Containers', function () {
 
     it('should run with no iamge-builder containers', function (done) {
       workerServer.hermes.publish('khronos:containers:image-builder:prune', {});
-      async.until(
+      async.doUntil(
+        function (cb) { setTimeout(cb, 100); },
         function () {
           var pruneDockTaskCallCount =
             tasks['khronos:containers:image-builder:prune-dock'].callCount;
           return pruneDockTaskCallCount === 1;
         },
-        function (cb) { setTimeout(cb, 50); },
         function (err) {
           if (err) { return done(err); }
           expect(Container.prototype.remove.callCount).to.equal(0);
-          docker.listContainers(function (err, containers) {
-            if (err) { return done(err); }
-            expect(containers).to.have.length(5);
-            setTimeout(done, 100);
-          });
+          dockerFactory.listContainersAndAssert(
+            docker,
+            function (containers) { expect(containers).to.have.length(5); },
+            function (err) {
+              if (err) { return done(err); }
+              setTimeout(done, 100);
+            });
         });
     });
     it('should run successfully on multiple docks', function (done) {
       process.env.KHRONOS_DOCKS =
         process.env.KHRONOS_DOCKS + ',' + process.env.KHRONOS_DOCKS;
       workerServer.hermes.publish('khronos:containers:image-builder:prune', {});
-      async.until(
+      async.doUntil(
+        function (cb) { setTimeout(cb, 100); },
         function () {
           var pruneDockTaskCallCount =
             tasks['khronos:containers:image-builder:prune-dock'].callCount;
           return pruneDockTaskCallCount === 2;
         },
-        function (cb) { setTimeout(cb, 50); },
         function (err) {
           if (err) { return done(err); }
           expect(Container.prototype.remove.callCount).to.equal(0);
-          docker.listContainers(function (err, containers) {
-            if (err) { return done(err); }
-            expect(containers).to.have.length(5);
-            setTimeout(done, 100);
-          });
+          dockerFactory.listContainersAndAssert(
+            docker,
+            function (containers) { expect(containers).to.have.length(5); },
+            function (err) {
+              if (err) { return done(err); }
+              setTimeout(done, 100);
+            });
         });
     });
 
@@ -140,26 +144,26 @@ describe('Prune Exited Image-Builder Containers', function () {
         dockerFactory.createImageBuilderContainers(docker, 2, done);
       });
 
-      it('should only remove dead weave containers', function (done) {
+      it('should only remove dead image-builder containers', function (done) {
         workerServer.hermes.publish(
           'khronos:containers:image-builder:prune',
           {});
-        async.until(
-          function () {
-            return tasks['khronos:containers:delete'].callCount === 2;
-          },
-          function (cb) { setTimeout(cb, 10); },
+        async.doUntil(
+          function (cb) { setTimeout(cb, 100); },
+          function () { return Container.prototype.remove.callCount === 2; },
           function (err) {
             if (err) { return done(err); }
             var pruneDockTaskCallCount =
               tasks['khronos:containers:image-builder:prune-dock'].callCount;
             expect(pruneDockTaskCallCount).to.equal(1);
-            expect(Container.prototype.remove.callCount).to.equal(2);
-            docker.listContainers(function (err, containers) {
-              if (err) { return done(err); }
-              expect(containers).to.have.length(5);
-              setTimeout(done, 100);
-            });
+            expect(tasks['khronos:containers:delete'].callCount).to.equal(2);
+            dockerFactory.listContainersAndAssert(
+              docker,
+              function (containers) { expect(containers).to.have.length(5); },
+              function (err) {
+                if (err) { return done(err); }
+                setTimeout(done, 100);
+              });
           });
       });
     });

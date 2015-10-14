@@ -71,11 +71,11 @@ describe('Prune Exited Weave Containers', function () {
   describe('unpopulated dock', function () {
     it('should run successfully', function (done) {
       workerServer.hermes.publish('khronos:weave:prune', {});
-      async.until(
+      async.doUntil(
+        function (cb) { setTimeout(cb, 100); },
         function () {
           return tasks['khronos:weave:prune-dock'].callCount === 1;
         },
-        function (cb) { setTimeout(cb, 50); },
         function (err) {
           if (err) { return done(err); }
           expect(Container.prototype.remove.callCount).to.equal(0);
@@ -89,38 +89,42 @@ describe('Prune Exited Weave Containers', function () {
 
     it('should run successfully with no weave containers', function (done) {
       workerServer.hermes.publish('khronos:weave:prune', {});
-      async.until(
+      async.doUntil(
+        function (cb) { setTimeout(cb, 100); },
         function () {
           return tasks['khronos:weave:prune-dock'].callCount === 1;
         },
-        function (cb) { setTimeout(cb, 50); },
         function (err) {
           if (err) { return done(err); }
           expect(Container.prototype.remove.callCount).to.equal(0);
-          docker.listContainers(function (err, containers) {
-            if (err) { return done(err); }
-            expect(containers).to.have.length(5);
-            setTimeout(done, 100);
-          });
+          dockerFactory.listContainersAndAssert(
+            docker,
+            function (containers) { expect(containers).to.have.length(5); },
+            function (err) {
+              if (err) { return done(err); }
+              setTimeout(done, 100);
+            });
         });
     });
     it('should run successfully on multiple docks', function (done) {
       process.env.KHRONOS_DOCKS =
         process.env.KHRONOS_DOCKS + ',' + process.env.KHRONOS_DOCKS;
       workerServer.hermes.publish('khronos:weave:prune', {});
-      async.until(
+      async.doUntil(
+        function (cb) { setTimeout(cb, 100); },
         function () {
           return tasks['khronos:weave:prune-dock'].callCount === 2;
         },
-        function (cb) { setTimeout(cb, 50); },
         function (err) {
           if (err) { return done(err); }
           expect(Container.prototype.remove.callCount).to.equal(0);
-          docker.listContainers(function (err, containers) {
-            if (err) { return done(err); }
-            expect(containers).to.have.length(5);
-            setTimeout(done, 100);
-          });
+          dockerFactory.listContainersAndAssert(
+            docker,
+            function (containers) { expect(containers).to.have.length(5); },
+            function (err) {
+              if (err) { return done(err); }
+              setTimeout(done, 100);
+            });
         });
     });
 
@@ -129,20 +133,21 @@ describe('Prune Exited Weave Containers', function () {
 
       it('should only remove dead weave containers', function (done) {
         workerServer.hermes.publish('khronos:weave:prune', {});
-        async.until(
-          function () {
-            return tasks['khronos:containers:delete'].callCount === 2;
-          },
-          function (cb) { setTimeout(cb, 10); },
+        async.doUntil(
+          function (cb) { setTimeout(cb, 100); },
+          function () { return Container.prototype.remove.callCount === 2; },
           function (err) {
             if (err) { return done(err); }
             expect(tasks['khronos:weave:prune-dock'].callCount).to.equal(1);
+            expect(tasks['khronos:containers:delete'].callCount).to.equal(2);
             expect(Container.prototype.remove.callCount).to.equal(2);
-            docker.listContainers(function (err, containers) {
-              if (err) { return done(err); }
-              expect(containers).to.have.length(5);
-              setTimeout(done, 100);
-            });
+            dockerFactory.listContainersAndAssert(
+              docker,
+              function (containers) { expect(containers).to.have.length(5); },
+              function (err) {
+                if (err) { return done(err); }
+                setTimeout(done, 100);
+              });
           });
       });
     });
