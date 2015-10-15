@@ -2,15 +2,10 @@
 
 require('loadenv')('khronos:test');
 
-var Lab = require('lab');
-var lab = exports.lab = Lab.script();
-var after = lab.after;
-var afterEach = lab.afterEach;
-var before = lab.before;
-var beforeEach = lab.beforeEach;
-var describe = lab.describe;
-var expect = require('chai').expect;
-var it = lab.it;
+var chai = require('chai');
+chai.use(require('chai-as-promised'));
+var assert = chai.assert;
+var expect = chai.expect;
 
 // external
 var async = require('async');
@@ -46,25 +41,21 @@ describe('Prune Exited Weave Containers', function () {
   var workerServer;
 
   before(function (done) {
-    dockerMockServer = dockerMock.listen(process.env.KHRONOS_DOCKER_PORT);
-    done();
+    dockerMockServer = dockerMock.listen(process.env.KHRONOS_DOCKER_PORT, done);
   });
-  beforeEach(function (done) {
+  beforeEach(function () {
     process.env.KHRONOS_DOCKS =
       'http://localhost:' + process.env.KHRONOS_DOCKER_PORT;
     sinon.spy(Container.prototype, 'remove');
     sinon.spy(tasks, 'khronos:weave:prune-dock');
     sinon.spy(tasks, 'khronos:containers:delete');
     workerServer = new ponos.Server({ hermes: hermes });
-    workerServer.setAllTasks(tasks)
-      .then(workerServer.start())
-      .then(function () { done(); })
-      .catch(done);
+    var startServerPromise = workerServer.setAllTasks(tasks)
+      .then(workerServer.start());
+    assert.isFulfilled(startServerPromise);
   });
-  afterEach(function (done) {
-    workerServer.stop()
-      .then(function () { done(); })
-      .catch(done);
+  afterEach(function () {
+    assert.isFulfilled(workerServer.stop());
   });
   afterEach(function (done) {
     process.env.KHRONOS_DOCKS = null;

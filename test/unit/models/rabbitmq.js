@@ -2,13 +2,8 @@
 
 require('loadenv')('khronos:test');
 
-var Lab = require('lab');
-var lab = exports.lab = Lab.script();
-var afterEach = lab.afterEach;
-var beforeEach = lab.beforeEach;
-var describe = lab.describe;
-var it = lab.it;
-var assert = require('chai').assert;
+var chai = require('chai');
+var assert = chai.assert;
 
 // external
 var Hermes = require('runnable-hermes');

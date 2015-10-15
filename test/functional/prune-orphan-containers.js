@@ -2,15 +2,10 @@
 
 require('loadenv')('khronos:test');
 
-var Lab = require('lab');
-var lab = exports.lab = Lab.script();
-var after = lab.after;
-var afterEach = lab.afterEach;
-var before = lab.before;
-var beforeEach = lab.beforeEach;
-var describe = lab.describe;
-var expect = require('chai').expect;
-var it = lab.it;
+var chai = require('chai');
+chai.use(require('chai-as-promised'));
+var assert = chai.assert;
+var expect = chai.expect;
 
 var async = require('async');
 var Container = require('dockerode/lib/container');
@@ -53,10 +48,9 @@ describe('Prune Orphaned Containers', function () {
   before(function (done) {
     prevMongo = process.env.KHRONOS_MONGO;
     process.env.KHRONOS_MONGO = 'mongodb://localhost/khronos-test';
-    dockerMockServer = dockerMock.listen(process.env.KHRONOS_DOCKER_PORT);
-    done();
+    dockerMockServer = dockerMock.listen(process.env.KHRONOS_DOCKER_PORT, done);
   });
-  beforeEach(function (done) {
+  beforeEach(function () {
     process.env.KHRONOS_DOCKS =
       'http://localhost:' + process.env.KHRONOS_DOCKER_PORT;
     sinon.spy(Container.prototype, 'remove');
@@ -64,15 +58,11 @@ describe('Prune Orphaned Containers', function () {
     sinon.spy(tasks, 'khronos:containers:orphan:check-against-mongo');
     sinon.spy(tasks, 'khronos:containers:remove');
     workerServer = new ponos.Server({ hermes: hermes });
-    workerServer.setAllTasks(tasks)
-      .then(workerServer.start())
-      .then(function () { done(); })
-      .catch(done);
+    assert.isFulfilled(workerServer.setAllTasks(tasks)
+      .then(workerServer.start()));
   });
-  afterEach(function (done) {
-    workerServer.stop()
-      .then(function () { done(); })
-      .catch(done);
+  afterEach(function () {
+    assert.isFulfilled(workerServer.stop());
   });
   afterEach(function (done) {
     process.env.KHRONOS_DOCKS = null;
