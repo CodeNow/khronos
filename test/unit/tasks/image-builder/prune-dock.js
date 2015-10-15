@@ -7,12 +7,14 @@ var assert = chai.assert;
 
 // external
 var Bunyan = require('bunyan');
+var Promise = require('bluebird');
+var rabbitmq = require('runnable-hermes');
 var sinon = require('sinon');
 var TaskFatalError = require('ponos').TaskFatalError;
-var rabbitmq = require('runnable-hermes');
 
 // internal
 var Docker = require('models/docker');
+var Mavis = require('models/mavis');
 
 // internal (being tested)
 var imageBuilderPruneDock = require('tasks/weave/prune-dock');
@@ -21,6 +23,7 @@ describe('image-builder prune dock task', function () {
   beforeEach(function (done) {
     sinon.stub(Bunyan.prototype, 'error').returns();
     sinon.stub(Docker.prototype, 'getContainers').yieldsAsync(null, []);
+    sinon.stub(Mavis.prototype, 'verifyHost').returns(Promise.resolve(true));
     sinon.stub(rabbitmq.prototype, 'close').yieldsAsync();
     sinon.stub(rabbitmq.prototype, 'connect').yieldsAsync();
     sinon.stub(rabbitmq.prototype, 'publish').returns();
@@ -29,6 +32,7 @@ describe('image-builder prune dock task', function () {
   afterEach(function (done) {
     Bunyan.prototype.error.restore();
     Docker.prototype.getContainers.restore();
+    Mavis.prototype.verifyHost.restore();
     rabbitmq.prototype.connect.restore();
     rabbitmq.prototype.publish.restore();
     rabbitmq.prototype.close.restore();

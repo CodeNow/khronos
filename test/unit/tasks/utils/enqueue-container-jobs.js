@@ -12,6 +12,7 @@ var TaskFatalError = require('ponos').TaskFatalError;
 
 // internal
 var Docker = require('models/docker');
+var Mavis = require('models/mavis');
 
 // internal (being tested)
 var enqueueContainerJobsHelper = require('tasks/utils/enqueue-container-jobs');
@@ -23,12 +24,14 @@ describe('Enqueue Container Jobs Helper', function () {
     sinon.stub(Docker.prototype, 'getContainers').yieldsAsync(null, []);
     sinon.stub(Hermes.prototype, 'connect').yieldsAsync();
     sinon.stub(Hermes.prototype, 'publish').returns();
+    sinon.stub(Mavis.prototype, 'verifyHost').returns(true);
     done();
   });
   afterEach(function (done) {
     Docker.prototype.getContainers.restore();
     Hermes.prototype.connect.restore();
     Hermes.prototype.publish.restore();
+    Mavis.prototype.verifyHost.restore();
     done();
   });
 
@@ -128,7 +131,19 @@ describe('Enqueue Container Jobs Helper', function () {
         .then(function (result) {
           assert.equal(result, 0, 'no jobs enqueued');
           assert.ok(Docker.prototype.getContainers.calledOnce, 'gotContainers');
-          assert.notOk(Hermes.prototype.publish.called, 'one job published');
+          assert.notOk(Hermes.prototype.publish.called, 'no job published');
+          done();
+        })
+        .catch(done);
+    });
+    it('should not enqueue jobs if the dock no longer exists', function (done) {
+      Mavis.prototype.verifyHost.throws(new Mavis.InvalidHostError());
+      Docker.prototype.getContainers.yieldsAsync(null, [{ Id: 4 }]);
+      enqueueContainerJobsHelper(testJob, 'queue:four', ['philter'])
+        .then(function (result) {
+          assert.equal(result, 0, 'no jobs queued');
+          assert.notOk(Docker.prototype.getContainers.called, 'no docker call');
+          assert.notOk(Hermes.prototype.publish.called, 'no job queued');
           done();
         })
         .catch(done);
