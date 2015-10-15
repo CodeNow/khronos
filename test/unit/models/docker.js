@@ -2,15 +2,10 @@
 
 require('loadenv')('khronos:test');
 
-var Lab = require('lab');
-var lab = exports.lab = Lab.script();
-var beforeEach = lab.beforeEach;
-var afterEach = lab.afterEach;
-var describe = lab.describe;
-var it = lab.it;
+var chai = require('chai');
+var assert = chai.assert;
 
 // external
-var assert = require('chai').assert;
 var Dockerode = require('dockerode');
 var sinon = require('sinon');
 var url = require('url');

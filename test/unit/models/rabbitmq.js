@@ -2,24 +2,34 @@
 
 require('loadenv')('khronos:test');
 
-var Lab = require('lab');
-var lab = exports.lab = Lab.script();
-var describe = lab.describe;
-var it = lab.it;
-var assert = require('chai').assert;
+var chai = require('chai');
+var assert = chai.assert;
 
 // external
+var Hermes = require('runnable-hermes');
+var sinon = require('sinon');
 var TaskFatalError = require('ponos').TaskFatalError;
 
 // internal (being tested)
 var rabbitmqFactory = require('models/rabbitmq');
 
 describe('RabbitMQ Factory', function () {
+  beforeEach(function (done) {
+    sinon.spy(rabbitmqFactory, '_createClient');
+    done();
+  });
+  afterEach(function (done) {
+    rabbitmqFactory._createClient.restore();
+    done();
+  });
+
   it('should have default arguments', function (done) {
     var queues = ['queue:one'];
     var r = rabbitmqFactory(queues);
-    assert.deepEqual(r.queues, queues);
-    assert.deepEqual(r.opts, {
+    assert.instanceOf(r, Hermes, 'returned a Hermes client');
+    assert.deepEqual(r.getQueues(), queues);
+    assert.ok(rabbitmqFactory._createClient.calledOnce, 'createClient called');
+    assert.deepEqual(rabbitmqFactory._createClient.firstCall.args[0], {
       hostname: 'localhost',
       port: 5672,
       username: 'guest',
@@ -42,8 +52,9 @@ describe('RabbitMQ Factory', function () {
     });
     var queues = ['queue:one'];
     var r = rabbitmqFactory(queues);
-    assert.deepEqual(r.queues, queues);
-    assert.deepEqual(r.opts, {
+    assert.deepEqual(r.getQueues(), queues);
+    assert.ok(rabbitmqFactory._createClient.calledOnce, 'createClient called');
+    assert.deepEqual(rabbitmqFactory._createClient.firstCall.args[0], {
       hostname: 'foobar',
       port: 42,
       username: 'luke',

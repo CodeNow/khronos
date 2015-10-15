@@ -2,13 +2,8 @@
 
 require('loadenv')('khronos:test');
 
-var Lab = require('lab');
-var lab = exports.lab = Lab.script();
-var afterEach = lab.afterEach;
-var beforeEach = lab.beforeEach;
-var describe = lab.describe;
-var it = lab.it;
-var assert = require('chai').assert;
+var chai = require('chai');
+var assert = chai.assert;
 
 // external
 var Hermes = require('runnable-hermes');
@@ -34,7 +29,7 @@ describe('RabbitMQ Helper', function () {
     Promise.using(rabbitmqPromise, function (client) {
       assert.ok(client);
       assert.instanceOf(client, Hermes);
-      assert.deepEqual(client.queues, ['queue:one']);
+      assert.deepEqual(client.getQueues(), ['queue:one']);
       assert.ok(Hermes.prototype.connect.calledOnce, 'hermes connected');
       done();
     })
