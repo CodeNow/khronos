@@ -28,7 +28,7 @@ describe('MongoDB Helper', function () {
   })
 
   it('should return a client for Promise.using', function (done) {
-    var mongodbPromise = mongodbHelper(['queue:one'])
+    var mongodbPromise = mongodbHelper()
     Promise.using(mongodbPromise, function (client) {
       assert.ok(client)
       assert.instanceOf(client, MongoDB)
@@ -39,7 +39,7 @@ describe('MongoDB Helper', function () {
       .catch(done)
   })
   it('should close the client if it was being used', function (done) {
-    var mongodbPromise = mongodbHelper(['queue:one'])
+    var mongodbPromise = mongodbHelper()
     Promise.using(mongodbPromise, function (client) {
       assert.ok(client)
       assert.instanceOf(client, MongoDB)
@@ -49,6 +49,20 @@ describe('MongoDB Helper', function () {
       .catch(function (err) {
         assert.ok(MongoDB.prototype.close.calledOnce, 'mongodb closed')
         assert.equal(err.message, 'foobar')
+        done()
+      })
+      .catch(done)
+  })
+  it('should log an error if the client fails to close, but return true', function (done) {
+    MongoDB.prototype.close.yieldsAsync(new Error('foobar'))
+    var mongodbPromise = mongodbHelper()
+    Promise.using(mongodbPromise, function () {
+      return 1
+    })
+      .then(function (result) {
+        // we don't actually get to see the error happen, and that's the point
+        assert.ok(MongoDB.prototype.close.calledOnce, 'mongodb closed')
+        assert.equal(result, 1)
         done()
       })
       .catch(done)
