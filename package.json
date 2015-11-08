@@ -5,15 +5,17 @@
   "main": "index.js",
   "bin": "./bin/cli.js",
   "scripts": {
+    "check-coverage": "istanbul check-coverage && echo 'Coverage check successful!'",
+    "coverage": "NODE_PATH=./lib istanbul cover ./node_modules/.bin/_mocha -- $npm_package_options_mocha test/unit",
     "dry": "NODE_ENV=staging MANUAL_RUN=true DEBUG=none DRY_RUN=true node ./index.js",
     "format": "standard --format --verbose | snazzy",
-    "functional": "NODE_ENV=test NODE_PATH=./lib mocha --timeout 5000 --bail --recursive --reporter spec test/functional",
+    "functional": "NODE_ENV=test NODE_PATH=./lib mocha $npm_package_options_mocha test/functional",
     "lint": "standard --verbose | snazzy",
     "start": "NODE_PATH=./lib node --abort-on-uncaught-exception ./index.js",
     "start-json-output": "npm start 2>&1 | bunyan -o json-0 --strict",
     "test-watch": "rerun-script test",
     "test": "npm run lint && npm run unit && npm run functional",
-    "unit": "NODE_ENV=test NODE_PATH=./lib mocha --timeout 5000 --bail --recursive --reporter spec test/unit"
+    "unit": "NODE_ENV=test NODE_PATH=./lib mocha $npm_package_options_mocha test/unit"
   },
   "watches": {
     "test": [
@@ -21,6 +23,9 @@
       "lib/**/*.js",
       "test/**/*.js"
     ]
+  },
+  "options": {
+    "mocha": "--timeout 5000 --bail --recursive --reporter spec"
   },
   "repository": {
     "type": "git",
@@ -62,6 +67,7 @@
     "chai": "^3.3.0",
     "chai-as-promised": "^5.1.0",
     "docker-mock": "^5.0.2",
+    "istanbul": "^0.4.0",
     "mocha": "^2.3.3",
     "nock": "^2.12.0",
     "rerun-script": "^0.6.0",
