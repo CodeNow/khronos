@@ -1,171 +1,169 @@
-'use strict';
+'use strict'
 
-require('loadenv')('khronos:test');
+require('loadenv')('khronos:test')
 
-var chai = require('chai');
-chai.use(require('chai-as-promised'));
-var assert = chai.assert;
-var expect = chai.expect;
+var chai = require('chai')
+chai.use(require('chai-as-promised'))
+var assert = chai.assert
+var expect = chai.expect
 
 // external
-var async = require('async');
-var Container = require('dockerode/lib/container');
-var Docker = require('dockerode');
-var dockerMock = require('docker-mock');
-var Hermes = require('runnable-hermes');
-var ponos = require('ponos');
-var sinon = require('sinon');
+var async = require('async')
+var Container = require('dockerode/lib/container')
+var Docker = require('dockerode')
+var dockerMock = require('docker-mock')
+var Hermes = require('runnable-hermes')
+var ponos = require('ponos')
+var sinon = require('sinon')
 
 // internal
-var dockerFactory = require('../factories/docker');
+var dockerFactory = require('../factories/docker')
 
 var docker = new Docker({
   host: process.env.KHRONOS_DOCKER_HOST,
   port: process.env.KHRONOS_DOCKER_PORT
-});
+})
 
 describe('Prune Exited Image-Builder Containers', function () {
   var tasks = {
     'khronos:containers:delete': require('../../lib/tasks/containers/delete'),
-    'khronos:containers:image-builder:prune':
-      require('../../lib/tasks/image-builder/prune'),
-    'khronos:containers:image-builder:prune-dock':
-      require('../../lib/tasks/image-builder/prune-dock')
-  };
+    'khronos:containers:image-builder:prune': require('../../lib/tasks/image-builder/prune'),
+    'khronos:containers:image-builder:prune-dock': require('../../lib/tasks/image-builder/prune-dock')
+  }
   var hermes = new Hermes({
     hostname: process.env.RABBITMQ_HOSTNAME,
     port: process.env.RABBITMQ_PORT,
     username: process.env.RABBITMQ_USERNAME || 'guest',
     password: process.env.RABBITMQ_PASSWORD || 'guest',
     queues: Object.keys(tasks)
-  });
-  var dockerMockServer;
-  var workerServer;
-  var prevDocks;
+  })
+  var dockerMockServer
+  var workerServer
+  var prevDocks
 
   before(function (done) {
-    prevDocks = process.env.KHRONOS_DOCKS;
-    dockerMockServer = dockerMock.listen(process.env.KHRONOS_DOCKER_PORT, done);
-  });
+    prevDocks = process.env.KHRONOS_DOCKS
+    dockerMockServer = dockerMock.listen(process.env.KHRONOS_DOCKER_PORT, done)
+  })
   beforeEach(function () {
     process.env.KHRONOS_DOCKS =
-      'http://localhost:' + process.env.KHRONOS_DOCKER_PORT;
-    sinon.spy(Container.prototype, 'remove');
-    sinon.spy(tasks, 'khronos:containers:image-builder:prune-dock');
-    sinon.spy(tasks, 'khronos:containers:delete');
-    workerServer = new ponos.Server({ hermes: hermes });
+      'http://localhost:' + process.env.KHRONOS_DOCKER_PORT
+    sinon.spy(Container.prototype, 'remove')
+    sinon.spy(tasks, 'khronos:containers:image-builder:prune-dock')
+    sinon.spy(tasks, 'khronos:containers:delete')
+    workerServer = new ponos.Server({ hermes: hermes })
     assert.isFulfilled(workerServer.setAllTasks(tasks)
-      .then(workerServer.start()));
-  });
+      .then(workerServer.start()))
+  })
   afterEach(function () {
-    assert.isFulfilled(workerServer.stop());
-  });
+    assert.isFulfilled(workerServer.stop())
+  })
   afterEach(function (done) {
-    Container.prototype.remove.restore();
-    tasks['khronos:containers:image-builder:prune-dock'].restore();
-    tasks['khronos:containers:delete'].restore();
-    dockerFactory.deleteAllImagesAndContainers(docker, done);
-  });
+    Container.prototype.remove.restore()
+    tasks['khronos:containers:image-builder:prune-dock'].restore()
+    tasks['khronos:containers:delete'].restore()
+    dockerFactory.deleteAllImagesAndContainers(docker, done)
+  })
   after(function (done) {
-    process.env.KHRONOS_DOCKS = prevDocks;
-    dockerMockServer.close(done);
-  });
+    process.env.KHRONOS_DOCKS = prevDocks
+    dockerMockServer.close(done)
+  })
 
   describe('unpopulated dock', function () {
     it('should run successfully', function (done) {
-      workerServer.hermes.publish('khronos:containers:image-builder:prune', {});
+      workerServer.hermes.publish('khronos:containers:image-builder:prune', {})
       async.until(
         function () {
           var pruneDockTaskCallCount =
-            tasks['khronos:containers:image-builder:prune-dock'].callCount;
-          return pruneDockTaskCallCount === 1;
+          tasks['khronos:containers:image-builder:prune-dock'].callCount
+          return pruneDockTaskCallCount === 1
         },
-        function (cb) { setTimeout(cb, 100); },
+        function (cb) { setTimeout(cb, 100) },
         function (err) {
-          if (err) { return done(err); }
-          expect(Container.prototype.remove.callCount).to.equal(0);
-          setTimeout(done, 100);
-        });
-    });
-  });
+          if (err) { return done(err) }
+          expect(Container.prototype.remove.callCount).to.equal(0)
+          setTimeout(done, 100)
+        })
+    })
+  })
 
   describe('on a populated dock', function () {
     beforeEach(function (done) {
-      dockerFactory.createRandomContainers(docker, 5, done);
-    });
+      dockerFactory.createRandomContainers(docker, 5, done)
+    })
 
     it('should run with no iamge-builder containers', function (done) {
-      workerServer.hermes.publish('khronos:containers:image-builder:prune', {});
+      workerServer.hermes.publish('khronos:containers:image-builder:prune', {})
       async.doUntil(
-        function (cb) { setTimeout(cb, 100); },
+        function (cb) { setTimeout(cb, 100) },
         function () {
           var pruneDockTaskCallCount =
-            tasks['khronos:containers:image-builder:prune-dock'].callCount;
-          return pruneDockTaskCallCount === 1;
+          tasks['khronos:containers:image-builder:prune-dock'].callCount
+          return pruneDockTaskCallCount === 1
         },
         function (err) {
-          if (err) { return done(err); }
-          expect(Container.prototype.remove.callCount).to.equal(0);
+          if (err) { return done(err) }
+          expect(Container.prototype.remove.callCount).to.equal(0)
           dockerFactory.listContainersAndAssert(
             docker,
-            function (containers) { expect(containers).to.have.length(5); },
+            function (containers) { expect(containers).to.have.length(5) },
             function (err) {
-              if (err) { return done(err); }
-              setTimeout(done, 100);
-            });
-        });
-    });
+              if (err) { return done(err) }
+              setTimeout(done, 100)
+            })
+        })
+    })
     it('should run successfully on multiple docks', function (done) {
       process.env.KHRONOS_DOCKS =
-        process.env.KHRONOS_DOCKS + ',' + process.env.KHRONOS_DOCKS;
-      workerServer.hermes.publish('khronos:containers:image-builder:prune', {});
+        process.env.KHRONOS_DOCKS + ',' + process.env.KHRONOS_DOCKS
+      workerServer.hermes.publish('khronos:containers:image-builder:prune', {})
       async.doUntil(
-        function (cb) { setTimeout(cb, 100); },
+        function (cb) { setTimeout(cb, 100) },
         function () {
           var pruneDockTaskCallCount =
-            tasks['khronos:containers:image-builder:prune-dock'].callCount;
-          return pruneDockTaskCallCount === 2;
+          tasks['khronos:containers:image-builder:prune-dock'].callCount
+          return pruneDockTaskCallCount === 2
         },
         function (err) {
-          if (err) { return done(err); }
-          expect(Container.prototype.remove.callCount).to.equal(0);
+          if (err) { return done(err) }
+          expect(Container.prototype.remove.callCount).to.equal(0)
           dockerFactory.listContainersAndAssert(
             docker,
-            function (containers) { expect(containers).to.have.length(5); },
+            function (containers) { expect(containers).to.have.length(5) },
             function (err) {
-              if (err) { return done(err); }
-              setTimeout(done, 100);
-            });
-        });
-    });
+              if (err) { return done(err) }
+              setTimeout(done, 100)
+            })
+        })
+    })
 
     describe('where iamge-builder containers are present', function () {
       beforeEach(function (done) {
-        dockerFactory.createImageBuilderContainers(docker, 2, done);
-      });
+        dockerFactory.createImageBuilderContainers(docker, 2, done)
+      })
 
       it('should only remove dead image-builder containers', function (done) {
         workerServer.hermes.publish(
           'khronos:containers:image-builder:prune',
-          {});
+          {})
         async.doUntil(
-          function (cb) { setTimeout(cb, 100); },
-          function () { return Container.prototype.remove.callCount === 2; },
+          function (cb) { setTimeout(cb, 100) },
+          function () { return Container.prototype.remove.callCount === 2 },
           function (err) {
-            if (err) { return done(err); }
+            if (err) { return done(err) }
             var pruneDockTaskCallCount =
-              tasks['khronos:containers:image-builder:prune-dock'].callCount;
-            expect(pruneDockTaskCallCount).to.equal(1);
-            expect(tasks['khronos:containers:delete'].callCount).to.equal(2);
+            tasks['khronos:containers:image-builder:prune-dock'].callCount
+            expect(pruneDockTaskCallCount).to.equal(1)
+            expect(tasks['khronos:containers:delete'].callCount).to.equal(2)
             dockerFactory.listContainersAndAssert(
               docker,
-              function (containers) { expect(containers).to.have.length(5); },
+              function (containers) { expect(containers).to.have.length(5) },
               function (err) {
-                if (err) { return done(err); }
-                setTimeout(done, 100);
-              });
-          });
-      });
-    });
-  });
-});
+                if (err) { return done(err) }
+                setTimeout(done, 100)
+              })
+          })
+      })
+    })
+  })
+})
