@@ -61,7 +61,7 @@ describe('image prune task', function () {
               assert.ok(rabbitmq.prototype.publish.calledOnce, '1 publish')
               assert.equal(
                 rabbitmq.prototype.publish.firstCall.args[0],
-                'khronos:images:orphan:prune-dock',
+                'khronos:images:prune-dock',
                 'publish to the correct queue')
               assert.deepEqual(
                 rabbitmq.prototype.publish.firstCall.args[1],
@@ -85,7 +85,7 @@ describe('image prune task', function () {
               assert.ok(rabbitmq.prototype.publish.calledTwice, '2 publishes')
               assert.equal(
                 rabbitmq.prototype.publish.firstCall.args[0],
-                'khronos:images:orphan:prune-dock',
+                'khronos:images:prune-dock',
                 'publish to the correct queue')
               assert.deepEqual(
                 rabbitmq.prototype.publish.firstCall.args[1],
@@ -93,7 +93,7 @@ describe('image prune task', function () {
                 'enqueued a valid job')
               assert.equal(
                 rabbitmq.prototype.publish.secondCall.args[0],
-                'khronos:images:orphan:prune-dock',
+                'khronos:images:prune-dock',
                 'publish to the correct queue')
               assert.deepEqual(
                 rabbitmq.prototype.publish.secondCall.args[1],

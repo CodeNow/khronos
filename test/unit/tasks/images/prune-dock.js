@@ -111,7 +111,7 @@ describe('images prune dock task', function () {
           sinon.assert.calledOnce(rabbitmq.prototype.publish)
           sinon.assert.calledWithExactly(
             rabbitmq.prototype.publish,
-            'khronos:images:orphan:check-against-context-versions',
+            'khronos:images:check-against-context-versions',
             {
               dockerHost: 'http://example.com',
               imageId: 'foo/bar'
@@ -191,7 +191,7 @@ describe('images prune dock task', function () {
           )
           sinon.assert.calledWithExactly(
             rabbitmq.prototype.publish,
-            'khronos:images:orphan:check-against-context-versions',
+            'khronos:images:check-against-context-versions',
             {
               dockerHost: 'http://example.com',
               imageId: 'foo/bar'
@@ -199,7 +199,7 @@ describe('images prune dock task', function () {
           )
           sinon.assert.calledWithExactly(
             rabbitmq.prototype.publish,
-            'khronos:images:orphan:check-against-context-versions',
+            'khronos:images:check-against-context-versions',
             {
               dockerHost: 'http://example.com',
               imageId: 'bar/baz'

@@ -16,7 +16,7 @@ var MongoDB = require('models/mongodb')
 // internal (being tested)
 var checkImageAgainstContextVersions = require('tasks/images/check-against-context-versions')
 
-describe('Image Check Against Mongo Task', function () {
+describe('Image Check Against Context Version', function () {
   var testJob = {
     dockerHost: 'http://example.com',
     imageId: process.env.KHRONOS_DOCKER_REGISTRY + '/100/bar:baz'
@@ -28,7 +28,7 @@ describe('Image Check Against Mongo Task', function () {
     sinon.stub(Hermes.prototype, 'publish').returns()
     sinon.stub(MongoDB.prototype, 'close').yieldsAsync()
     sinon.stub(MongoDB.prototype, 'connect').yieldsAsync()
-    sinon.stub(MongoDB.prototype, 'fetchContextVersions').yieldsAsync()
+    sinon.stub(MongoDB.prototype, 'countContextVersions').yieldsAsync()
     sinon.stub(MongoDB.prototype, 'newObjectID').returnsArg(0)
     done()
   })
@@ -38,7 +38,7 @@ describe('Image Check Against Mongo Task', function () {
     Hermes.prototype.publish.restore()
     MongoDB.prototype.close.restore()
     MongoDB.prototype.connect.restore()
-    MongoDB.prototype.fetchContextVersions.restore()
+    MongoDB.prototype.countContextVersions.restore()
     MongoDB.prototype.newObjectID.restore()
     done()
   })
@@ -70,7 +70,7 @@ describe('Image Check Against Mongo Task', function () {
 
   describe('MongoDB Error', function () {
     it('should throw the error', function (done) {
-      MongoDB.prototype.fetchContextVersions.yieldsAsync(new Error('foobar'))
+      MongoDB.prototype.countContextVersions.yieldsAsync(new Error('foobar'))
       checkImageAgainstContextVersions(testJob)
         .then(function () {
           throw new Error('task should have thrown an error')
@@ -86,7 +86,7 @@ describe('Image Check Against Mongo Task', function () {
 
   describe('Rabbitmq Error', function () {
     it('should thrown the error', function (done) {
-      MongoDB.prototype.fetchContextVersions.yields(null, 0)
+      MongoDB.prototype.countContextVersions.yields(null, 0)
       Hermes.prototype.connect.yieldsAsync(new Error('foobar'))
       checkImageAgainstContextVersions(testJob)
         .then(function () {
@@ -102,8 +102,24 @@ describe('Image Check Against Mongo Task', function () {
     })
   })
 
+  it('should fetch context versions for the exact id', function (done) {
+    MongoDB.prototype.countContextVersions.yields(null, 1)
+    checkImageAgainstContextVersions(testJob)
+      .then(function (result) {
+        sinon.assert.calledWithExactly(
+          MongoDB.prototype.countContextVersions,
+          {
+            _id: 'baz'
+          },
+          sinon.match.func
+        )
+        done()
+      })
+      .catch(done)
+  })
+
   it('should not remove the container if the context version is in mongo', function (done) {
-    MongoDB.prototype.fetchContextVersions.yields(null, 1)
+    MongoDB.prototype.countContextVersions.yields(null, 1)
     checkImageAgainstContextVersions(testJob)
       .then(function (result) {
         sinon.assert.notCalled(Hermes.prototype.publish)
@@ -118,7 +134,7 @@ describe('Image Check Against Mongo Task', function () {
   })
 
   it('should enqueue a job to remove the container if no context version was found', function (done) {
-    MongoDB.prototype.fetchContextVersions.yields(null, 0)
+    MongoDB.prototype.countContextVersions.yields(null, 0)
     checkImageAgainstContextVersions(testJob)
       .then(function (result) {
         sinon.assert.calledOnce(Hermes.prototype.publish)
