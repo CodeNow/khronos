@@ -1,177 +1,177 @@
-'use strict';
+'use strict'
 
-require('loadenv')('khronos:test');
+require('loadenv')('khronos:test')
 
-var chai = require('chai');
-var assert = chai.assert;
+var chai = require('chai')
+var assert = chai.assert
 
 // external
-var Hermes = require('runnable-hermes');
-var sinon = require('sinon');
-var TaskFatalError = require('ponos').TaskFatalError;
+var Hermes = require('runnable-hermes')
+var sinon = require('sinon')
+var TaskFatalError = require('ponos').TaskFatalError
 
 // internal
-var Docker = require('models/docker');
-var Mavis = require('models/mavis');
+var Docker = require('models/docker')
+var Mavis = require('models/mavis')
 
 // internal (being tested)
-var enqueueContainerJobsHelper = require('tasks/utils/enqueue-container-jobs');
+var enqueueContainerJobsHelper = require('tasks/utils/enqueue-container-jobs')
 
 describe('Enqueue Container Jobs Helper', function () {
-  var testJob = { dockerHost: 'http://example.com' };
+  var testJob = { dockerHost: 'http://example.com' }
 
   beforeEach(function (done) {
-    sinon.stub(Docker.prototype, 'getContainers').yieldsAsync(null, []);
-    sinon.stub(Hermes.prototype, 'connect').yieldsAsync();
-    sinon.stub(Hermes.prototype, 'publish').returns();
-    sinon.stub(Mavis.prototype, 'verifyHost').returns(true);
-    done();
-  });
+    sinon.stub(Docker.prototype, 'getContainers').yieldsAsync(null, [])
+    sinon.stub(Hermes.prototype, 'connect').yieldsAsync()
+    sinon.stub(Hermes.prototype, 'publish').returns()
+    sinon.stub(Mavis.prototype, 'verifyHost').returns(true)
+    done()
+  })
   afterEach(function (done) {
-    Docker.prototype.getContainers.restore();
-    Hermes.prototype.connect.restore();
-    Hermes.prototype.publish.restore();
-    Mavis.prototype.verifyHost.restore();
-    done();
-  });
+    Docker.prototype.getContainers.restore()
+    Hermes.prototype.connect.restore()
+    Hermes.prototype.publish.restore()
+    Mavis.prototype.verifyHost.restore()
+    done()
+  })
 
   describe('failures', function () {
     it('should enforce all three parameters for Ryan', function (done) {
       enqueueContainerJobsHelper()
-        .then(function () { throw new Error('should have rejected'); })
+        .then(function () { throw new Error('should have rejected') })
         .catch(function (err) {
-          assert.instanceOf(err, TaskFatalError);
-          done();
+          assert.instanceOf(err, TaskFatalError)
+          done()
         })
-        .catch(done);
-    });
+        .catch(done)
+    })
     it('should enfore all three parameters', function (done) {
       enqueueContainerJobsHelper({})
-        .then(function () { throw new Error('should have rejected'); })
+        .then(function () { throw new Error('should have rejected') })
         .catch(function (err) {
-          assert.instanceOf(err, TaskFatalError);
-          done();
+          assert.instanceOf(err, TaskFatalError)
+          done()
         })
-        .catch(done);
-    });
+        .catch(done)
+    })
     it('should enfore all three parameters', function (done) {
       enqueueContainerJobsHelper({}, 'queue:one')
-        .then(function () { throw new Error('should have rejected'); })
+        .then(function () { throw new Error('should have rejected') })
         .catch(function (err) {
-          assert.instanceOf(err, TaskFatalError);
-          done();
+          assert.instanceOf(err, TaskFatalError)
+          done()
         })
-        .catch(done);
-    });
+        .catch(done)
+    })
     it('should enfore all three parameters', function (done) {
       enqueueContainerJobsHelper({}, 'queue:one', '')
-        .then(function () { throw new Error('should have rejected'); })
+        .then(function () { throw new Error('should have rejected') })
         .catch(function (err) {
-          assert.instanceOf(err, TaskFatalError);
-          done();
+          assert.instanceOf(err, TaskFatalError)
+          done()
         })
-        .catch(done);
-    });
+        .catch(done)
+    })
     it('should enfore all three parameters', function (done) {
       enqueueContainerJobsHelper({}, 'queue:one', {})
-        .then(function () { throw new Error('should have rejected'); })
+        .then(function () { throw new Error('should have rejected') })
         .catch(function (err) {
-          assert.instanceOf(err, TaskFatalError);
-          done();
+          assert.instanceOf(err, TaskFatalError)
+          done()
         })
-        .catch(done);
-    });
+        .catch(done)
+    })
     it('should enfore all three parameters', function (done) {
       enqueueContainerJobsHelper('', 'queue:one', [])
-        .then(function () { throw new Error('should have rejected'); })
+        .then(function () { throw new Error('should have rejected') })
         .catch(function (err) {
-          assert.instanceOf(err, TaskFatalError);
-          done();
+          assert.instanceOf(err, TaskFatalError)
+          done()
         })
-        .catch(done);
-    });
+        .catch(done)
+    })
     it('should throw if Docker errors', function (done) {
-      Docker.prototype.getContainers.yieldsAsync(new Error('foobar'));
+      Docker.prototype.getContainers.yieldsAsync(new Error('foobar'))
       enqueueContainerJobsHelper(testJob, 'queue:four', ['philter'])
         .then(function () {
-          throw new Error('helper should have thrown an error');
+          throw new Error('helper should have thrown an error')
         })
         .catch(function (err) {
-          assert.instanceOf(err, Error);
+          assert.instanceOf(err, Error)
           assert.notOk(Hermes.prototype.publish.called,
-            'no publishing of jobs');
-          assert.equal(err.message, 'foobar');
-          done();
+            'no publishing of jobs')
+          assert.equal(err.message, 'foobar')
+          done()
         })
-        .catch(done);
-    });
+        .catch(done)
+    })
     it('should throw if rabbitmq errors', function (done) {
-      Hermes.prototype.connect.throws(new Error('foobar'));
+      Hermes.prototype.connect.throws(new Error('foobar'))
       enqueueContainerJobsHelper(testJob, 'queue:four', ['philter'])
         .then(function () {
-          throw new Error('helper should have thrown an error');
+          throw new Error('helper should have thrown an error')
         })
         .catch(function (err) {
-          assert.instanceOf(err, Error);
+          assert.instanceOf(err, Error)
           assert.notOk(Docker.prototype.getContainers.called,
-            'no getContainers');
+            'no getContainers')
           assert.notOk(Hermes.prototype.publish.called,
-            'no publishing of jobs');
-          assert.equal(err.message, 'foobar');
-          done();
+            'no publishing of jobs')
+          assert.equal(err.message, 'foobar')
+          done()
         })
-        .catch(done);
-    });
-  });
+        .catch(done)
+    })
+  })
 
   describe('successes', function () {
     it('should not enqueue jobs if there are no containers', function (done) {
-      Docker.prototype.getContainers.yieldsAsync(null, []);
+      Docker.prototype.getContainers.yieldsAsync(null, [])
       enqueueContainerJobsHelper(testJob, 'queue:four', ['philter'])
         .then(function (result) {
-          assert.equal(result, 0, 'no jobs enqueued');
-          assert.ok(Docker.prototype.getContainers.calledOnce, 'gotContainers');
-          assert.notOk(Hermes.prototype.publish.called, 'no job published');
-          done();
+          assert.equal(result, 0, 'no jobs enqueued')
+          assert.ok(Docker.prototype.getContainers.calledOnce, 'gotContainers')
+          assert.notOk(Hermes.prototype.publish.called, 'no job published')
+          done()
         })
-        .catch(done);
-    });
+        .catch(done)
+    })
     it('should not enqueue jobs if the dock no longer exists', function (done) {
-      Mavis.prototype.verifyHost.throws(new Mavis.InvalidHostError());
-      Docker.prototype.getContainers.yieldsAsync(null, [{ Id: 4 }]);
+      Mavis.prototype.verifyHost.throws(new Mavis.InvalidHostError())
+      Docker.prototype.getContainers.yieldsAsync(null, [{ Id: 4 }])
       enqueueContainerJobsHelper(testJob, 'queue:four', ['philter'])
         .then(function (result) {
-          assert.equal(result, 0, 'no jobs queued');
-          assert.notOk(Docker.prototype.getContainers.called, 'no docker call');
-          assert.notOk(Hermes.prototype.publish.called, 'no job queued');
-          done();
+          assert.equal(result, 0, 'no jobs queued')
+          assert.notOk(Docker.prototype.getContainers.called, 'no docker call')
+          assert.notOk(Hermes.prototype.publish.called, 'no job queued')
+          done()
         })
-        .catch(done);
-    });
+        .catch(done)
+    })
     it('should return a promise resolving the number of jobs', function (done) {
-      Docker.prototype.getContainers.yieldsAsync(null, [{ Id: 4 }]);
+      Docker.prototype.getContainers.yieldsAsync(null, [{ Id: 4 }])
       enqueueContainerJobsHelper(testJob, 'queue:four', ['philter'])
         .then(function (result) {
-          assert.equal(result, 1, 'had 1 container');
+          assert.equal(result, 1, 'had 1 container')
           assert.deepEqual(
             Docker.prototype.getContainers.firstCall.args[1],
             ['philter'],
-            'passes filters to getContainers');
-          assert.ok(Hermes.prototype.publish.calledOnce, 'one job published');
+            'passes filters to getContainers')
+          assert.ok(Hermes.prototype.publish.calledOnce, 'one job published')
           assert.equal(
             Hermes.prototype.publish.firstCall.args[0],
             'queue:four',
-            'publishes to the correct queue');
+            'publishes to the correct queue')
           assert.deepEqual(
             Hermes.prototype.publish.firstCall.args[1],
             {
               dockerHost: 'http://example.com',
               containerId: 4
             },
-            'publishes a vaild job');
-          done();
+            'publishes a vaild job')
+          done()
         })
-        .catch(done);
-    });
-  });
-});
+        .catch(done)
+    })
+  })
+})

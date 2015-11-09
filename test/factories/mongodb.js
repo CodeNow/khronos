@@ -1,52 +1,52 @@
-'use strict';
+'use strict'
 
 // external
-var async = require('async');
+var async = require('async')
 
 // internal
-var MongoDB = require('models/mongodb');
+var MongoDB = require('models/mongodb')
 
 module.exports = {
   createInstanceWithContainers: function (containers, cb) {
     async.each(
       containers,
       function (container, cb) {
-        module.exports.createInstanceWithContainer(container.id, cb);
+        module.exports.createInstanceWithContainer(container.id, cb)
       },
-      cb);
+      cb)
   },
   createInstanceWithContainer: function (containerId, cb) {
-    var client = new MongoDB();
+    var client = new MongoDB()
     async.series([
       client.connect.bind(client),
       function (cb) {
-        var data = { container: { dockerContainer: containerId } };
-        client.db.collection('instances').insert([data], cb);
+        var data = { container: { dockerContainer: containerId } }
+        client.db.collection('instances').insert([data], cb)
       }
-    ], cb);
+    ], cb)
   },
   removeInstaceByQuery: function (query, cb) {
-    var client = new MongoDB();
+    var client = new MongoDB()
     async.series([
       client.connect.bind(client),
       function (cb) {
-        client.db.collection('instances').remove(query, cb);
+        client.db.collection('instances').remove(query, cb)
       }
-    ], cb);
+    ], cb)
   },
   removeAllInstances: function (cb) {
-    var client = new MongoDB();
+    var client = new MongoDB()
     async.series([
       client.connect.bind(client),
       function (cb) {
-        client.db.collection('instances').drop(cb);
+        client.db.collection('instances').drop(cb)
       }
     ], function (err) {
       if (err && err.message === 'ns not found') {
         // this is fine, just means no instances
-        return cb();
+        return cb()
       }
-      cb(err);
-    });
+      cb(err)
+    })
   }
-};
+}
