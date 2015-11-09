@@ -23,7 +23,7 @@ var hermes = rabbitmq(Object.keys(tasks))
 var server = new ponos.Server({ hermes: hermes })
 
 server.setAllTasks(tasks)
-  .then(server.start())
+server.start()
   .then(function () { log.info('Worker Server has started') })
   .catch(function (err) {
     log.fatal({ err: err }, 'Error starting Server')
