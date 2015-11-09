@@ -63,6 +63,13 @@ module.exports = {
         cb)
     }, cb)
   },
+  createImage: function (docker, opts, cb) {
+    docker.createImage(opts, function (err, res) {
+      if (err) { return cb(err) }
+      res.on('data', function () {})
+      res.on('end', function () { cb() })
+    })
+  },
   listContainersAndAssert: function (docker, fn, cb) {
     async.retry(
       { times: 5, interval: 100 },
@@ -71,6 +78,22 @@ module.exports = {
           if (err) { return retryCb(err) }
           try {
             fn(containers)
+          } catch (err) {
+            return retryCb(err)
+          }
+          retryCb()
+        })
+      },
+      cb)
+  },
+  listImagesAndAssert: function (docker, fn, cb) {
+    async.retry(
+      { times: 5, interval: 100 },
+      function (retryCb) {
+        docker.listImages(function (err, images) {
+          if (err) { return retryCb(err) }
+          try {
+            fn(images)
           } catch (err) {
             return retryCb(err)
           }

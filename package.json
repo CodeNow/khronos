@@ -61,7 +61,7 @@
     "node-dogstatsd": "0.0.6",
     "ponos": "^1.1.0",
     "request": "^2.51.0",
-    "runnable-hermes": "^6.2.1"
+    "runnable-hermes": "^6.3.0"
   },
   "devDependencies": {
     "chai": "^3.3.0",
