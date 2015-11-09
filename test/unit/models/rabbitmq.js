@@ -34,6 +34,7 @@ describe('RabbitMQ Factory', function () {
       port: 5672,
       username: 'guest',
       password: 'guest',
+      prefetch: 3,
       queues: queues
     })
     done()
@@ -59,6 +60,7 @@ describe('RabbitMQ Factory', function () {
       port: 42,
       username: 'luke',
       password: 'skywalker',
+      prefetch: 3,
       queues: queues
     })
     Object.keys(envs).forEach(function (k) {
