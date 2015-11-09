@@ -55,8 +55,8 @@ describe('Prune Orphan Images', function () {
     // spy on all tasks
     Object.keys(tasks).forEach(function (t) { sinon.spy(tasks, t) })
     workerServer = new ponos.Server({ hermes: hermes })
-    return assert.isFulfilled(workerServer.setAllTasks(tasks)
-      .then(workerServer.start()))
+    workerServer.setAllTasks(tasks)
+    return assert.isFulfilled(workerServer.start())
   })
   afterEach(function () {
     return assert.isFulfilled(workerServer.stop())
@@ -195,34 +195,5 @@ describe('Prune Orphan Images', function () {
           })
       })
     })
-  //
-  //   describe('where iamge-builder containers are present', function () {
-  //     beforeEach(function (done) {
-  //       dockerFactory.createImageBuilderContainers(docker, 2, done)
-  //     })
-  //
-  //     it('should only remove dead image-builder containers', function (done) {
-  //       workerServer.hermes.publish(
-  //         'khronos:images:prune',
-  //         {})
-  //       async.doUntil(
-  //         function (cb) { setTimeout(cb, 100) },
-  //         function () { return Container.prototype.remove.callCount === 2 },
-  //         function (err) {
-  //           if (err) { return done(err) }
-  //           var pruneDockTaskCallCount =
-  //           tasks['khronos:images:prune-dock'].callCount
-  //           expect(pruneDockTaskCallCount).to.equal(1)
-  //           expect(tasks['khronos:containers:delete'].callCount).to.equal(2)
-  //           dockerFactory.listContainersAndAssert(
-  //             docker,
-  //             function (containers) { expect(containers).to.have.length(5) },
-  //             function (err) {
-  //               if (err) { return done(err) }
-  //               setTimeout(done, 100)
-  //             })
-  //         })
-  //     })
-  //   })
   })
 })

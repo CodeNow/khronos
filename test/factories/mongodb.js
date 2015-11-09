@@ -17,7 +17,16 @@ module.exports = {
     )
   },
   createContextVersion: function (opts, cb) {
-    module.exports._createInCollection('contextversions', opts, cb)
+    var client = new MongoDB()
+    async.series([
+      client.connect.bind(client),
+      function (cb) {
+        if (opts._id) {
+          opts._id = client.newObjectID(opts._id)
+        }
+        client.db.collection('contextversions').insert([opts], cb)
+      }
+    ], cb)
   },
   removeAllContextVersions: function (cb) {
     module.exports._removeAllInCollection('contextversions', cb)
