@@ -55,11 +55,11 @@ describe('Prune Orphaned Containers', function () {
     sinon.spy(tasks, 'khronos:containers:orphan:check-against-mongo')
     sinon.spy(tasks, 'khronos:containers:remove')
     workerServer = new ponos.Server({ hermes: hermes })
-    assert.isFulfilled(workerServer.setAllTasks(tasks)
-      .then(workerServer.start()))
+    workerServer.setAllTasks(tasks)
+    return assert.isFulfilled(workerServer.start())
   })
   afterEach(function () {
-    assert.isFulfilled(workerServer.stop())
+    return assert.isFulfilled(workerServer.stop())
   })
   afterEach(function (done) {
     process.env.KHRONOS_DOCKS = null

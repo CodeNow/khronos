@@ -52,11 +52,11 @@ describe('Prune Exited Image-Builder Containers', function () {
     sinon.spy(tasks, 'khronos:containers:image-builder:prune-dock')
     sinon.spy(tasks, 'khronos:containers:delete')
     workerServer = new ponos.Server({ hermes: hermes })
-    assert.isFulfilled(workerServer.setAllTasks(tasks)
-      .then(workerServer.start()))
+    workerServer.setAllTasks(tasks)
+    return assert.isFulfilled(workerServer.start())
   })
   afterEach(function () {
-    assert.isFulfilled(workerServer.stop())
+    return assert.isFulfilled(workerServer.stop())
   })
   afterEach(function (done) {
     Container.prototype.remove.restore()

@@ -39,8 +39,8 @@ describe('Prune Expired Context Versions', function () {
     sinon.spy(tasks, 'khronos:context-versions:check-recent-usage')
     sinon.spy(tasks, 'khronos:context-versions:remove-and-protect-instances')
     workerServer = new ponos.Server({ hermes: hermes })
-    return assert.isFulfilled(workerServer.setAllTasks(tasks)
-      .then(workerServer.start()))
+    workerServer.setAllTasks(tasks)
+    return assert.isFulfilled(workerServer.start())
   })
   afterEach(function () {
     return assert.isFulfilled(workerServer.stop())

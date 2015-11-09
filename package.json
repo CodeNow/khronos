@@ -50,7 +50,7 @@
   "dependencies": {
     "101": "^1.0.0",
     "async": "^1.4.2",
-    "bluebird": "^2.10.0",
+    "bluebird": "^3.0.5",
     "bunyan": "^1.4.0",
     "commander": "^2.8.1",
     "dockerode": "^2.0.4",
@@ -59,7 +59,7 @@
     "mongodb": "^2.0.43",
     "monitor-dog": "^1.4.1",
     "node-dogstatsd": "0.0.6",
-    "ponos": "^0.11.1",
+    "ponos": "^1.1.0",
     "request": "^2.51.0",
     "runnable-hermes": "^6.2.1"
   },
