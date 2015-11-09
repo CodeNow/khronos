@@ -50,12 +50,11 @@ describe('Prune Exited Weave Containers', function () {
     sinon.spy(tasks, 'khronos:weave:prune-dock')
     sinon.spy(tasks, 'khronos:containers:delete')
     workerServer = new ponos.Server({ hermes: hermes })
-    var startServerPromise = workerServer.setAllTasks(tasks)
-      .then(workerServer.start())
-    assert.isFulfilled(startServerPromise)
+    workerServer.setAllTasks(tasks)
+    return assert.isFulfilled(workerServer.start())
   })
   afterEach(function () {
-    assert.isFulfilled(workerServer.stop())
+    return assert.isFulfilled(workerServer.stop())
   })
   afterEach(function (done) {
     process.env.KHRONOS_DOCKS = null
