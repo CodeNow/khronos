@@ -9,7 +9,7 @@
     "coverage": "NODE_PATH=./lib istanbul cover ./node_modules/.bin/_mocha -- $npm_package_options_mocha test/unit",
     "dry": "NODE_ENV=staging MANUAL_RUN=true DEBUG=none DRY_RUN=true node ./index.js",
     "format": "standard --format --verbose | snazzy",
-    "functional": "NODE_ENV=test NODE_PATH=./lib mocha $npm_package_options_mocha test/functional",
+    "functional": "NODE_ENV=test NODE_PATH=./lib mocha $npm_package_options_mocha --slow 1000 test/functional",
     "lint": "standard --verbose | snazzy",
     "start": "NODE_PATH=./lib node --abort-on-uncaught-exception ./index.js",
     "start-json-output": "npm start 2>&1 | bunyan -o json-0 --strict",
