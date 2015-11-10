@@ -68,6 +68,21 @@ describe('Remove Image Task', function () {
           })
           .catch(done)
       })
+
+      it('should throw TaskFatalError if image is in use', function (done) {
+        var error = new Error('foobar')
+        error.statusCode = 409
+        Docker.prototype.removeImage.yieldsAsync(error)
+        removeImage(testJob)
+          .then(function () {
+            throw new Error('task should have thrown an error')
+          })
+          .catch(TaskFatalError, function (err) {
+            assert.match(err.message, /409 conflict/i)
+            done()
+          })
+          .catch(done)
+      })
     })
   })
 
