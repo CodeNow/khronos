@@ -6,6 +6,7 @@ var chai = require('chai')
 var assert = chai.assert
 
 // external
+var ObjectID = require('mongodb').ObjectID
 var rabbitmq = require('runnable-hermes')
 var sinon = require('sinon')
 var TaskFatalError = require('ponos').TaskFatalError
@@ -29,7 +30,7 @@ describe('context versions check recent usage task', function () {
     var targetDate = new Date()
     targetDate.setDate(targetDate.getDate() - 5)
     sampleJob = {
-      contextVersionId: 'deadbeef',
+      contextVersionId: 'deadbeefdeadbeefdeadbeef',
       twoWeeksAgo: targetDate
     }
     done()
@@ -121,7 +122,7 @@ describe('context versions check recent usage task', function () {
             MongoDB.prototype.countBuilds,
             {
               'build.created': { $gte: sinon.match.date },
-              contextVersions: 'deadbeef'
+              contextVersions: new ObjectID('deadbeefdeadbeefdeadbeef')
             },
             sinon.match.func
           )
@@ -145,7 +146,7 @@ describe('context versions check recent usage task', function () {
           sinon.assert.calledWith(
             MongoDB.prototype.countInstances,
             {
-              'contextVersion._id': 'deadbeef'
+              'contextVersion._id': new ObjectID('deadbeefdeadbeefdeadbeef')
             },
             sinon.match.func
           )
@@ -191,7 +192,7 @@ describe('context versions check recent usage task', function () {
           sinon.assert.calledWithExactly(
             rabbitmq.prototype.publish,
             'khronos:context-versions:remove-and-protect-instances',
-            { contextVersionId: 'deadbeef' }
+            { contextVersionId: 'deadbeefdeadbeefdeadbeef' }
           )
           done()
         })

@@ -158,7 +158,7 @@ describe('Prune Expired Context Versions', function () {
                 if (err) { return done(err) }
                 savedContextVersion = find(cvs, hasKeypaths({ 'build.dockerTag': '5678' }))
                 mongodbFactory.createInstance({
-                  contextVersion: { _id: '' + savedContextVersion._id }
+                  contextVersion: { _id: savedContextVersion._id } // _id must be an ObjectID
                 }, cb)
               })
             }
@@ -206,7 +206,7 @@ describe('Prune Expired Context Versions', function () {
                 savedContextVersion = find(cvs, hasKeypaths({ 'build.dockerTag': '5678' }))
                 var buildData = {
                   build: { created: new Date() },
-                  contextVersions: [ '' + savedContextVersion._id ]
+                  contextVersions: [ '' + savedContextVersion._id ] // gets transformed into ObjectIDs
                 }
                 mongodbFactory.createBuild(buildData, cb)
               })

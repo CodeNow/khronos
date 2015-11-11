@@ -32,7 +32,21 @@ module.exports = {
     module.exports._removeAllInCollection('contextversions', cb)
   },
   createBuild: function (opts, cb) {
-    module.exports._createInCollection('builds', opts, cb)
+    var client = new MongoDB()
+    async.series([
+      client.connect.bind(client),
+      function (cb) {
+        if (opts._id) {
+          opts._id = client.newObjectID(opts._id)
+        }
+        if (Array.isArray(opts.contextVersions)) {
+          opts.contextVersions = opts.contextVersions.map(function (id) {
+            return client.newObjectID(id)
+          })
+        }
+        client.db.collection('builds').insert([opts], cb)
+      }
+    ], cb)
   },
   removeAllBuilds: function (cb) {
     module.exports._removeAllInCollection('builds', cb)
