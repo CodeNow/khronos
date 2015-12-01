@@ -3,6 +3,7 @@
 require('loadenv')('khronos:test')
 
 var chai = require('chai')
+chai.use(require('chai-as-promised'))
 var assert = chai.assert
 
 // external
@@ -22,74 +23,77 @@ describe('Remove Container Task', function () {
     containerId: 4
   }
 
-  beforeEach(function (done) {
+  beforeEach(function () {
     sinon.stub(Bunyan.prototype, 'error').returns()
     sinon.stub(Docker.prototype, 'removeContainer').yieldsAsync()
-    done()
   })
-  afterEach(function (done) {
+  afterEach(function () {
     Bunyan.prototype.error.restore()
     Docker.prototype.removeContainer.restore()
-    done()
   })
 
   describe('errors', function () {
-    it('should throw an error on missing dockerHost', function (done) {
-      removeContainer({ dockerHost: 'http://example.com' })
-        .then(function () {
-          throw new Error('task should have thrown an error')
-        })
-        .catch(function (err) {
-          assert.instanceOf(err, TaskFatalError, 'task fatally errors')
-          assert.match(err.message, /containerId.+required/, 'task errors')
-          done()
-        })
-        .catch(done)
+    it('should throw an error on missing dockerHost', function () {
+      return assert.isRejected(
+        removeContainer({ dockerHost: 'http://example.com' }),
+        TaskFatalError,
+        /containerId.+required/
+      )
     })
-    it('should throw an error on missing containerId', function (done) {
-      removeContainer({ containerId: 'deadbeef' })
-        .then(function () {
-          throw new Error('task should have thrown an error')
-        })
-        .catch(function (err) {
-          assert.instanceOf(err, TaskFatalError, 'task fatally errors')
-          assert.match(err.message, /dockerHost.+required/, 'task errors')
-          done()
-        })
-        .catch(done)
+    it('should throw an error on missing containerId', function () {
+      return assert.isRejected(
+        removeContainer({ containerId: 'deadbeef' }),
+        TaskFatalError,
+        /dockerHost.+required/
+      )
     })
 
     describe('Docker Error', function () {
-      it('should thrown the error', function (done) {
-        Docker.prototype.removeContainer
-          .yieldsAsync(new Error('foobar'))
-        removeContainer(testJob)
-          .then(function () {
-            throw new Error('task should have thrown an error')
-          })
-          .catch(function (err) {
-            assert.instanceOf(err, Error, 'normal error')
-            assert.equal(err.message, 'foobar')
-            done()
-          })
-          .catch(done)
+      it('should thrown the error', function () {
+        Docker.prototype.removeContainer.yieldsAsync(new Error('foobar'))
+        return assert.isRejected(
+          removeContainer(testJob),
+          Error,
+          'foobar'
+        )
       })
     })
   })
 
-  it('should remove a container', function (done) {
-    removeContainer(testJob)
+  describe('missing container', function () {
+    it('should simply conclude', function () {
+      var error = new Error('foobar')
+      error.statusCode = 404
+      Docker.prototype.removeContainer.yieldsAsync(error)
+      return assert.isFulfilled(removeContainer(testJob))
+        .then(function (result) {
+          sinon.assert.calledOnce(Docker.prototype.removeContainer)
+          sinon.assert.calledWithExactly(
+            Docker.prototype.removeContainer,
+            4,
+            sinon.match.func
+          )
+          assert.deepEqual(result, {
+            dockerHost: 'http://example.com',
+            removedContainer: ''
+          })
+        })
+    })
+  })
+
+  it('should remove a container', function () {
+    return assert.isFulfilled(removeContainer(testJob))
       .then(function (result) {
-        var removeStub = Docker.prototype.removeContainer
-        assert.ok(removeStub.calledOnce, 'remove called once')
-        var removedId = removeStub.firstCall.args[0]
-        assert.equal(removedId, 4, 'removed the correct container')
+        sinon.assert.calledOnce(Docker.prototype.removeContainer)
+        sinon.assert.calledWithExactly(
+          Docker.prototype.removeContainer,
+          4,
+          sinon.match.func
+        )
         assert.deepEqual(result, {
           dockerHost: 'http://example.com',
           removedContainer: 4
         })
-        done()
       })
-      .catch(done)
   })
 })

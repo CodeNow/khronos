@@ -3,6 +3,7 @@
 require('loadenv')('khronos:test')
 
 var chai = require('chai')
+chai.use(require('chai-as-promised'))
 var assert = chai.assert
 
 // external
@@ -24,95 +25,94 @@ describe('Delete Container Task', function () {
     containerId: 4
   }
 
-  beforeEach(function (done) {
+  beforeEach(function () {
     sinon.stub(Bunyan.prototype, 'error').returns()
     sinon.stub(Docker.prototype, 'removeStoppedContainer').yieldsAsync()
     sinon.stub(Mavis.prototype, 'verifyHost').returns(Promise.resolve(true))
-    done()
   })
-  afterEach(function (done) {
+  afterEach(function () {
     Bunyan.prototype.error.restore()
     Docker.prototype.removeStoppedContainer.restore()
     Mavis.prototype.verifyHost.restore()
-    done()
   })
 
   describe('errors', function () {
-    it('should throw an error on missing dockerHost', function (done) {
-      deleteContainer({ dockerHost: 'http://example.com' })
-        .then(function () {
-          throw new Error('task should have thrown an error')
-        })
-        .catch(function (err) {
-          assert.instanceOf(err, TaskFatalError, 'task fatally errors')
-          assert.match(err.message, /containerId.+required/, 'task errors')
-          done()
-        })
-        .catch(done)
+    it('should throw an error on missing dockerHost', function () {
+      return assert.isRejected(
+        deleteContainer({ dockerHost: 'http://example.com' }),
+        TaskFatalError,
+        /containerId.+required/
+      )
     })
-    it('should throw an error on missing containerId', function (done) {
-      deleteContainer({ containerId: 'deadbeef' })
-        .then(function () {
-          throw new Error('task should have thrown an error')
-        })
-        .catch(function (err) {
-          assert.instanceOf(err, TaskFatalError, 'task fatally errors')
-          assert.match(err.message, /dockerHost.+required/, 'task errors')
-          done()
-        })
-        .catch(done)
+    it('should throw an error on missing containerId', function () {
+      return assert.isRejected(
+        deleteContainer({ containerId: 'deadbeef' }),
+        TaskFatalError,
+        /dockerHost.+required/
+      )
     })
 
     describe('Docker Error', function () {
-      it('should thrown the error', function (done) {
-        Docker.prototype.removeStoppedContainer
-          .yieldsAsync(new Error('foobar'))
-        deleteContainer(testJob)
-          .then(function () {
-            throw new Error('task should have thrown an error')
-          })
-          .catch(function (err) {
-            assert.instanceOf(err, Error, 'normal error')
-            assert.equal(err.message, 'foobar')
-            done()
-          })
-          .catch(done)
+      it('should thrown the error', function () {
+        Docker.prototype.removeStoppedContainer.yieldsAsync(new Error('foobar'))
+        return assert.isRejected(
+          deleteContainer(testJob),
+          Error,
+          'foobar'
+        )
       })
     })
 
     describe('Mavis Error', function () {
-      it('should return an empty data if dock not in mavis', function (done) {
+      it('should return an empty data if dock not in mavis', function () {
         Mavis.prototype.verifyHost.throws(new Mavis.InvalidHostError())
-        deleteContainer(testJob)
+        return assert.isFulfilled(deleteContainer(testJob))
           .then(function (data) {
             sinon.assert.calledOnce(Mavis.prototype.verifyHost)
-            assert.deepEqual(
-              data,
-              {
-                dockerHost: testJob.dockerHost,
-                removedContainer: ''
-              })
+            assert.deepEqual(data, {
+              dockerHost: testJob.dockerHost,
+              removedContainer: ''
+            })
             sinon.assert.notCalled(Docker.prototype.removeStoppedContainer)
-            done()
           })
-          .catch(done)
       })
     })
   })
 
-  it('should remove a container', function (done) {
-    deleteContainer(testJob)
+  describe('missing container', function () {
+    it('should simply conclude', function () {
+      var error = new Error('foobar')
+      error.statusCode = 404
+      Docker.prototype.removeStoppedContainer.yieldsAsync(error)
+      return assert.isFulfilled(deleteContainer(testJob))
+        .then(function (result) {
+          sinon.assert.calledOnce(Docker.prototype.removeStoppedContainer)
+          sinon.assert.calledWithExactly(
+            Docker.prototype.removeStoppedContainer,
+            4,
+            sinon.match.func
+          )
+          assert.deepEqual(result, {
+            dockerHost: 'http://example.com',
+            removedContainer: ''
+          })
+        })
+    })
+  })
+
+  it('should remove a container', function () {
+    return assert.isFulfilled(deleteContainer(testJob))
       .then(function (result) {
-        var removeStub = Docker.prototype.removeStoppedContainer
-        assert.ok(removeStub.calledOnce, 'remove called once')
-        var removedId = removeStub.firstCall.args[0]
-        assert.equal(removedId, 4, 'removed the correct container')
+        sinon.assert.calledOnce(Docker.prototype.removeStoppedContainer)
+        sinon.assert.calledWithExactly(
+          Docker.prototype.removeStoppedContainer,
+          4,
+          sinon.match.func
+        )
         assert.deepEqual(result, {
           dockerHost: 'http://example.com',
           removedContainer: 4
         })
-        done()
       })
-      .catch(done)
   })
 })
