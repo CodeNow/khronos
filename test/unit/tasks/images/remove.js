@@ -6,11 +6,13 @@ var chai = require('chai')
 var assert = chai.assert
 
 // external
+var Promise = require('bluebird')
 var sinon = require('sinon')
 var TaskFatalError = require('ponos').TaskFatalError
 
 // internal
 var Docker = require('models/docker')
+var Mavis = require('models/mavis')
 
 // internal (being tested)
 var removeImage = require('tasks/images/remove')
@@ -23,10 +25,12 @@ describe('Remove Image Task', function () {
 
   beforeEach(function (done) {
     sinon.stub(Docker.prototype, 'removeImage').yieldsAsync()
+    sinon.stub(Mavis.prototype, 'verifyHost').returns(Promise.resolve(true))
     done()
   })
   afterEach(function (done) {
     Docker.prototype.removeImage.restore()
+    Mavis.prototype.verifyHost.restore()
     done()
   })
 
@@ -54,10 +58,28 @@ describe('Remove Image Task', function () {
         .catch(done)
     })
 
+    describe('Mavis Error', function () {
+      it('should return an empty data if dock not in mavis', function (done) {
+        Mavis.prototype.verifyHost.throws(new Mavis.InvalidHostError())
+        removeImage(testJob)
+          .then(function (data) {
+            sinon.assert.calledOnce(Mavis.prototype.verifyHost)
+            assert.deepEqual(
+              data,
+              {
+                dockerHost: testJob.dockerHost,
+                removedImage: ''
+              })
+            sinon.assert.notCalled(Docker.prototype.removeImage)
+            done()
+          })
+          .catch(done)
+      })
+    })
+
     describe('Docker Error', function () {
       it('should thrown the error', function (done) {
-        Docker.prototype.removeImage
-          .yieldsAsync(new Error('foobar'))
+        Docker.prototype.removeImage.yieldsAsync(new Error('foobar'))
         removeImage(testJob)
           .then(function () {
             throw new Error('task should have thrown an error')
