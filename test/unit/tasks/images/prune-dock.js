@@ -6,29 +6,36 @@ var chai = require('chai')
 var assert = chai.assert
 
 // external
+var Bunyan = require('bunyan')
+var Promise = require('bluebird')
 var rabbitmq = require('runnable-hermes')
 var sinon = require('sinon')
 var TaskFatalError = require('ponos').TaskFatalError
 
 // internal
 var Docker = require('models/docker')
+var Mavis = require('models/mavis')
 
 // internal (being tested)
 var imagesPruneDock = require('tasks/images/prune-dock')
 
 describe('images prune dock task', function () {
   beforeEach(function (done) {
+    sinon.stub(Bunyan.prototype, 'warn').returns()
     sinon.stub(Docker.prototype, 'getImages').yieldsAsync(null, [], [])
+    sinon.stub(Mavis.prototype, 'verifyHost').returns(Promise.resolve(true))
     sinon.stub(rabbitmq.prototype, 'close').yieldsAsync()
     sinon.stub(rabbitmq.prototype, 'connect').yieldsAsync()
     sinon.stub(rabbitmq.prototype, 'publish').returns()
     done()
   })
   afterEach(function (done) {
+    Bunyan.prototype.warn.restore()
     Docker.prototype.getImages.restore()
+    Mavis.prototype.verifyHost.restore()
+    rabbitmq.prototype.close.restore()
     rabbitmq.prototype.connect.restore()
     rabbitmq.prototype.publish.restore()
-    rabbitmq.prototype.close.restore()
     done()
   })
 
@@ -75,6 +82,23 @@ describe('images prune dock task', function () {
             done()
           })
           .catch(done)
+      })
+    })
+
+    describe('Mavis Error', function () {
+      it('should return an empty data if dock not in mavis', function () {
+        Mavis.prototype.verifyHost.throws(new Mavis.InvalidHostError())
+        return assert.isFulfilled(imagesPruneDock({ dockerHost: 'http://example.com' }))
+          .then(function (data) {
+            sinon.assert.calledOnce(Mavis.prototype.verifyHost)
+            assert.deepEqual(data, {
+              dockerHost: 'http://example.com',
+              taglessJobsEnqueued: -1,
+              taggedJobsEnqueued: -1
+            })
+            sinon.assert.calledOnce(Bunyan.prototype.warn)
+            sinon.assert.notCalled(rabbitmq.prototype.publish)
+          })
       })
     })
   })
