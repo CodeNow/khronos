@@ -89,9 +89,9 @@ describe('images prune dock task', function () {
       it('should return an empty data if dock not in mavis', function () {
         Mavis.prototype.verifyHost.throws(new Mavis.InvalidHostError())
         return assert.isFulfilled(imagesPruneDock({ dockerHost: 'http://example.com' }))
-          .then(function (data) {
+          .then(function (result) {
             sinon.assert.calledOnce(Mavis.prototype.verifyHost)
-            assert.deepEqual(data, {
+            assert.deepEqual(result, {
               dockerHost: 'http://example.com',
               taglessJobsEnqueued: -1,
               taggedJobsEnqueued: -1
@@ -114,8 +114,11 @@ describe('images prune dock task', function () {
             sinon.match.func
           )
           sinon.assert.notCalled(rabbitmq.prototype.publish)
-          assert.equal(result.taglessJobsEnqueued, 0)
-          assert.equal(result.taggedJobsEnqueued, 0)
+          assert.deepEqual(result, {
+            dockerHost: 'http://example.com',
+            taggedJobsEnqueued: 0,
+            taglessJobsEnqueued: 0
+          })
           done()
         })
         .catch(done)
@@ -141,8 +144,11 @@ describe('images prune dock task', function () {
               imageId: 'foo/bar'
             }
           )
-          assert.equal(result.taggedJobsEnqueued, 1)
-          assert.equal(result.taglessJobsEnqueued, 0)
+          assert.deepEqual(result, {
+            dockerHost: 'http://example.com',
+            taggedJobsEnqueued: 1,
+            taglessJobsEnqueued: 0
+          })
           done()
         })
         .catch(done)
@@ -170,8 +176,11 @@ describe('images prune dock task', function () {
               imageId: 4
             }
           )
-          assert.equal(result.taggedJobsEnqueued, 0)
-          assert.equal(result.taglessJobsEnqueued, 1)
+          assert.deepEqual(result, {
+            dockerHost: 'http://example.com',
+            taggedJobsEnqueued: 0,
+            taglessJobsEnqueued: 1
+          })
           done()
         })
         .catch(done)
@@ -229,8 +238,11 @@ describe('images prune dock task', function () {
               imageId: 'bar/baz'
             }
           )
-          assert.equal(result.taggedJobsEnqueued, 2)
-          assert.equal(result.taglessJobsEnqueued, 2)
+          assert.deepEqual(result, {
+            dockerHost: 'http://example.com',
+            taggedJobsEnqueued: 2,
+            taglessJobsEnqueued: 2
+          })
           done()
         })
         .catch(done)
