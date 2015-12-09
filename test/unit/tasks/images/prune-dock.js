@@ -91,6 +91,7 @@ describe('images prune dock task', function () {
         return assert.isFulfilled(imagesPruneDock({ dockerHost: 'http://example.com' }))
           .then(function (result) {
             sinon.assert.calledOnce(Mavis.prototype.verifyHost)
+            sinon.assert.calledWithExactly(Mavis.prototype.verifyHost, 'http://example.com')
             assert.deepEqual(result, {
               dockerHost: 'http://example.com',
               taglessJobsEnqueued: -1,
