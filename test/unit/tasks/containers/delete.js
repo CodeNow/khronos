@@ -69,6 +69,7 @@ describe('Delete Container Task', function () {
         return assert.isFulfilled(deleteContainer(testJob))
           .then(function (data) {
             sinon.assert.calledOnce(Mavis.prototype.verifyHost)
+            sinon.assert.calledWithExactly(Mavis.prototype.verifyHost, testJob.dockerHost)
             assert.deepEqual(data, {
               dockerHost: testJob.dockerHost,
               removedContainer: ''

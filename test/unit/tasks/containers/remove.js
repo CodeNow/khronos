@@ -8,11 +8,13 @@ var assert = chai.assert
 
 // external
 var Bunyan = require('bunyan')
+var Promise = require('bluebird')
 var sinon = require('sinon')
 var TaskFatalError = require('ponos').TaskFatalError
 
 // internal
 var Docker = require('models/docker')
+var Mavis = require('models/mavis')
 
 // internal (being tested)
 var removeContainer = require('tasks/containers/remove')
@@ -25,10 +27,14 @@ describe('Remove Container Task', function () {
 
   beforeEach(function () {
     sinon.stub(Bunyan.prototype, 'error').returns()
+    sinon.stub(Bunyan.prototype, 'warn').returns()
+    sinon.stub(Mavis.prototype, 'verifyHost').returns(Promise.resolve(true))
     sinon.stub(Docker.prototype, 'removeContainer').yieldsAsync()
   })
   afterEach(function () {
     Bunyan.prototype.error.restore()
+    Bunyan.prototype.warn.restore()
+    Mavis.prototype.verifyHost.restore()
     Docker.prototype.removeContainer.restore()
   })
 
@@ -56,6 +62,23 @@ describe('Remove Container Task', function () {
           Error,
           'foobar'
         )
+      })
+    })
+
+    describe('Mavis Error', function () {
+      it('should return an empty data if dock not in mavis', function () {
+        Mavis.prototype.verifyHost.throws(new Mavis.InvalidHostError())
+        return assert.isFulfilled(removeContainer(testJob))
+          .then(function (data) {
+            sinon.assert.calledOnce(Mavis.prototype.verifyHost)
+            sinon.assert.calledWithExactly(Mavis.prototype.verifyHost, testJob.dockerHost)
+            assert.deepEqual(data, {
+              dockerHost: testJob.dockerHost,
+              removedContainer: ''
+            })
+            sinon.assert.calledOnce(Bunyan.prototype.warn)
+            sinon.assert.notCalled(Docker.prototype.removeContainer)
+          })
       })
     })
   })
