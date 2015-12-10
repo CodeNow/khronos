@@ -41,15 +41,11 @@ describe('Prune Orphan Images', function () {
   })
   var dockerMockServer
   var workerServer
-  var prevDocks
 
   before(function (done) {
-    prevDocks = process.env.KHRONOS_DOCKS
     dockerMockServer = dockerMock.listen(process.env.KHRONOS_DOCKER_PORT, done)
   })
   beforeEach(function () {
-    process.env.KHRONOS_DOCKS =
-      'http://localhost:' + process.env.KHRONOS_DOCKER_PORT
     sinon.spy(Image.prototype, 'remove')
     sinon.spy(Docker.prototype, 'listImages')
     // spy on all tasks
@@ -72,7 +68,6 @@ describe('Prune Orphan Images', function () {
     mongodbFactory.removeAllContextVersions(done)
   })
   after(function (done) {
-    process.env.KHRONOS_DOCKS = prevDocks
     dockerMockServer.close(done)
   })
 

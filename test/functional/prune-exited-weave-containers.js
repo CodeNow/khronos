@@ -6,6 +6,7 @@ var chai = require('chai')
 chai.use(require('chai-as-promised'))
 var assert = chai.assert
 var expect = chai.expect
+var nock = require('nock')
 
 // external
 var async = require('async')
@@ -25,6 +26,7 @@ var docker = new Docker({
 })
 
 describe('Prune Exited Weave Containers', function () {
+  var nockScope = null
   var tasks = {
     'khronos:containers:delete': require('../../lib/tasks/containers/delete'),
     'khronos:weave:prune-dock': require('../../lib/tasks/weave/prune-dock'),
@@ -44,8 +46,6 @@ describe('Prune Exited Weave Containers', function () {
     dockerMockServer = dockerMock.listen(process.env.KHRONOS_DOCKER_PORT, done)
   })
   beforeEach(function () {
-    process.env.KHRONOS_DOCKS =
-      'http://localhost:' + process.env.KHRONOS_DOCKER_PORT
     sinon.spy(Container.prototype, 'remove')
     sinon.spy(tasks, 'khronos:weave:prune-dock')
     sinon.spy(tasks, 'khronos:containers:delete')
@@ -53,15 +53,24 @@ describe('Prune Exited Weave Containers', function () {
     workerServer.setAllTasks(tasks)
     return assert.isFulfilled(workerServer.start())
   })
+  beforeEach(function () {
+    var TLD = process.env.KHRONOS_MAVIS.replace('/docks', '')
+    nockScope = nock(TLD)
+      .persist()
+      .get('/docks')
+      .reply(200, require('../mocks/mavis/docks.json'))
+  })
   afterEach(function () {
     return assert.isFulfilled(workerServer.stop())
   })
   afterEach(function (done) {
-    process.env.KHRONOS_DOCKS = null
     Container.prototype.remove.restore()
     tasks['khronos:weave:prune-dock'].restore()
     tasks['khronos:containers:delete'].restore()
     dockerFactory.deleteAllImagesAndContainers(docker, done)
+  })
+  afterEach(function () {
+    nock.cleanAll()
   })
   after(function (done) {
     dockerMockServer.close(done)
@@ -77,6 +86,7 @@ describe('Prune Exited Weave Containers', function () {
         },
         function (err) {
           if (err) { return done(err) }
+          expect(nockScope.isDone(), '/docks fetched').to.equal(true)
           expect(Container.prototype.remove.callCount).to.equal(0)
           setTimeout(done, 100)
         })
@@ -105,26 +115,34 @@ describe('Prune Exited Weave Containers', function () {
             })
         })
     })
-    it('should run successfully on multiple docks', function (done) {
-      process.env.KHRONOS_DOCKS =
-        process.env.KHRONOS_DOCKS + ',' + process.env.KHRONOS_DOCKS
-      workerServer.hermes.publish('khronos:weave:prune', {})
-      async.doUntil(
-        function (cb) { setTimeout(cb, 100) },
-        function () {
-          return tasks['khronos:weave:prune-dock'].callCount === 2
-        },
-        function (err) {
-          if (err) { return done(err) }
-          expect(Container.prototype.remove.callCount).to.equal(0)
-          dockerFactory.listContainersAndAssert(
-            docker,
-            function (containers) { expect(containers).to.have.length(5) },
-            function (err) {
-              if (err) { return done(err) }
-              setTimeout(done, 100)
-            })
-        })
+    describe('with multiple docks', function () {
+      beforeEach(function () {
+        var TLD = process.env.KHRONOS_MAVIS.replace('/docks', '')
+        nock.cleanAll()
+        nockScope = nock(TLD)
+          .persist()
+          .get('/docks')
+          .reply(200, require('../mocks/mavis/multiple-docks.json'))
+      })
+      it('should run successfully', function (done) {
+        workerServer.hermes.publish('khronos:weave:prune', {})
+        async.doUntil(
+          function (cb) { setTimeout(cb, 100) },
+          function () {
+            return tasks['khronos:weave:prune-dock'].callCount === 2
+          },
+          function (err) {
+            if (err) { return done(err) }
+            expect(Container.prototype.remove.callCount).to.equal(0)
+            dockerFactory.listContainersAndAssert(
+              docker,
+              function (containers) { expect(containers).to.have.length(5) },
+              function (err) {
+                if (err) { return done(err) }
+                setTimeout(done, 100)
+              })
+          })
+      })
     })
 
     describe('where weave containers are present', function () {

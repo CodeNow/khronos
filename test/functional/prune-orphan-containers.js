@@ -48,8 +48,6 @@ describe('Prune Orphaned Containers', function () {
     dockerMockServer = dockerMock.listen(process.env.KHRONOS_DOCKER_PORT, done)
   })
   beforeEach(function () {
-    process.env.KHRONOS_DOCKS =
-      'http://localhost:' + process.env.KHRONOS_DOCKER_PORT
     sinon.spy(Container.prototype, 'remove')
     sinon.spy(tasks, 'khronos:containers:orphan:prune-dock')
     sinon.spy(tasks, 'khronos:containers:orphan:check-against-mongo')
@@ -62,7 +60,6 @@ describe('Prune Orphaned Containers', function () {
     return assert.isFulfilled(workerServer.stop())
   })
   afterEach(function (done) {
-    process.env.KHRONOS_DOCKS = null
     Container.prototype.remove.restore()
     tasks['khronos:containers:orphan:prune-dock'].restore()
     tasks['khronos:containers:orphan:check-against-mongo'].restore()
