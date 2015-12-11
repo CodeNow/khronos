@@ -3,6 +3,7 @@
 require('loadenv')('khronos:test')
 
 var chai = require('chai')
+chai.use(require('chai-as-promised'))
 var assert = chai.assert
 
 // external
@@ -16,119 +17,100 @@ var Mavis = require('models/mavis')
 
 describe('Mavis Model', function () {
   var mavis
-  beforeEach(function (done) {
+  var docks = require('../../mocks/mavis/docks.json')
+  beforeEach(function () {
     sinon.stub(Bunyan.prototype, 'error').returns()
     mavis = new Mavis()
-    done()
   })
-  afterEach(function (done) {
+  afterEach(function () {
     Bunyan.prototype.error.restore()
-    done()
   })
 
-  it('should fetch docks', function (done) {
-    var docks = require('../../mocks/mavis/docks.json')
-    sinon.stub(request, 'get').yields(null, {}, JSON.stringify(docks))
+  describe('getDocks', function () {
+    beforeEach(function () {
+      sinon.stub(mavis, 'getRawDocks').returns(Promise.resolve(docks))
+    })
+    afterEach(function () {
+      mavis.getRawDocks.restore()
+    })
 
-    mavis.getDocks()
-      .then(function (docks) {
-        request.get.restore()
-        assert.lengthOf(docks, 1, 'number of docks')
-        assert.include(docks, 'http://localhost:5454', 'expected dock')
-        done()
-      })
-      .catch(done)
+    it('should return just the hosts', function () {
+      return assert.isFulfilled(mavis.getDocks())
+        .then(function (docks) {
+          assert.lengthOf(docks, 1, 'number of docks')
+          assert.include(docks, 'http://localhost:5454', 'expected dock')
+        })
+    })
+
+    it('should handle an empty rawDocks', function () {
+      mavis.getRawDocks.returns(Promise.resolve([]))
+      return assert.isFulfilled(mavis.getDocks())
+        .then(function (docks) {
+          assert.lengthOf(docks, 0, 'number of docks')
+        })
+    })
   })
 
-  it('should return an error if mavis fails', function (done) {
-    sinon.stub(request, 'get').yields(new Error('some error'))
+  describe('getRawDocks', function () {
+    beforeEach(function () {
+      sinon.stub(request, 'get').yields(null, {}, JSON.stringify(docks))
+    })
+    afterEach(function () {
+      request.get.restore()
+    })
+    it('should fetch the docks', function () {
+      return assert.isFulfilled(mavis.getRawDocks())
+        .then(function (returnedDocks) {
+          assert.lengthOf(returnedDocks, 1, 'number of docks')
+          assert.include(returnedDocks, docks[0], 'expected dock')
+        })
+    })
 
-    mavis.getDocks()
-      .then(function () {
-        done(new Error('mavis should have errored'))
+    describe('network error', function () {
+      beforeEach(function () {
+        request.get.yields(new Error('some error'))
       })
-      .catch(function (err) {
-        request.get.restore()
-        assert.equal(err.message, 'some error')
-        done()
+      it('should return an error', function () {
+        return assert.isRejected(mavis.getRawDocks())
+          .then(function (err) {
+            assert.include(err.message, 'some error')
+          })
       })
-  })
+    })
 
-  it('should return an error body cannot be parsed', function (done) {
-    sinon.stub(request, 'get').yields(null, {}, '{ invalid: "json" }')
-
-    mavis.getDocks()
-      .then(function () {
-        done(new Error('mavis should have errored'))
+    describe('invalid body JSON', function () {
+      beforeEach(function () {
+        request.get.yields(null, {}, '{ invalid: "json" }')
       })
-      .catch(function (err) {
-        request.get.restore()
-        assert.ok(err)
-        assert.match(err.message, /unexpected token/i)
-        done()
+      it('should return an error', function () {
+        return assert.isRejected(mavis.getRawDocks())
+          .then(function (err) {
+            assert.match(err.message, /unexpected token/i)
+          })
       })
+    })
   })
 
   describe('verifyHost', function () {
-    beforeEach(function (done) {
+    beforeEach(function () {
       sinon.stub(mavis, 'getDocks')
         .returns(Promise.resolve(['http://example.com:5555']))
-      done()
     })
-    afterEach(function (done) {
+    afterEach(function () {
       mavis.getDocks.restore()
-      done()
     })
-    it('should verify a host that exists', function (done) {
-      mavis.verifyHost('http://example.com:5555')
+    it('should verify a host that exists', function () {
+      return assert.isFulfilled(mavis.verifyHost('http://example.com:5555'))
         .then(function (host) {
           assert.equal(host, 'http://example.com:5555')
-          done()
         })
-        .catch(done)
     })
-    it('should throw with host that does not exist', function (done) {
-      mavis.verifyHost('http://example.com:1234')
-        .then(function () {
-          throw new Error('verifyHost should have thrown')
-        })
-        .catch(function (err) {
+    it('should throw with host that does not exist', function () {
+      return assert.isRejected(mavis.verifyHost('http://example.com:1234'))
+        .then(function (err) {
           assert.instanceOf(err, Mavis.InvalidHostError)
           assert.match(err.message, /no longer exists/)
-          done()
         })
-        .catch(done)
-    })
-  })
-
-  describe('defaulting the docks', function () {
-    var prevDocks
-    beforeEach(function (done) {
-      prevDocks = process.env.KHRONOS_DOCKS
-      process.env.KHRONOS_DOCKS = [
-        'http://example.com:1234',
-        'http://example.com:4567'
-      ].join(',')
-      done()
-    })
-    afterEach(function (done) {
-      process.env.KHRONOS_DOCKS = prevDocks
-      done()
-    })
-
-    it('should allow us to override the docks', function (done) {
-      sinon.stub(request, 'get').yields(new Error('some error'))
-
-      mavis.getDocks()
-        .then(function (docks) {
-          var stub = request.get
-          request.get.restore()
-          assert.isFalse(stub.calledOnce)
-          assert.include(docks, 'http://example.com:1234')
-          assert.include(docks, 'http://example.com:4567')
-          done()
-        })
-        .catch(done)
     })
   })
 })

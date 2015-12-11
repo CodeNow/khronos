@@ -31,7 +31,7 @@ NODE_ENV=test NODE_PATH=lib/ node node_modules/lab/bin/lab test/___.unit.js
 DEBUG=khronos* (for debug output)
 
 // Run examples
-NODE_ENV=staging NODE_PATH=./lib MANUAL_RUN=true DEBUG=khronos* KHRONOS_DOCKS=http://10.0.1.240:4242 node index.js
+NODE_ENV=staging NODE_PATH=./lib MANUAL_RUN=true DEBUG=khronos* node index.js
 
 // ENV Flags
 DRY_RUN=true    # docker stop/kill/remove commands stubbed (very time consuming, useful for quick test)

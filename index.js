@@ -22,7 +22,8 @@ var tasks = {
   'khronos:images:prune': require('tasks/images/prune'),
   'khronos:images:remove': require('tasks/images/remove'),
   'khronos:weave:prune-dock': require('tasks/weave/prune-dock'),
-  'khronos:weave:prune': require('tasks/weave/prune')
+  'khronos:weave:prune': require('tasks/weave/prune'),
+  'khronos:docks:obliterate-codenow': require('tasks/docks/obliterate-codenow')
 }
 var hermes = rabbitmq(Object.keys(tasks))
 var server = new ponos.Server({ hermes: hermes })
