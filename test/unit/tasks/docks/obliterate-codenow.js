@@ -22,7 +22,6 @@ var rawDocks = require('../../../mocks/mavis/multiple-docks.json')
 var ObliterateCodeNow = require('tasks/docks/obliterate-codenow')
 
 describe('Obliterate CodeNow Task', function () {
-
   beforeEach(function () {
     sinon.stub(Mavis.prototype, 'getRawDocks').returns(Promise.resolve(rawDocks))
 
@@ -61,7 +60,7 @@ describe('Obliterate CodeNow Task', function () {
           sinon.assert.calledOnce(Mavis.prototype.getRawDocks)
           sinon.assert.notCalled(rabbitmq.prototype.publish)
         })
-    });
+    })
   })
 
   describe('when there is an error getting docks from mavis', function () {
