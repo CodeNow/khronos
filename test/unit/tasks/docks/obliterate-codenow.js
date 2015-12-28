@@ -42,7 +42,7 @@ describe('Obliterate CodeNow Task', function () {
       .then(function () {
         sinon.assert.calledOnce(Mavis.prototype.getRawDocks)
         sinon.assert.calledOnce(rabbitmq.prototype.publish)
-        sinon.assert.calledWith(rabbitmq.prototype.publish, 'on-dock-unhealthy', { dockerHost: rawDocks[0].host, githubId: CODENOW_GITHUB_ID })
+        sinon.assert.calledWith(rabbitmq.prototype.publish, 'on-dock-unhealthy', { host: rawDocks[0].host, githubId: CODENOW_GITHUB_ID })
       })
   })
 
