@@ -66,8 +66,11 @@ describe('Remove Container Task', function () {
     })
 
     describe('Mavis Error', function () {
-      it('should return an empty data if dock not in mavis', function () {
+      beforeEach(function () {
         Mavis.prototype.verifyHost.throws(new Mavis.InvalidHostError())
+      })
+
+      it('should return an empty data if dock not in mavis', function () {
         return assert.isFulfilled(removeContainer(testJob))
           .then(function (data) {
             sinon.assert.calledOnce(Mavis.prototype.verifyHost)
@@ -84,10 +87,14 @@ describe('Remove Container Task', function () {
   })
 
   describe('missing container', function () {
-    it('should simply conclude', function () {
-      var error = new Error('foobar')
+    var error
+    beforeEach(function () {
+      error = new Error('foobar')
       error.statusCode = 404
       Docker.prototype.removeContainer.yieldsAsync(error)
+    })
+
+    it('should simply conclude', function () {
       return assert.isFulfilled(removeContainer(testJob))
         .then(function (result) {
           sinon.assert.calledOnce(Docker.prototype.removeContainer)

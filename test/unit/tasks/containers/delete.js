@@ -3,8 +3,8 @@
 require('loadenv')('khronos:test')
 
 var chai = require('chai')
-chai.use(require('chai-as-promised'))
 var assert = chai.assert
+chai.use(require('chai-as-promised'))
 
 // external
 var Bunyan = require('bunyan')
@@ -53,8 +53,11 @@ describe('Delete Container Task', function () {
     })
 
     describe('Docker Error', function () {
-      it('should thrown the error', function () {
+      beforeEach(function () {
         Docker.prototype.removeStoppedContainer.yieldsAsync(new Error('foobar'))
+      })
+
+      it('should thrown the error', function () {
         return assert.isRejected(
           deleteContainer(testJob),
           Error,
@@ -64,8 +67,11 @@ describe('Delete Container Task', function () {
     })
 
     describe('Mavis Error', function () {
-      it('should return an empty data if dock not in mavis', function () {
+      beforeEach(function () {
         Mavis.prototype.verifyHost.throws(new Mavis.InvalidHostError())
+      })
+
+      it('should return an empty data if dock not in mavis', function () {
         return assert.isFulfilled(deleteContainer(testJob))
           .then(function (data) {
             sinon.assert.calledOnce(Mavis.prototype.verifyHost)
@@ -81,10 +87,14 @@ describe('Delete Container Task', function () {
   })
 
   describe('missing container', function () {
-    it('should simply conclude', function () {
-      var error = new Error('foobar')
+    var error
+    beforeEach(function () {
+      error = new Error('foobar')
       error.statusCode = 404
       Docker.prototype.removeStoppedContainer.yieldsAsync(error)
+    })
+
+    it('should simply conclude', function () {
       return assert.isFulfilled(deleteContainer(testJob))
         .then(function (result) {
           sinon.assert.calledOnce(Docker.prototype.removeStoppedContainer)

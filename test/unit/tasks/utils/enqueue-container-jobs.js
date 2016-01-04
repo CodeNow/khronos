@@ -4,6 +4,7 @@ require('loadenv')('khronos:test')
 
 var chai = require('chai')
 var assert = chai.assert
+chai.use(require('chai-as-promised'))
 
 // external
 var Hermes = require('runnable-hermes')
@@ -18,179 +19,151 @@ var Mavis = require('models/mavis')
 var enqueueContainerJobsHelper = require('tasks/utils/enqueue-container-jobs')
 
 describe('Enqueue Container Jobs Helper', function () {
-  beforeEach(function (done) {
+  beforeEach(function () {
     sinon.stub(Docker.prototype, 'getContainers').yieldsAsync(null, [])
     sinon.stub(Hermes.prototype, 'connect').yieldsAsync()
     sinon.stub(Hermes.prototype, 'publish').returns()
     sinon.stub(Mavis.prototype, 'verifyHost').returns(true)
-    done()
   })
-  afterEach(function (done) {
+  afterEach(function () {
     Docker.prototype.getContainers.restore()
     Hermes.prototype.connect.restore()
     Hermes.prototype.publish.restore()
     Mavis.prototype.verifyHost.restore()
-    done()
   })
 
   var options
-  beforeEach(function (done) {
+  beforeEach(function () {
     options = {
       job: { dockerHost: 'http://example.com' },
       targetQueue: 'queue:one',
       imageFilters: ['philter']
     }
-    done()
   })
 
   describe('failures', function () {
-    it('should enforce being passed one object argument', function (done) {
-      enqueueContainerJobsHelper()
-        .then(function () { throw new Error('should have rejected') })
-        .catch(function (err) {
-          assert.instanceOf(err, TaskFatalError)
-          assert.match(err.message, /options must be an object/)
-          done()
-        })
-        .catch(done)
+    it('should enforce being passed one object argument', function () {
+      return assert.isRejected(
+        enqueueContainerJobsHelper(),
+        TaskFatalError,
+        /options must be an object/
+      )
     })
-    it('should require options.job', function (done) {
+
+    it('should require options.job', function () {
       options.job = undefined
-      enqueueContainerJobsHelper(options)
-        .then(function () { throw new Error('should have rejected') })
-        .catch(function (err) {
-          assert.instanceOf(err, TaskFatalError)
-          assert.match(err.message, /job.+object/)
-          done()
-        })
-        .catch(done)
+      return assert.isRejected(
+        enqueueContainerJobsHelper(options),
+        TaskFatalError,
+        /job.+object/
+      )
     })
-    it('should require object.job to be an object', function (done) {
+
+    it('should require object.job to be an object', function () {
       options.job = ''
-      enqueueContainerJobsHelper(options)
-        .then(function () { throw new Error('should have rejected') })
-        .catch(function (err) {
-          assert.instanceOf(err, TaskFatalError)
-          assert.match(err.message, /job.+object/)
-          done()
-        })
-        .catch(done)
+      return assert.isRejected(
+        enqueueContainerJobsHelper(options),
+        TaskFatalError,
+        /job.+object/
+      )
     })
-    it('should require object.targetQueue', function (done) {
+
+    it('should require object.targetQueue', function () {
       options.targetQueue = undefined
-      enqueueContainerJobsHelper(options)
-        .then(function () { throw new Error('should have rejected') })
-        .catch(function (err) {
-          assert.instanceOf(err, TaskFatalError)
-          assert.match(err.message, /targetQueue.+string/)
-          done()
-        })
-        .catch(done)
+      return assert.isRejected(
+        enqueueContainerJobsHelper(options),
+        TaskFatalError,
+        /targetQueue.+string/
+      )
     })
-    it('should require object.imageFilters', function (done) {
+
+    it('should require object.imageFilters', function () {
       options.imageFilters = undefined
-      enqueueContainerJobsHelper(options)
-        .then(function () { throw new Error('should have rejected') })
-        .catch(function (err) {
-          assert.instanceOf(err, TaskFatalError)
-          assert.match(err.message, /imageFilters.+array/)
-          done()
-        })
-        .catch(done)
+      return assert.isRejected(
+        enqueueContainerJobsHelper(options),
+        TaskFatalError,
+        /imageFilters.+array/
+      )
     })
-    it('should require object.imageFilters to be an array', function (done) {
+
+    it('should require object.imageFilters to be an array', function () {
       options.imageFilters = {}
-      enqueueContainerJobsHelper(options)
-        .then(function () { throw new Error('should have rejected') })
-        .catch(function (err) {
-          assert.instanceOf(err, TaskFatalError)
-          assert.match(err.message, /imageFilters.+array/)
-          done()
-        })
-        .catch(done)
+      return assert.isRejected(
+        enqueueContainerJobsHelper(options),
+        TaskFatalError,
+        /imageFilters.+array/
+      )
     })
-    it('should throw if Docker errors', function (done) {
+
+    it('should throw if Docker errors', function () {
       Docker.prototype.getContainers.yieldsAsync(new Error('foobar'))
-      enqueueContainerJobsHelper(options)
+      return assert.isRejected(
+        enqueueContainerJobsHelper(options),
+        Error,
+        'foobar'
+      )
         .then(function () {
-          throw new Error('helper should have thrown an error')
+          sinon.assert.notCalled(Hermes.prototype.publish)
         })
-        .catch(function (err) {
-          assert.instanceOf(err, Error)
-          assert.notOk(Hermes.prototype.publish.called,
-            'no publishing of jobs')
-          assert.equal(err.message, 'foobar')
-          done()
-        })
-        .catch(done)
     })
-    it('should throw if rabbitmq errors', function (done) {
+
+    it('should throw if rabbitmq errors', function () {
       Hermes.prototype.connect.throws(new Error('foobar'))
-      enqueueContainerJobsHelper(options)
+      return assert.isRejected(
+        enqueueContainerJobsHelper(options),
+        Error,
+        'foobar'
+      )
         .then(function () {
-          throw new Error('helper should have thrown an error')
+          sinon.assert.notCalled(Docker.prototype.getContainers)
+          sinon.assert.notCalled(Hermes.prototype.publish)
         })
-        .catch(function (err) {
-          assert.instanceOf(err, Error)
-          assert.notOk(Docker.prototype.getContainers.called,
-            'no getContainers')
-          assert.notOk(Hermes.prototype.publish.called,
-            'no publishing of jobs')
-          assert.equal(err.message, 'foobar')
-          done()
-        })
-        .catch(done)
     })
   })
 
   describe('successes', function () {
-    it('should not enqueue jobs if there are no containers', function (done) {
+    it('should not enqueue jobs if there are no containers', function () {
       Docker.prototype.getContainers.yieldsAsync(null, [])
-      enqueueContainerJobsHelper(options)
+      return assert.isFulfilled(enqueueContainerJobsHelper(options))
         .then(function (result) {
           assert.equal(result, 0, 'no jobs enqueued')
-          assert.ok(Docker.prototype.getContainers.calledOnce, 'gotContainers')
-          assert.notOk(Hermes.prototype.publish.called, 'no job published')
-          done()
+          sinon.assert.calledOnce(Docker.prototype.getContainers)
+          sinon.assert.notCalled(Hermes.prototype.publish)
         })
-        .catch(done)
     })
-    it('should not enqueue jobs if the dock no longer exists', function (done) {
+
+    it('should not enqueue jobs if the dock no longer exists', function () {
       Mavis.prototype.verifyHost.throws(new Mavis.InvalidHostError())
       Docker.prototype.getContainers.yieldsAsync(null, [{ Id: 4 }])
-      enqueueContainerJobsHelper(options)
+      return assert.isFulfilled(enqueueContainerJobsHelper(options))
         .then(function (result) {
           assert.equal(result, 0, 'no jobs queued')
-          assert.notOk(Docker.prototype.getContainers.called, 'no docker call')
-          assert.notOk(Hermes.prototype.publish.called, 'no job queued')
-          done()
+          sinon.assert.notCalled(Docker.prototype.getContainers)
+          sinon.assert.notCalled(Hermes.prototype.publish)
         })
-        .catch(done)
     })
-    it('should return a promise resolving the number of jobs', function (done) {
+
+    it('should return a promise resolving the number of jobs', function () {
       Docker.prototype.getContainers.yieldsAsync(null, [{ Id: 4 }])
-      enqueueContainerJobsHelper(options)
+      return assert.isFulfilled(enqueueContainerJobsHelper(options))
         .then(function (result) {
           assert.equal(result, 1, 'had 1 container')
-          assert.deepEqual(
-            Docker.prototype.getContainers.firstCall.args[1],
+          sinon.assert.calledWithExactly(
+            Docker.prototype.getContainers,
+            sinon.match.object,
             ['philter'],
-            'passes filters to getContainers')
-          assert.ok(Hermes.prototype.publish.calledOnce, 'one job published')
-          assert.equal(
-            Hermes.prototype.publish.firstCall.args[0],
+            sinon.match.func
+          )
+          sinon.assert.calledOnce(Hermes.prototype.publish)
+          sinon.assert.calledWithExactly(
+            Hermes.prototype.publish,
             'queue:one',
-            'publishes to the correct queue')
-          assert.deepEqual(
-            Hermes.prototype.publish.firstCall.args[1],
             {
               dockerHost: 'http://example.com',
               containerId: 4
-            },
-            'publishes a vaild job')
-          done()
+            }
+          )
         })
-        .catch(done)
     })
   })
 })

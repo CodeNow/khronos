@@ -4,6 +4,7 @@ require('loadenv')('khronos:test')
 
 var chai = require('chai')
 var assert = chai.assert
+chai.use(require('chai-as-promised'))
 
 // external
 var sinon = require('sinon')
@@ -17,7 +18,7 @@ var contextVersionRemoveAndProtectInstance = require('tasks/context-versions/rem
 
 describe('context versions remove and protect instances', function () {
   var sampleJob
-  beforeEach(function (done) {
+  beforeEach(function () {
     sinon.stub(MongoDB.prototype, 'close').yieldsAsync()
     sinon.stub(MongoDB.prototype, 'connect').yieldsAsync()
     sinon.stub(MongoDB.prototype, 'countInstances').yieldsAsync()
@@ -30,9 +31,8 @@ describe('context versions remove and protect instances', function () {
     sampleJob = {
       contextVersionId: 'deadbeef'
     }
-    done()
   })
-  afterEach(function (done) {
+  afterEach(function () {
     MongoDB.prototype.close.restore()
     MongoDB.prototype.connect.restore()
     MongoDB.prototype.countInstances.restore()
@@ -40,87 +40,71 @@ describe('context versions remove and protect instances', function () {
     MongoDB.prototype.removeContextVersions.restore()
     MongoDB.prototype.insertContextVersions.restore()
     MongoDB.prototype.newObjectID.restore()
-    done()
   })
 
   describe('errors', function () {
     describe('Validation Errors', function () {
-      it('should throw an error on missing contextVersionId', function (done) {
+      it('should throw an error on missing contextVersionId', function () {
         delete sampleJob.contextVersionId
-        contextVersionRemoveAndProtectInstance(sampleJob)
-          .then(function () {
-            throw new Error('task should have thrown an error')
-          })
-          .catch(function (err) {
-            assert.instanceOf(err, TaskFatalError, 'task fatally errors')
-            assert.match(err.message, /contextVersionId.+required/, 'task errors')
-            done()
-          })
-          .catch(done)
+        return assert.isRejected(
+          contextVersionRemoveAndProtectInstance(sampleJob),
+          TaskFatalError,
+          /contextVersionId.+required/
+        )
       })
     })
 
     describe('if mongodb errors', function () {
-      it('should throw the error on connect', function (done) {
+      beforeEach(function () {
         MongoDB.prototype.connect.yieldsAsync(new Error('foobar'))
-        contextVersionRemoveAndProtectInstance(sampleJob)
-          .then(function () {
-            throw new Error('task should have thrown an error')
-          })
-          .catch(function (err) {
-            assert.instanceOf(err, Error, 'normal error')
-            assert.equal(err.message, 'foobar')
-            done()
-          })
-          .catch(done)
+      })
+
+      it('should throw the error on connect', function () {
+        return assert.isRejected(
+          contextVersionRemoveAndProtectInstance(sampleJob),
+          Error,
+          'foobar'
+        )
       })
     })
-    it('should throw the error on fetchContextVersions', function (done) {
+
+    it('should throw the error on fetchContextVersions', function () {
       MongoDB.prototype.fetchContextVersions.yieldsAsync(new Error('foobar'))
-      contextVersionRemoveAndProtectInstance(sampleJob)
-        .then(function () {
-          throw new Error('task should have thrown an error')
-        })
-        .catch(function (err) {
-          assert.instanceOf(err, Error, 'normal error')
-          assert.equal(err.message, 'foobar')
-          done()
-        })
-        .catch(done)
+      return assert.isRejected(
+        contextVersionRemoveAndProtectInstance(sampleJob),
+        Error,
+        'foobar'
+      )
     })
-    it('should fatally error with not found message', function (done) {
+
+    it('should fatally error with not found message', function () {
       MongoDB.prototype.fetchContextVersions.yieldsAsync(null, [])
-      contextVersionRemoveAndProtectInstance(sampleJob)
-        .then(function () {
-          throw new Error('task should have thrown an error')
-        })
-        .catch(TaskFatalError, function (err) {
-          assert.match(err.message, /could not find context version/i)
-          done()
-        })
-        .catch(done)
+      return assert.isRejected(
+        contextVersionRemoveAndProtectInstance(sampleJob),
+        TaskFatalError,
+        /could not find context version/i
+      )
     })
   })
 
-  it('should remove a context version', function (done) {
+  it('should remove a context version', function () {
     MongoDB.prototype.fetchContextVersions.yieldsAsync(null, [{
       _id: 'deadbeef'
     }])
     MongoDB.prototype.countInstances.yieldsAsync(null, 0)
-    contextVersionRemoveAndProtectInstance(sampleJob)
+    return assert.isFulfilled(contextVersionRemoveAndProtectInstance(sampleJob))
       .then(function (result) {
         sinon.assert.calledOnce(MongoDB.prototype.removeContextVersions)
-        sinon.assert.calledWith(
+        sinon.assert.calledWithExactly(
           MongoDB.prototype.removeContextVersions,
-          { _id: 'deadbeef' }
+          { _id: 'deadbeef' },
+          sinon.match.func
         )
         assert.deepEqual(result, {
           contextVersionId: 'deadbeef',
           removed: true
         })
-        done()
       })
-      .catch(done)
   })
 
   describe('when it does remove a context version', function () {
@@ -132,8 +116,8 @@ describe('context versions remove and protect instances', function () {
       MongoDB.prototype.countInstances.yieldsAsync(null, 0)
     })
 
-    it('should verify that it is not attached to an instance and not re-insert', function (done) {
-      contextVersionRemoveAndProtectInstance(sampleJob)
+    it('should verify that it is not attached to an instance and not re-insert', function () {
+      return assert.isFulfilled(contextVersionRemoveAndProtectInstance(sampleJob))
         .then(function (result) {
           sinon.assert.calledOnce(MongoDB.prototype.countInstances)
           sinon.assert.calledWithExactly(
@@ -146,15 +130,16 @@ describe('context versions remove and protect instances', function () {
             contextVersionId: 'deadbeef',
             removed: true
           })
-          done()
         })
-        .catch(done)
     })
 
     describe('if it is still attached to an instance', function () {
-      it('should restore the context version', function (done) {
+      beforeEach(function () {
         MongoDB.prototype.countInstances.yieldsAsync(null, 1)
-        contextVersionRemoveAndProtectInstance(sampleJob)
+      })
+
+      it('should restore the context version', function () {
+        return assert.isFulfilled(contextVersionRemoveAndProtectInstance(sampleJob))
           .then(function (result) {
             sinon.assert.calledOnce(MongoDB.prototype.insertContextVersions)
             sinon.assert.calledWithExactly(
@@ -167,9 +152,7 @@ describe('context versions remove and protect instances', function () {
               removed: true,
               restored: true
             })
-            done()
           })
-          .catch(done)
       })
     })
   })

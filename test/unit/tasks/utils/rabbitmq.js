@@ -4,6 +4,7 @@ require('loadenv')('khronos:test')
 
 var chai = require('chai')
 var assert = chai.assert
+chai.use(require('chai-as-promised'))
 
 // external
 var Hermes = require('runnable-hermes')
@@ -15,48 +16,44 @@ var TaskFatalError = require('ponos').TaskFatalError
 var rabbitmqHelper = require('tasks/utils/rabbitmq')
 
 describe('RabbitMQ Helper', function () {
-  beforeEach(function (done) {
+  beforeEach(function () {
     sinon.stub(Hermes.prototype, 'connect').yieldsAsync()
-    done()
   })
-  afterEach(function (done) {
+  afterEach(function () {
     Hermes.prototype.connect.restore()
-    done()
   })
 
-  it('should return a client for Promise.using', function (done) {
+  it('should return a client for Promise.using', function () {
     var rabbitmqPromise = rabbitmqHelper(['queue:one'])
-    Promise.using(rabbitmqPromise, function (client) {
-      assert.ok(client)
-      assert.instanceOf(client, Hermes)
-      assert.deepEqual(client.getQueues(), ['queue:one'])
-      assert.ok(Hermes.prototype.connect.calledOnce, 'hermes connected')
-      done()
-    })
-      .catch(done)
+    return assert.isFulfilled(
+      Promise.using(rabbitmqPromise, function (client) {
+        assert.ok(client)
+        assert.instanceOf(client, Hermes)
+        assert.deepEqual(client.getQueues(), ['queue:one'])
+        sinon.assert.calledOnce(Hermes.prototype.connect)
+      })
+    )
   })
-  it('should throw an error without a string array', function (done) {
+
+  it('should throw an error without a string array', function () {
     var rabbitmqPromise = rabbitmqHelper()
-    Promise.using(rabbitmqPromise, function () {
-      throw new Error('task should have thrown an error')
-    })
-      .catch(function (err) {
-        assert.instanceOf(err, TaskFatalError)
-        assert.match(err.message, /string.+array/)
-        done()
-      })
-      .catch(done)
+    return assert.isRejected(
+      Promise.using(rabbitmqPromise, function () {
+        throw new Error('task should have thrown an error')
+      }),
+      TaskFatalError,
+      /string.+array/
+    )
   })
-  it('should throw an error with an invalid string array', function (done) {
+
+  it('should throw an error with an invalid string array', function () {
     var rabbitmqPromise = rabbitmqHelper([2])
-    Promise.using(rabbitmqPromise, function () {
-      throw new Error('task should have thrown an error')
-    })
-      .catch(function (err) {
-        assert.instanceOf(err, TaskFatalError)
-        assert.match(err.message, /string.+array/)
-        done()
-      })
-      .catch(done)
+    return assert.isRejected(
+      Promise.using(rabbitmqPromise, function () {
+        throw new Error('task should have thrown an error')
+      }),
+      TaskFatalError,
+      /string.+array/
+    )
   })
 })

@@ -51,6 +51,7 @@ describe('Obliterate CodeNow Task', function () {
     beforeEach(function () {
       Mavis.prototype.getRawDocks.returns(Promise.resolve(rawDock))
     })
+
     it('should throw a task fatal error', function () {
       return assert.isRejected(ObliterateCodeNow())
         .then(function (err) {
@@ -68,6 +69,7 @@ describe('Obliterate CodeNow Task', function () {
     beforeEach(function () {
       Mavis.prototype.getRawDocks.returns(Promise.reject(error))
     })
+
     it('should throw an error', function () {
       return assert.isRejected(ObliterateCodeNow())
         .then(function (err) {
