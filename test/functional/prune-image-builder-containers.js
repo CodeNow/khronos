@@ -133,7 +133,6 @@ describe('Prune Exited Image-Builder Containers', function () {
           function () {
             var pruneDockTaskCallCount =
               tasks['khronos:containers:image-builder:prune-dock'].callCount
-            console.log('Prune Call Count', pruneDockTaskCallCount)
             return pruneDockTaskCallCount === 2
           },
           function (err) {
