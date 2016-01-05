@@ -4,6 +4,7 @@ require('loadenv')('khronos:test')
 
 var chai = require('chai')
 var assert = chai.assert
+chai.use(require('chai-as-promised'))
 
 // external
 var rabbitmq = require('runnable-hermes')
@@ -16,65 +17,61 @@ var MongoDB = require('models/mongodb')
 var contextVersionsPruneExpired = require('tasks/context-versions/prune-expired')
 
 describe('context versions prune expired task', function () {
-  beforeEach(function (done) {
+  beforeEach(function () {
     sinon.stub(MongoDB.prototype, 'close').yieldsAsync()
     sinon.stub(MongoDB.prototype, 'connect').yieldsAsync()
     sinon.stub(MongoDB.prototype, 'fetchContextVersions').yieldsAsync()
     sinon.stub(rabbitmq.prototype, 'close').yieldsAsync()
     sinon.stub(rabbitmq.prototype, 'connect').yieldsAsync()
     sinon.stub(rabbitmq.prototype, 'publish').returns()
-    done()
   })
-  afterEach(function (done) {
+  afterEach(function () {
     MongoDB.prototype.close.restore()
     MongoDB.prototype.connect.restore()
     MongoDB.prototype.fetchContextVersions.restore()
     rabbitmq.prototype.close.restore()
     rabbitmq.prototype.connect.restore()
     rabbitmq.prototype.publish.restore()
-    done()
   })
 
   describe('errors', function () {
     describe('if rabbitmq throws an error', function () {
-      it('should throw the error', function (done) {
+      beforeEach(function () {
         MongoDB.prototype.fetchContextVersions.yieldsAsync(null, [{}])
         rabbitmq.prototype.connect.yieldsAsync(new Error('foobar'))
-        contextVersionsPruneExpired()
-          .then(function () {
-            throw new Error('task should have thrown an error')
-          })
-          .catch(function (err) {
-            assert.instanceOf(err, Error, 'normal error')
-            assert.equal(err.message, 'foobar')
-            done()
-          })
-          .catch(done)
+      })
+
+      it('should throw the error', function () {
+        return assert.isRejected(
+          contextVersionsPruneExpired(),
+          Error,
+          'foobar'
+        )
       })
     })
 
     describe('if mongodb errors', function () {
-      it('should throw the error', function (done) {
+      beforeEach(function () {
         MongoDB.prototype.fetchContextVersions.yieldsAsync(new Error('foobar'))
-        contextVersionsPruneExpired()
+      })
+
+      it('should throw the error', function () {
+        return assert.isRejected(
+          contextVersionsPruneExpired(),
+          Error,
+          'foobar'
+        )
           .then(function () {
-            throw new Error('task should have thrown an error')
-          })
-          .catch(function (err) {
-            assert.instanceOf(err, Error, 'normal error')
-            assert.equal(err.message, 'foobar')
             sinon.assert.notCalled(rabbitmq.prototype.publish)
-            done()
           })
-          .catch(done)
       })
     })
   })
 
   describe('query to mongo', function () {
-    it('should query for the last two weeks', function (done) {
+    it('should query for the last two weeks', function () {
       MongoDB.prototype.fetchContextVersions.yieldsAsync(null, [])
-      contextVersionsPruneExpired()
+      return assert.isFulfilled(contextVersionsPruneExpired())
         .then(function () {
           sinon.assert.calledOnce(MongoDB.prototype.fetchContextVersions)
           sinon.assert.calledWith(
@@ -93,36 +90,31 @@ describe('context versions prune expired task', function () {
             targetDate.getTime(),
             500
           )
-          done()
         })
-        .catch(done)
     })
   })
 
   describe('with none to prune', function () {
-    it('should not enqueue any task', function (done) {
+    it('should not enqueue any task', function () {
       MongoDB.prototype.fetchContextVersions.yieldsAsync(null, [])
-      contextVersionsPruneExpired()
+      return assert.isFulfilled(contextVersionsPruneExpired())
         .then(function (result) {
           assert.equal(result.numJobsEnqueued, 0)
           sinon.assert.notCalled(rabbitmq.prototype.publish)
-          done()
         })
-        .catch(done)
     })
   })
 
   describe('with a single context version to prune', function () {
-    beforeEach(function (done) {
+    beforeEach(function () {
       var contextVersions = [{
         _id: 'deadbeef'
       }]
       MongoDB.prototype.fetchContextVersions.yieldsAsync(null, contextVersions)
-      done()
     })
 
-    it('should enqueue a to check the context version usage', function (done) {
-      contextVersionsPruneExpired()
+    it('should enqueue a to check the context version usage', function () {
+      return assert.isFulfilled(contextVersionsPruneExpired())
         .then(function (result) {
           sinon.assert.calledOnce(rabbitmq.prototype.publish)
           sinon.assert.calledWith(
@@ -141,25 +133,23 @@ describe('context versions prune expired task', function () {
             500
           )
           assert.equal(result.numJobsEnqueued, 1, 'enqueued one job')
-          done()
         })
-        .catch(done)
     })
   })
 
   describe('with multiple context versions to prune', function () {
-    beforeEach(function (done) {
+    beforeEach(function () {
       var contextVersions = [{
         _id: 'deadbeef'
       }, {
         _id: 'beefdead'
       }]
       MongoDB.prototype.fetchContextVersions.yieldsAsync(null, contextVersions)
-      done()
     })
 
-    it('should remove all the containers', function (done) {
-      contextVersionsPruneExpired({ dockerHost: 'http://example.com' })
+    it('should remove all the containers', function () {
+      var job = { dockerHost: 'http://example.com' }
+      return assert.isFulfilled(contextVersionsPruneExpired(job))
         .then(function (result) {
           sinon.assert.calledTwice(rabbitmq.prototype.publish)
           sinon.assert.calledWith(
@@ -179,9 +169,7 @@ describe('context versions prune expired task', function () {
             }
           )
           assert.equal(result.numJobsEnqueued, 2, 'enqueued two jobs')
-          done()
         })
-        .catch(done)
     })
   })
 })

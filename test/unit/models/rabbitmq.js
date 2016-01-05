@@ -14,32 +14,33 @@ var TaskFatalError = require('ponos').TaskFatalError
 var rabbitmqFactory = require('models/rabbitmq')
 
 describe('RabbitMQ Factory', function () {
-  beforeEach(function (done) {
+  beforeEach(function () {
     sinon.spy(rabbitmqFactory, '_createClient')
-    done()
   })
-  afterEach(function (done) {
+  afterEach(function () {
     rabbitmqFactory._createClient.restore()
-    done()
   })
 
-  it('should have default arguments', function (done) {
+  it('should have default arguments', function () {
     var queues = ['queue:one']
     var r = rabbitmqFactory(queues)
     assert.instanceOf(r, Hermes, 'returned a Hermes client')
     assert.deepEqual(r.getQueues(), queues)
-    assert.ok(rabbitmqFactory._createClient.calledOnce, 'createClient called')
-    assert.deepEqual(rabbitmqFactory._createClient.firstCall.args[0], {
-      hostname: 'localhost',
-      port: 5672,
-      username: 'guest',
-      password: 'guest',
-      prefetch: 3,
-      queues: queues
-    })
-    done()
+    sinon.assert.calledOnce(rabbitmqFactory._createClient)
+    sinon.assert.calledWithExactly(
+      rabbitmqFactory._createClient,
+      {
+        hostname: 'localhost',
+        port: 5672,
+        username: 'guest',
+        password: 'guest',
+        prefetch: 3,
+        queues: queues
+      }
+    )
   })
-  it('should respect environment variables', function (done) {
+
+  it('should respect environment variables', function () {
     var envs = {
       HOSTNAME: 'foobar',
       PORT: 42,
@@ -54,28 +55,36 @@ describe('RabbitMQ Factory', function () {
     var queues = ['queue:one']
     var r = rabbitmqFactory(queues)
     assert.deepEqual(r.getQueues(), queues)
-    assert.ok(rabbitmqFactory._createClient.calledOnce, 'createClient called')
-    assert.deepEqual(rabbitmqFactory._createClient.firstCall.args[0], {
-      hostname: 'foobar',
-      port: 42,
-      username: 'luke',
-      password: 'skywalker',
-      prefetch: 3,
-      queues: queues
-    })
+    sinon.assert.calledOnce(rabbitmqFactory._createClient)
+    sinon.assert.calledWithExactly(
+      rabbitmqFactory._createClient,
+      {
+        hostname: 'foobar',
+        port: 42,
+        username: 'luke',
+        password: 'skywalker',
+        prefetch: 3,
+        queues: queues
+      }
+    )
     Object.keys(envs).forEach(function (k) {
       process.env['RABBITMQ_' + k] = envs[k]
     })
-    done()
   })
-  it('should throw without queues', function (done) {
-    assert.throws(function () { rabbitmqFactory() },
-      TaskFatalError, /string.+array/)
-    done()
+
+  it('should throw without queues', function () {
+    assert.throws(
+      function () { rabbitmqFactory() },
+      TaskFatalError,
+      /string.+array/
+    )
   })
-  it('should throw with invalid queues', function (done) {
-    assert.throws(function () { rabbitmqFactory([2]) },
-      TaskFatalError, /string.+array/)
-    done()
+
+  it('should throw with invalid queues', function () {
+    assert.throws(
+      function () { rabbitmqFactory([2]) },
+      TaskFatalError,
+      /string.+array/
+    )
   })
 })

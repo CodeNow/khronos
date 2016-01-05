@@ -27,14 +27,12 @@ describe('Docker Model', function () {
       Id: 2,
       Image: 'centos'
     }]
-    beforeEach(function (done) {
+    beforeEach(function () {
       sinon.stub(Dockerode.prototype, 'listContainers')
         .yieldsAsync(null, mockContainers)
-      done()
     })
-    afterEach(function (done) {
+    afterEach(function () {
       Dockerode.prototype.listContainers.restore()
-      done()
     })
 
     it('should return containers', function (done) {
@@ -60,7 +58,7 @@ describe('Docker Model', function () {
 
   describe('getImages', function () {
     var mockImages
-    beforeEach(function (done) {
+    beforeEach(function () {
       mockImages = [{
         Id: 1,
         Created: Date.now(),
@@ -76,11 +74,9 @@ describe('Docker Model', function () {
       }]
       sinon.stub(Dockerode.prototype, 'listImages')
         .yieldsAsync(null, mockImages)
-      done()
     })
-    afterEach(function (done) {
+    afterEach(function () {
       Dockerode.prototype.listImages.restore()
-      done()
     })
 
     it('should return tagged and untagged images', function (done) {

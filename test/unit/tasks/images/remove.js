@@ -4,6 +4,7 @@ require('loadenv')('khronos:test')
 
 var chai = require('chai')
 var assert = chai.assert
+chai.use(require('chai-as-promised'))
 
 // external
 var Promise = require('bluebird')
@@ -23,120 +24,99 @@ describe('Remove Image Task', function () {
     imageId: 4
   }
 
-  beforeEach(function (done) {
+  beforeEach(function () {
     sinon.stub(Docker.prototype, 'removeImage').yieldsAsync()
     sinon.stub(Mavis.prototype, 'verifyHost').returns(Promise.resolve(true))
-    done()
   })
-  afterEach(function (done) {
+  afterEach(function () {
     Docker.prototype.removeImage.restore()
     Mavis.prototype.verifyHost.restore()
-    done()
   })
 
   describe('errors', function () {
-    it('should throw an error on missing dockerHost', function (done) {
-      removeImage({ dockerHost: 'http://example.com' })
-        .then(function () {
-          throw new Error('task should have thrown an error')
-        })
-        .catch(TaskFatalError, function (err) {
-          assert.match(err.message, /imageId.+required/, 'task errors')
-          done()
-        })
-        .catch(done)
+    it('should throw an error on missing imageId', function () {
+      return assert.isRejected(
+        removeImage({ dockerHost: 'http://example.com' }),
+        TaskFatalError,
+        /imageId.+required/
+      )
     })
-    it('should throw an error on missing imageId', function (done) {
-      removeImage({ imageId: 'deadbeef' })
-        .then(function () {
-          throw new Error('task should have thrown an error')
-        })
-        .catch(TaskFatalError, function (err) {
-          assert.match(err.message, /dockerHost.+required/, 'task errors')
-          done()
-        })
-        .catch(done)
+    it('should throw an error on missing dockerHost', function () {
+      return assert.isRejected(
+        removeImage({ imageId: 'deadbeef' }),
+        TaskFatalError,
+        /dockerHost.+required/
+      )
     })
 
     describe('Mavis Error', function () {
-      it('should return an empty data if dock not in mavis', function (done) {
+      beforeEach(function () {
         Mavis.prototype.verifyHost.throws(new Mavis.InvalidHostError())
-        removeImage(testJob)
-          .then(function (data) {
+      })
+
+      it('should return an empty data if dock not in mavis', function () {
+        return assert.isFulfilled(removeImage(testJob))
+          .then(function (result) {
             sinon.assert.calledOnce(Mavis.prototype.verifyHost)
             sinon.assert.calledWithExactly(Mavis.prototype.verifyHost, testJob.dockerHost)
             assert.deepEqual(
-              data,
+              result,
               {
                 dockerHost: testJob.dockerHost,
                 removedImage: ''
               })
             sinon.assert.notCalled(Docker.prototype.removeImage)
-            done()
           })
-          .catch(done)
       })
     })
 
-    describe('Docker Error', function () {
-      it('should thrown the error', function (done) {
+    describe('Docker Errors', function () {
+      it('should thrown the error', function () {
         Docker.prototype.removeImage.yieldsAsync(new Error('foobar'))
-        removeImage(testJob)
-          .then(function () {
-            throw new Error('task should have thrown an error')
-          })
-          .catch(Error, function (err) {
-            assert.equal(err.message, 'foobar')
-            done()
-          })
-          .catch(done)
+        return assert.isRejected(
+          removeImage(testJob),
+          Error,
+          'foobar'
+        )
       })
 
-      it('should throw TaskFatalError if image is in use', function (done) {
+      it('should throw TaskFatalError if image is in use', function () {
         var error = new Error('foobar')
         error.statusCode = 409
         Docker.prototype.removeImage.yieldsAsync(error)
-        removeImage(testJob)
-          .then(function () {
-            throw new Error('task should have thrown an error')
-          })
-          .catch(TaskFatalError, function (err) {
-            assert.match(err.message, /409 conflict/i)
-            done()
-          })
-          .catch(done)
+        return assert.isRejected(
+          removeImage(testJob),
+          TaskFatalError,
+          /409 conflict/i
+        )
       })
 
-      it('should throw TaskFatalError if image not found', function (done) {
+      it('should throw TaskFatalError if image not found', function () {
         var error = new Error('foobar')
         error.statusCode = 404
         Docker.prototype.removeImage.yieldsAsync(error)
-        removeImage(testJob)
-          .then(function () {
-            throw new Error('task should have thrown an error')
-          })
-          .catch(TaskFatalError, function (err) {
-            assert.match(err.message, /404 not found/i)
-            done()
-          })
-          .catch(done)
+        return assert.isRejected(
+          removeImage(testJob),
+          TaskFatalError,
+          /404 not found/i
+        )
       })
     })
   })
 
-  it('should remove a image', function (done) {
-    removeImage(testJob)
+  it('should remove a image', function () {
+    return assert.isFulfilled(removeImage(testJob))
       .then(function (result) {
-        var removeStub = Docker.prototype.removeImage
-        assert.ok(removeStub.calledOnce, 'remove called once')
-        var removedId = removeStub.firstCall.args[0]
-        assert.equal(removedId, 4, 'removed the correct image')
+        sinon.assert.calledOnce(Docker.prototype.removeImage)
+        sinon.assert.calledWithExactly(
+          Docker.prototype.removeImage,
+          4,
+          sinon.match.func
+        )
         assert.deepEqual(result, {
           dockerHost: 'http://example.com',
           removedImage: 4
         })
-        done()
       })
-      .catch(done)
   })
 })

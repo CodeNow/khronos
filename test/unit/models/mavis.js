@@ -58,6 +58,7 @@ describe('Mavis Model', function () {
     afterEach(function () {
       request.get.restore()
     })
+
     it('should fetch the docks', function () {
       return assert.isFulfilled(mavis.getRawDocks())
         .then(function (returnedDocks) {
@@ -70,6 +71,7 @@ describe('Mavis Model', function () {
       beforeEach(function () {
         request.get.yields(new Error('some error'))
       })
+
       it('should return an error', function () {
         return assert.isRejected(mavis.getRawDocks())
           .then(function (err) {
@@ -82,6 +84,7 @@ describe('Mavis Model', function () {
       beforeEach(function () {
         request.get.yields(null, {}, '{ invalid: "json" }')
       })
+
       it('should return an error', function () {
         return assert.isRejected(mavis.getRawDocks())
           .then(function (err) {
@@ -99,12 +102,14 @@ describe('Mavis Model', function () {
     afterEach(function () {
       mavis.getDocks.restore()
     })
+
     it('should verify a host that exists', function () {
       return assert.isFulfilled(mavis.verifyHost('http://example.com:5555'))
         .then(function (host) {
           assert.equal(host, 'http://example.com:5555')
         })
     })
+
     it('should throw with host that does not exist', function () {
       return assert.isRejected(mavis.verifyHost('http://example.com:1234'))
         .then(function (err) {

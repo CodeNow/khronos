@@ -4,6 +4,7 @@ require('loadenv')('khronos:test')
 
 var chai = require('chai')
 var assert = chai.assert
+chai.use(require('chai-as-promised'))
 
 // external
 var ObjectID = require('mongodb').ObjectID
@@ -19,7 +20,7 @@ var contextVersionsCheckRecentUsage = require('tasks/context-versions/check-rece
 
 describe('context versions check recent usage task', function () {
   var sampleJob
-  beforeEach(function (done) {
+  beforeEach(function () {
     sinon.stub(MongoDB.prototype, 'close').yieldsAsync()
     sinon.stub(MongoDB.prototype, 'connect').yieldsAsync()
     sinon.stub(MongoDB.prototype, 'countBuilds').yieldsAsync()
@@ -33,9 +34,8 @@ describe('context versions check recent usage task', function () {
       contextVersionId: 'deadbeefdeadbeefdeadbeef',
       twoWeeksAgo: targetDate
     }
-    done()
   })
-  afterEach(function (done) {
+  afterEach(function () {
     MongoDB.prototype.close.restore()
     MongoDB.prototype.connect.restore()
     MongoDB.prototype.countBuilds.restore()
@@ -43,79 +43,65 @@ describe('context versions check recent usage task', function () {
     rabbitmq.prototype.close.restore()
     rabbitmq.prototype.connect.restore()
     rabbitmq.prototype.publish.restore()
-    done()
   })
 
   describe('errors', function () {
     describe('Validation Errors', function () {
-      it('should throw an error on missing contextVersionId', function (done) {
+      it('should throw an error on missing contextVersionId', function () {
         delete sampleJob.contextVersionId
-        contextVersionsCheckRecentUsage(sampleJob)
-          .then(function () {
-            throw new Error('task should have thrown an error')
-          })
-          .catch(function (err) {
-            assert.instanceOf(err, TaskFatalError, 'task fatally errors')
-            assert.match(err.message, /contextVersionId.+required/, 'task errors')
-            done()
-          })
-          .catch(done)
+        return assert.isRejected(
+          contextVersionsCheckRecentUsage(sampleJob),
+          TaskFatalError,
+          /contextVersionId.+required/
+        )
       })
-      it('should throw an error on missing twoWeeksAgo', function (done) {
+
+      it('should throw an error on missing twoWeeksAgo', function () {
         delete sampleJob.twoWeeksAgo
-        contextVersionsCheckRecentUsage(sampleJob)
-          .then(function () {
-            throw new Error('task should have thrown an error')
-          })
-          .catch(function (err) {
-            assert.instanceOf(err, TaskFatalError, 'task fatally errors')
-            assert.match(err.message, /twoWeeksAgo.+required/, 'task errors')
-            done()
-          })
-          .catch(done)
+        return assert.isRejected(
+          contextVersionsCheckRecentUsage(sampleJob),
+          TaskFatalError,
+          /twoWeeksAgo.+required/
+        )
       })
     })
 
     describe('if rabbitmq throws an error', function () {
-      it('should throw the error', function (done) {
+      beforeEach(function () {
         MongoDB.prototype.countBuilds.yieldsAsync(null, 0)
         MongoDB.prototype.countInstances.yieldsAsync(null, 0)
         rabbitmq.prototype.connect.yieldsAsync(new Error('foobar'))
-        contextVersionsCheckRecentUsage(sampleJob)
-          .then(function () {
-            throw new Error('task should have thrown an error')
-          })
-          .catch(function (err) {
-            assert.instanceOf(err, Error, 'normal error')
-            assert.equal(err.message, 'foobar')
-            done()
-          })
-          .catch(done)
+      })
+
+      it('should throw the error', function () {
+        return assert.isRejected(
+          contextVersionsCheckRecentUsage(sampleJob),
+          Error,
+          'foobar'
+        )
       })
     })
 
     describe('if mongodb errors', function () {
-      it('should throw the error', function (done) {
+      beforeEach(function () {
         MongoDB.prototype.countBuilds.yieldsAsync(new Error('foobar'))
-        contextVersionsCheckRecentUsage(sampleJob)
-          .then(function () {
-            throw new Error('task should have thrown an error')
-          })
-          .catch(function (err) {
-            assert.instanceOf(err, Error, 'normal error')
-            assert.equal(err.message, 'foobar')
-            done()
-          })
-          .catch(done)
+      })
+
+      it('should throw the error', function () {
+        return assert.isRejected(
+          contextVersionsCheckRecentUsage(sampleJob),
+          Error,
+          'foobar'
+        )
       })
     })
   })
 
   describe('queries to mongo', function () {
-    it('should query for the count of builds', function (done) {
+    it('should query for the count of builds', function () {
       MongoDB.prototype.countBuilds.yieldsAsync(null, 42)
       MongoDB.prototype.countInstances.yieldsAsync(null, 0)
-      contextVersionsCheckRecentUsage(sampleJob)
+      return assert.isFulfilled(contextVersionsCheckRecentUsage(sampleJob))
         .then(function () {
           sinon.assert.calledOnce(MongoDB.prototype.countBuilds)
           sinon.assert.calledWith(
@@ -133,14 +119,13 @@ describe('context versions check recent usage task', function () {
             targetDate.getTime(),
             500
           )
-          done()
         })
-        .catch(done)
     })
-    it('should query for the count of instance', function (done) {
+
+    it('should query for the count of instance', function () {
       MongoDB.prototype.countBuilds.yieldsAsync(null, 0)
       MongoDB.prototype.countInstances.yieldsAsync(null, 42)
-      contextVersionsCheckRecentUsage(sampleJob)
+      return assert.isFulfilled(contextVersionsCheckRecentUsage(sampleJob))
         .then(function () {
           sinon.assert.calledOnce(MongoDB.prototype.countInstances)
           sinon.assert.calledWith(
@@ -150,43 +135,46 @@ describe('context versions check recent usage task', function () {
             },
             sinon.match.func
           )
-          done()
         })
-        .catch(done)
     })
   })
 
   describe('when it is still attached to a build', function () {
-    it('should not enqueue a new task', function (done) {
+    beforeEach(function () {
       MongoDB.prototype.countBuilds.yieldsAsync(null, 1)
       MongoDB.prototype.countInstances.yieldsAsync(null, 0)
-      contextVersionsCheckRecentUsage(sampleJob)
+    })
+
+    it('should not enqueue a new task', function () {
+      return assert.isFulfilled(contextVersionsCheckRecentUsage(sampleJob))
         .then(function () {
           sinon.assert.notCalled(rabbitmq.prototype.publish)
-          done()
         })
-        .catch(done)
     })
   })
 
   describe('when it is still attached to an instance', function () {
-    it('should not enqueue a new task', function (done) {
+    beforeEach(function () {
       MongoDB.prototype.countBuilds.yieldsAsync(null, 0)
       MongoDB.prototype.countInstances.yieldsAsync(null, 1)
-      contextVersionsCheckRecentUsage(sampleJob)
+    })
+
+    it('should not enqueue a new task', function () {
+      return assert.isFulfilled(contextVersionsCheckRecentUsage(sampleJob))
         .then(function () {
           sinon.assert.notCalled(rabbitmq.prototype.publish)
-          done()
         })
-        .catch(done)
     })
   })
 
   describe('when it is not attached to anything', function () {
-    it('should enqueue a new task', function (done) {
+    beforeEach(function () {
       MongoDB.prototype.countBuilds.yieldsAsync(null, 0)
       MongoDB.prototype.countInstances.yieldsAsync(null, 0)
-      contextVersionsCheckRecentUsage(sampleJob)
+    })
+
+    it('should enqueue a new task', function () {
+      return assert.isFulfilled(contextVersionsCheckRecentUsage(sampleJob))
         .then(function () {
           sinon.assert.calledOnce(rabbitmq.prototype.publish)
           sinon.assert.calledWithExactly(
@@ -194,9 +182,7 @@ describe('context versions check recent usage task', function () {
             'khronos:context-versions:remove-and-protect-instances',
             { contextVersionId: 'deadbeefdeadbeefdeadbeef' }
           )
-          done()
         })
-        .catch(done)
     })
   })
 })

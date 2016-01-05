@@ -4,6 +4,7 @@ require('loadenv')('khronos:test')
 
 var chai = require('chai')
 var assert = chai.assert
+chai.use(require('chai-as-promised'))
 
 // external
 var Promise = require('bluebird')
@@ -16,55 +17,56 @@ var MongoDB = require('models/mongodb')
 var mongodbHelper = require('tasks/utils/mongodb')
 
 describe('MongoDB Helper', function () {
-  beforeEach(function (done) {
+  beforeEach(function () {
     sinon.stub(MongoDB.prototype, 'close').yieldsAsync()
     sinon.stub(MongoDB.prototype, 'connect').yieldsAsync()
-    done()
   })
-  afterEach(function (done) {
+  afterEach(function () {
     MongoDB.prototype.close.restore()
     MongoDB.prototype.connect.restore()
-    done()
   })
 
-  it('should return a client for Promise.using', function (done) {
+  it('should return a client for Promise.using', function () {
     var mongodbPromise = mongodbHelper()
-    Promise.using(mongodbPromise, function (client) {
-      assert.ok(client)
-      assert.instanceOf(client, MongoDB)
-      assert.ok(MongoDB.prototype.connect.calledOnce, 'mongodb connected')
-      assert.notOk(MongoDB.prototype.close.calledOnce, 'mongodb not closed')
-      done()
-    })
-      .catch(done)
-  })
-  it('should close the client if it was being used', function (done) {
-    var mongodbPromise = mongodbHelper()
-    Promise.using(mongodbPromise, function (client) {
-      assert.ok(client)
-      assert.instanceOf(client, MongoDB)
-      assert.ok(MongoDB.prototype.connect.calledOnce, 'mongodb connected')
-      throw new Error('foobar')
-    })
-      .catch(function (err) {
-        assert.ok(MongoDB.prototype.close.calledOnce, 'mongodb closed')
-        assert.equal(err.message, 'foobar')
-        done()
+    return assert.isFulfilled(
+      Promise.using(mongodbPromise, function (client) {
+        assert.ok(client)
+        assert.instanceOf(client, MongoDB)
+        sinon.assert.calledOnce(MongoDB.prototype.connect)
+        sinon.assert.notCalled(MongoDB.prototype.close)
       })
-      .catch(done)
+    )
   })
-  it('should log an error if the client fails to close, but return true', function (done) {
+
+  it('should close the client if it was being used', function () {
+    var mongodbPromise = mongodbHelper()
+    return assert.isRejected(
+      Promise.using(mongodbPromise, function (client) {
+        assert.ok(client)
+        assert.instanceOf(client, MongoDB)
+        sinon.assert.calledOnce(MongoDB.prototype.connect)
+        throw new Error('innerError')
+      }),
+      Error,
+      'innerError'
+    )
+      .then(function () {
+        sinon.assert.calledOnce(MongoDB.prototype.close)
+      })
+  })
+
+  it('should log an error if the client fails to close, but return true', function () {
     MongoDB.prototype.close.yieldsAsync(new Error('foobar'))
     var mongodbPromise = mongodbHelper()
-    Promise.using(mongodbPromise, function () {
-      return 1
-    })
+    return assert.isFulfilled(
+      Promise.using(mongodbPromise, function () {
+        return 1
+      })
+    )
       .then(function (result) {
         // we don't actually get to see the error happen, and that's the point
-        assert.ok(MongoDB.prototype.close.calledOnce, 'mongodb closed')
+        sinon.assert.calledOnce(MongoDB.prototype.close)
         assert.equal(result, 1)
-        done()
       })
-      .catch(done)
   })
 })
