@@ -14,4 +14,10 @@ script:
   - npm run lint
   - npm run coverage
   - npm run functional
-
+notifications:
+  email: false
+  slack:
+    on_success: change
+    on_failure: change
+    rooms:
+    - secure: KGn5thETdSG2lq+bJs4kBJkkv6dYtK6rJL8ycYA4afglEvWSdeu3oCbav3o9N8SgFOpACLa63qA/s98EDPSk9eo7evADPl/6/kXjV7ec6heSlkj8SEFxvsQmztlmx2VMO56u9sW+qWKqRgs1dniu+L0JdIWTvDAUKINhEM+tsvw=
