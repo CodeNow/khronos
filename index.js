@@ -26,7 +26,10 @@ var tasks = {
   'khronos:docks:obliterate-codenow': require('tasks/docks/obliterate-codenow')
 }
 var hermes = rabbitmq(Object.keys(tasks))
-var server = new ponos.Server({ hermes: hermes })
+var server = new ponos.Server({
+  hermes: hermes,
+  log: log.child({ module: 'ponos' })
+})
 
 server.setAllTasks(tasks)
 server.start()
