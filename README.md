@@ -19,6 +19,8 @@ This is a listing of the "functional title" of a task group and which tasks are 
   - `khronos:containers:orphan:prune-dock`: Gets every container on the dock and enqueues a job to check it against mongo.
   - `khronos:containers:orphan:check-against-mongo`: Check container against mongo and if it doesn't exist, enqueue a job to delete it.
   - `khronos:containers:remove`: Stops and deletes containers.
+- canary tests
+  - `khronos:canary:build`: Rebuilds a specific canary container without cache and reports success/failure to datadog.
 
 ```
 NODE_ENV=production|staging npm start
