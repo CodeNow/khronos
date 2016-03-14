@@ -27,7 +27,10 @@ var tasks = {
   'khronos:canary:build': require('tasks/canary/build')
 }
 var hermes = rabbitmq(Object.keys(tasks))
-var server = new ponos.Server({ hermes: hermes })
+var server = new ponos.Server({
+  hermes: hermes,
+  log: log.child({ module: 'ponos' })
+})
 
 server.setAllTasks(tasks)
 server.start()
