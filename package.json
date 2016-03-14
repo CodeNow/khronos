@@ -71,7 +71,7 @@
     "mocha": "^2.3.3",
     "nock": "^7.2.2",
     "rerun-script": "^0.6.0",
-    "@runnable/api-client": "git+ssh://git@github.com:runnable/api-client#v5.1.0",
+    "@runnable/api-client": "^5.1.0",
     "sinon": "^1.12.1",
     "snazzy": "^3.0.0",
     "standard": "^6.0.7"
