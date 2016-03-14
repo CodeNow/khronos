@@ -73,7 +73,7 @@
     "nock": "^2.12.0",
     "rerun-script": "^0.6.0",
     "rewire": "^2.3.3",
-    "runnable": "git+ssh://git@github.com:CodeNow/runnable-api-client#v4.11.3",
+    "runnable": "git+ssh://git@github.com:runnable/api-client#v5.1.0",
     "sinon": "^1.12.1",
     "snazzy": "^2.0.1",
     "standard": "^5.3.1"
