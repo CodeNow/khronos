@@ -7,8 +7,6 @@ var assert = chai.assert
 chai.use(require('chai-as-promised'))
 
 // external
-var noop = require('101/noop')
-var sinon = require('sinon')
 
 // internal (being tested)
 var api = require('models/api')

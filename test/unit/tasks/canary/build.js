@@ -12,7 +12,6 @@ var sinon = require('sinon')
 
 // internal
 var api = require('models/api')
-var CanaryFailedError = require('errors/canary-failed-error')
 var monitor = require('monitor-dog')
 var Promise = require('bluebird')
 var request = Promise.promisifyAll(require('request'))
