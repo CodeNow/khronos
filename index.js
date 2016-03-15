@@ -1,6 +1,6 @@
 'use strict'
 
-require('loadenv')('khronos:test')
+require('loadenv')({ debugName: 'khronos:test' })
 
 var log = require('logger')
 var ponos = require('ponos')
