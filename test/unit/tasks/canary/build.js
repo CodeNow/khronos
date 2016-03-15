@@ -9,6 +9,7 @@ chai.use(require('chai-as-promised'))
 // external
 var noop = require('101/noop')
 var sinon = require('sinon')
+var TaskFatalError = require('ponos').TaskFatalError
 
 // internal
 var api = require('models/api')
@@ -190,4 +191,20 @@ describe('Rebuild Canary', function () {
       })
     })
   }) // end 'publishFailed'
+
+  describe('stopOnError', function () {
+    it('should stop the task and fail on an unexpected error', function () {
+      mock.client.fetchInstanceAsync = function () {
+        throw new Error('unexpected')
+      }
+      return assert.isRejected(buildCanary({}), TaskFatalError)
+        .then(function () {
+          sinon.assert.calledWith(monitor.gauge, 'canary.build', 0)
+          assert.deepEqual(monitor.event.firstCall.args[0], {
+            title: 'Build Canary Unexpected Failure',
+            text: 'unexpected'
+          })
+        })
+    })
+  }) // end 'stopOnError'
 }) // end 'Rebuild Canary'
