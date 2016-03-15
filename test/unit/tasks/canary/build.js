@@ -201,7 +201,7 @@ describe('Rebuild Canary', function () {
         .then(function () {
           sinon.assert.calledWith(monitor.gauge, 'canary.build', 0)
           assert.deepEqual(monitor.event.firstCall.args[0], {
-            title: 'Build Canary Failed',
+            title: 'Build Canary Unexpected Failure',
             text: 'unexpected'
           })
         })
