@@ -6,7 +6,7 @@
   "bin": "./bin/cli.js",
   "scripts": {
     "check-coverage": "istanbul check-coverage && echo 'Coverage check successful!'",
-    "coverage": "NODE_PATH=./lib istanbul cover ./node_modules/.bin/_mocha -- $npm_package_options_mocha test/unit && npm run check-coverage",
+    "coverage": "NODE_ENV=test NODE_PATH=./lib istanbul cover ./node_modules/mocha/bin/_mocha -- $npm_package_options_mocha test/unit && npm run check-coverage",
     "dry": "NODE_ENV=staging MANUAL_RUN=true DEBUG=none DRY_RUN=true node ./index.js",
     "format": "standard --format --verbose | snazzy",
     "functional": "NODE_ENV=test NODE_PATH=./lib mocha $npm_package_options_mocha --slow 1000 test/functional",
