@@ -14,15 +14,24 @@ var MongoDB = require('models/mongodb')
 var assert = chai.assert
 
 describe('Mongo Model', function () {
-  describe('constructor', function () {
-    var prevCACert = process.env.MONGO_CACERT
-    var prevCert = process.env.MONGO_CERT
-    var prevKey = process.env.MONGO_KEY
+  var prevCACert = process.env.MONGO_CACERT
+  var prevCert = process.env.MONGO_CERT
+  var prevKey = process.env.MONGO_KEY
 
+  beforeEach(function () {
+    delete process.env.MONGO_CACERT
+    delete process.env.MONGO_CERT
+    delete process.env.MONGO_KEY
+  })
+
+  afterEach(function () {
+    process.env.MONGO_CACERT = prevCACert
+    process.env.MONGO_CERT = prevCert
+    process.env.MONGO_KEY = prevKey
+  })
+
+  describe('constructor', function () {
     beforeEach(function () {
-      delete process.env.MONGO_CACERT
-      delete process.env.MONGO_CERT
-      delete process.env.MONGO_KEY
       sinon.stub(fs, 'readFileSync').returnsArg(0)
     })
 
@@ -55,15 +64,9 @@ describe('Mongo Model', function () {
   })
 
   describe('connect', function () {
-    var prevCACert = process.env.MONGO_CACERT
-    var prevCert = process.env.MONGO_CERT
-    var prevKey = process.env.MONGO_KEY
     var m
 
     beforeEach(function () {
-      delete process.env.MONGO_CACERT
-      delete process.env.MONGO_CERT
-      delete process.env.MONGO_KEY
       sinon.stub(MongoClient, 'connect').yieldsAsync()
       sinon.stub(fs, 'readFileSync').returnsArg(0)
       m = new MongoDB()
