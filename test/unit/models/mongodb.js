@@ -1,6 +1,6 @@
 'use strict'
 
-require('loadenv')('khronos:test')
+require('loadenv')({ debugName: 'khronos:test' })
 
 // external
 var chai = require('chai')

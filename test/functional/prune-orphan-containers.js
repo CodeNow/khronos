@@ -1,6 +1,6 @@
 'use strict'
 
-require('loadenv')('khronos:test')
+require('loadenv')({ debugName: 'khronos:test' })
 
 var chai = require('chai')
 chai.use(require('chai-as-promised'))
