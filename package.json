@@ -54,12 +54,14 @@
     "bunyan": "^1.4.0",
     "commander": "^2.8.1",
     "dockerode": "^2.0.4",
+    "error-subclass": "^1.0.2",
     "keypather": "^1.10.1",
     "loadenv": "^1.1.0",
     "mongodb": "^2.0.43",
-    "monitor-dog": "^1.4.1",
+    "monitor-dog": "^1.5.0",
     "ponos": "^1.1.0",
-    "request": "^2.51.0",
+    "request": "^2.69.0",
+    "@runnable/api-client": "^5.1.0",
     "runnable-hermes": "6.3.0"
   },
   "devDependencies": {
