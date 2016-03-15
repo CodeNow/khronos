@@ -93,6 +93,8 @@ describe('Mongo Model', function () {
           sinon.match.string,
           {
             server: {
+              ssl: true,
+              sslValidate: true,
               sslCA: 'cacert',
               sslKey: 'key',
               sslCert: 'cert'
