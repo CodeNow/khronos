@@ -54,12 +54,14 @@ describe('Rebuild Canary', function () {
       .onSecondCall().returns({ status: sinon.stub().returns('running') })
 
     sinon.stub(api, 'connect').returns(Promise.resolve(mock.client))
+    sinon.stub(monitor, 'event')
     sinon.stub(monitor, 'gauge')
     sinon.stub(request, 'getAsync').returns(Promise.resolve(mock.naviResponse))
   })
 
   afterEach(function () {
     api.connect.restore()
+    monitor.event.restore()
     monitor.gauge.restore()
     request.getAsync.restore()
   })
@@ -176,4 +178,16 @@ describe('Rebuild Canary', function () {
       })
     })
   }) // end 'checkNaviResult'
+
+  describe('publishFailed', function () {
+    it('should send a datadog event on failure', function () {
+      request.getAsync.returns(Promise.resolve({ count: 2 }))
+      return assert.isFulfilled(buildCanary({})).then(function () {
+        assert.deepEqual(monitor.event.firstCall.args[0], {
+          title: 'Build Canary Failed',
+          text: 'Navi URL did not return the expected result'
+        })
+      })
+    })
+  }) // end 'publishFailed'
 }) // end 'Rebuild Canary'
