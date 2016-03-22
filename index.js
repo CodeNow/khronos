@@ -24,7 +24,8 @@ var tasks = {
   'khronos:weave:prune-dock': require('tasks/weave/prune-dock'),
   'khronos:weave:prune': require('tasks/weave/prune'),
   'khronos:docks:obliterate-codenow': require('tasks/docks/obliterate-codenow'),
-  'khronos:canary:build': require('tasks/canary/build')
+  'khronos:canary:build': require('tasks/canary/build'),
+  'khronos:canary:log': require('tasks/canary/log')
 }
 var hermes = rabbitmq(Object.keys(tasks))
 var server = new ponos.Server({
