@@ -2,33 +2,34 @@
 
 require('loadenv')({ debugName: 'khronos:test' })
 
-var chai = require('chai')
-var assert = chai.assert
-chai.use(require('chai-as-promised'))
-
 // external
-var Bunyan = require('bunyan')
-var sinon = require('sinon')
-var rabbitmq = require('runnable-hermes')
+const Bunyan = require('bunyan')
+const chai = require('chai')
+const sinon = require('sinon')
+const rabbitmq = require('runnable-hermes')
 
 // internal
-var Mavis = require('models/mavis')
+const Swarm = require('models/swarm')
 
 // internal (being tested)
-var pruneOrphanContainersTask = require('tasks/containers/prune-orphans')
+const pruneOrphanContainersTask = require('tasks/containers/prune-orphans')
+
+const assert = chai.assert
+chai.use(require('chai-as-promised'))
+require('sinon-as-promised')(require('bluebird'))
 
 describe('Prune Orphans Task', function () {
   describe('task', function () {
     beforeEach(function () {
       sinon.stub(Bunyan.prototype, 'error').returns()
-      sinon.stub(Mavis.prototype, 'getDocks').returns(['http://example.com'])
+      sinon.stub(Swarm.prototype, 'getSwarmHosts').resolves(['http://example.com'])
       sinon.stub(rabbitmq.prototype, 'close').yieldsAsync()
       sinon.stub(rabbitmq.prototype, 'connect').yieldsAsync()
       sinon.stub(rabbitmq.prototype, 'publish').returns()
     })
     afterEach(function () {
       Bunyan.prototype.error.restore()
-      Mavis.prototype.getDocks.restore()
+      Swarm.prototype.getSwarmHosts.restore()
       rabbitmq.prototype.connect.restore()
       rabbitmq.prototype.publish.restore()
       rabbitmq.prototype.close.restore()
@@ -37,7 +38,7 @@ describe('Prune Orphans Task', function () {
     describe('success', function () {
       describe('with no docks', function () {
         beforeEach(function () {
-          Mavis.prototype.getDocks.returns([])
+          Swarm.prototype.getSwarmHosts.returns([])
         })
 
         it('should enqueue no tasks in rabbit', function () {
@@ -68,7 +69,7 @@ describe('Prune Orphans Task', function () {
 
       describe('with many docks', function () {
         beforeEach(function () {
-          Mavis.prototype.getDocks.returns([
+          Swarm.prototype.getSwarmHosts.returns([
             'http://example1.com',
             'http://example2.com'
           ])
@@ -97,7 +98,7 @@ describe('Prune Orphans Task', function () {
     describe('failure', function () {
       describe('of mavis', function () {
         beforeEach(function () {
-          Mavis.prototype.getDocks.throws(new Error('foobar'))
+          Swarm.prototype.getSwarmHosts.throws(new Error('foobar'))
         })
 
         it('should throw an error', function () {
@@ -131,7 +132,7 @@ describe('Prune Orphans Task', function () {
           )
             .then(function () {
               sinon.assert.called(rabbitmq.prototype.connect)
-              sinon.assert.called(Mavis.prototype.getDocks)
+              sinon.assert.called(Swarm.prototype.getSwarmHosts)
               sinon.assert.called(rabbitmq.prototype.close)
             })
         })

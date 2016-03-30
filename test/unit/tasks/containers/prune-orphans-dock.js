@@ -2,30 +2,30 @@
 
 require('loadenv')({ debugName: 'khronos:test' })
 
-var chai = require('chai')
-var assert = chai.assert
-chai.use(require('chai-as-promised'))
-
 // external
-var Bunyan = require('bunyan')
-var Promise = require('bluebird')
-var rabbitmq = require('runnable-hermes')
-var sinon = require('sinon')
-var TaskFatalError = require('ponos').TaskFatalError
+const Bunyan = require('bunyan')
+const chai = require('chai')
+const rabbitmq = require('runnable-hermes')
+const sinon = require('sinon')
+const TaskFatalError = require('ponos').TaskFatalError
 
 // internal
-var Docker = require('models/docker')
-var Mavis = require('models/mavis')
+const Docker = require('models/docker')
+const Swarm = require('models/swarm')
 
 // internal (being tested)
-var enqueueContainerVerificationTask =
+const enqueueContainerVerificationTask =
   require('tasks/containers/prune-orphans-dock')
+
+const assert = chai.assert
+chai.use(require('chai-as-promised'))
+require('sinon-as-promised')(require('bluebird'))
 
 describe('Prune Orphans Dock Task', function () {
   beforeEach(function () {
     sinon.stub(Bunyan.prototype, 'error').returns()
     sinon.stub(Docker.prototype, 'getContainers').yieldsAsync(null, [])
-    sinon.stub(Mavis.prototype, 'verifyHost').returns(Promise.resolve(true))
+    sinon.stub(Swarm.prototype, 'checkHostExists').resolves(true)
     sinon.stub(rabbitmq.prototype, 'close').yieldsAsync()
     sinon.stub(rabbitmq.prototype, 'connect').yieldsAsync()
     sinon.stub(rabbitmq.prototype, 'publish').returns()
@@ -33,7 +33,7 @@ describe('Prune Orphans Dock Task', function () {
   afterEach(function () {
     Bunyan.prototype.error.restore()
     Docker.prototype.getContainers.restore()
-    Mavis.prototype.verifyHost.restore()
+    Swarm.prototype.checkHostExists.restore()
     rabbitmq.prototype.connect.restore()
     rabbitmq.prototype.publish.restore()
     rabbitmq.prototype.close.restore()

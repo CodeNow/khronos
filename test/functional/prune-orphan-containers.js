@@ -2,24 +2,26 @@
 
 require('loadenv')({ debugName: 'khronos:test' })
 
-var chai = require('chai')
-chai.use(require('chai-as-promised'))
-var assert = chai.assert
-var expect = chai.expect
-
-var async = require('async')
-var Container = require('dockerode/lib/container')
-var Docker = require('dockerode')
-var dockerMock = require('docker-mock')
-var Hermes = require('runnable-hermes')
-var ponos = require('ponos')
-var sinon = require('sinon')
+const async = require('async')
+const chai = require('chai')
+const Container = require('dockerode/lib/container')
+const Docker = require('dockerode')
+const dockerMock = require('docker-mock')
+const Hermes = require('runnable-hermes')
+const nock = require('nock')
+const ponos = require('ponos')
+const sinon = require('sinon')
+const swarmInfoMock = require('swarmerode/test/fixtures/swarm-info')
 
 // internal
-var dockerFactory = require('../factories/docker')
-var mongodbFactory = require('../factories/mongodb')
+const dockerFactory = require('../factories/docker')
+const mongodbFactory = require('../factories/mongodb')
 
-var docker = new Docker({
+chai.use(require('chai-as-promised'))
+const assert = chai.assert
+const expect = chai.expect
+
+const docker = new Docker({
   host: process.env.KHRONOS_DOCKER_HOST,
   port: process.env.KHRONOS_DOCKER_PORT
 })
@@ -47,6 +49,14 @@ describe('Prune Orphaned Containers', function () {
     process.env.KHRONOS_MONGO = 'mongodb://localhost/khronos-test'
     dockerMockServer = dockerMock.listen(process.env.KHRONOS_DOCKER_PORT, done)
   })
+  before(function () {
+    nock('http://localhost:4242', { allowUnmocked: true })
+      .persist()
+      .get('/info')
+      .reply(200, swarmInfoMock([{
+        host: 'localhost:5454'
+      }]))
+  })
   beforeEach(function () {
     sinon.spy(Container.prototype, 'remove')
     sinon.spy(tasks, 'khronos:containers:orphan:prune-dock')
@@ -68,6 +78,9 @@ describe('Prune Orphaned Containers', function () {
       dockerFactory.deleteAllImagesAndContainers.bind(dockerFactory, docker),
       mongodbFactory.removeAllInstances.bind(mongodbFactory)
     ], done)
+  })
+  after(function () {
+    nock.cleanAll()
   })
   after(function (done) {
     process.env.KHRONOS_MONGO = prevMongo

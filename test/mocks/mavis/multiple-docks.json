@@ -1,13 +1,9 @@
 [
   {
-    "numContainers": 0,
-    "numBuilds": 0,
     "host": "http://localhost:5454",
-    "tags": "2335750,run,build"
+    "org": "2335750"
   }, {
-    "numContainers": 0,
-    "numBuilds": 0,
     "host": "http://localhost:5454",
-    "tags": "2335750,run,build"
+    "org": "2335750"
   }
 ]
