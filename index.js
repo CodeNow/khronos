@@ -26,7 +26,9 @@ var tasks = {
   'khronos:docks:obliterate-codenow': require('tasks/docks/obliterate-codenow'),
   'khronos:canary:build': require('tasks/canary/build'),
   'khronos:canary:log': require('tasks/canary/log'),
-  'khronos:canary:github-branch': require('tasks/canary/github-branch')
+  'khronos:canary:github-branch': require('tasks/canary/github-branch'),
+  'khronos:metrics:container-status': require('tasks/metrics/container-status'),
+  'khronos:metrics:report-org-container-status': require('tasks/metrics/report-org-container-status')
 }
 var hermes = rabbitmq(Object.keys(tasks))
 var server = new ponos.Server({
