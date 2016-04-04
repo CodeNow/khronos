@@ -11,7 +11,7 @@ const sinon = require('sinon')
 const rabbitmq = require('runnable-hermes')
 
 // Internal
-const rawDocks = require('../../../mocks/mavis/multiple-docks.json')
+const rawDocks = require('../../../mocks/swarm/multiple-docks.json')
 const Swarm = require('models/swarm')
 const TaskFatalError = require('ponos').TaskFatalError
 
@@ -55,7 +55,7 @@ describe('Obliterate CodeNow Task', function () {
   })
 
   describe('when no code now docks exist', function () {
-    var rawDock = require('../../../mocks/mavis/docks.json')
+    var rawDock = require('../../../mocks/swarm/docks.json')
     beforeEach(function () {
       Swarm.prototype.getHostsWithOrgs.returns(Promise.resolve(rawDock))
     })
