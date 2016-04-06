@@ -2,31 +2,32 @@
 
 require('loadenv')({ debugName: 'khronos:test' })
 
-var chai = require('chai')
-var assert = chai.assert
-chai.use(require('chai-as-promised'))
-
 // external
-var Hermes = require('runnable-hermes')
-var sinon = require('sinon')
-var TaskFatalError = require('ponos').TaskFatalError
+const chai = require('chai')
+const Hermes = require('runnable-hermes')
+const sinon = require('sinon')
+const TaskFatalError = require('ponos').TaskFatalError
 
 // internal
-var Mavis = require('models/mavis')
+const Swarm = require('models/swarm')
 
 // internal (being tested)
-var enqueueDockJobsHelper = require('tasks/utils/enqueue-dock-jobs')
+const enqueueDockJobsHelper = require('tasks/utils/enqueue-dock-jobs')
+
+const assert = chai.assert
+chai.use(require('chai-as-promised'))
+require('sinon-as-promised')(require('bluebird'))
 
 describe('Enqueue Dock Jobs Helper', function () {
   beforeEach(function () {
     sinon.stub(Hermes.prototype, 'connect').yieldsAsync()
     sinon.stub(Hermes.prototype, 'publish').returns()
-    sinon.stub(Mavis.prototype, 'getDocks').returns(['http://example.com'])
+    sinon.stub(Swarm.prototype, 'getSwarmHosts').resolves(['http://example.com'])
   })
   afterEach(function () {
     Hermes.prototype.connect.restore()
     Hermes.prototype.publish.restore()
-    Mavis.prototype.getDocks.restore()
+    Swarm.prototype.getSwarmHosts.restore()
   })
 
   it('should enforce a target queue', function () {
@@ -57,7 +58,7 @@ describe('Enqueue Dock Jobs Helper', function () {
   })
 
   it('should throw if mavis errors', function () {
-    Mavis.prototype.getDocks.throws(new Error('foobar'))
+    Swarm.prototype.getSwarmHosts.throws(new Error('foobar'))
     return assert.isRejected(
       enqueueDockJobsHelper('queue:one'),
       Error,

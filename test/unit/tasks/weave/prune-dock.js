@@ -2,28 +2,29 @@
 
 require('loadenv')({ debugName: 'khronos:test' })
 
-var chai = require('chai')
-var assert = chai.assert
-chai.use(require('chai-as-promised'))
-
 // external
 var Bunyan = require('bunyan')
+var chai = require('chai')
 var rabbitmq = require('runnable-hermes')
 var sinon = require('sinon')
 var TaskFatalError = require('ponos').TaskFatalError
 
 // internal
 var Docker = require('models/docker')
-var Mavis = require('models/mavis')
+const Swarm = require('models/swarm')
 
 // internal (being tested)
 var weavePruneDock = require('tasks/weave/prune-dock')
+
+const assert = chai.assert
+chai.use(require('chai-as-promised'))
+require('sinon-as-promised')(require('bluebird'))
 
 describe('Delete Weave Container Dock Task', function () {
   beforeEach(function () {
     sinon.stub(Bunyan.prototype, 'error').returns()
     sinon.stub(Docker.prototype, 'getContainers').yieldsAsync(null, [])
-    sinon.stub(Mavis.prototype, 'verifyHost').returns(true)
+    sinon.stub(Swarm.prototype, 'checkHostExists').returns(true)
     sinon.stub(rabbitmq.prototype, 'close').yieldsAsync()
     sinon.stub(rabbitmq.prototype, 'connect').yieldsAsync()
     sinon.stub(rabbitmq.prototype, 'publish').returns()
@@ -31,7 +32,7 @@ describe('Delete Weave Container Dock Task', function () {
   afterEach(function () {
     Bunyan.prototype.error.restore()
     Docker.prototype.getContainers.restore()
-    Mavis.prototype.verifyHost.restore()
+    Swarm.prototype.checkHostExists.restore()
     rabbitmq.prototype.close.restore()
     rabbitmq.prototype.connect.restore()
     rabbitmq.prototype.publish.restore()

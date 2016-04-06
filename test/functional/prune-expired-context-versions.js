@@ -2,22 +2,22 @@
 
 require('loadenv')({ debugName: 'khronos:test' })
 
-var chai = require('chai')
-chai.use(require('chai-as-promised'))
-var assert = chai.assert
-
 // external
-var async = require('async')
-var find = require('101/find')
-var hasKeypaths = require('101/has-keypaths')
-var Hermes = require('runnable-hermes')
-var pluck = require('101/pluck')
-var ponos = require('ponos')
-var sinon = require('sinon')
+const async = require('async')
+const chai = require('chai')
+const find = require('101/find')
+const hasKeypaths = require('101/has-keypaths')
+const Hermes = require('runnable-hermes')
+const pluck = require('101/pluck')
+const ponos = require('ponos')
+const sinon = require('sinon')
 
 // internal
-var mongodb = require('models/mongodb')
-var mongodbFactory = require('../factories/mongodb')
+const mongodb = require('models/mongodb')
+const mongodbFactory = require('../factories/mongodb')
+
+chai.use(require('chai-as-promised'))
+const assert = chai.assert
 
 describe('Prune Expired Context Versions', function () {
   var tasks = {

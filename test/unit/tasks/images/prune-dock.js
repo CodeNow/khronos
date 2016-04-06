@@ -2,29 +2,30 @@
 
 require('loadenv')({ debugName: 'khronos:test' })
 
-var chai = require('chai')
-var assert = chai.assert
-chai.use(require('chai-as-promised'))
-
 // external
-var Bunyan = require('bunyan')
-var Promise = require('bluebird')
-var rabbitmq = require('runnable-hermes')
-var sinon = require('sinon')
-var TaskFatalError = require('ponos').TaskFatalError
+const Bunyan = require('bunyan')
+const chai = require('chai')
+const Promise = require('bluebird')
+const rabbitmq = require('runnable-hermes')
+const sinon = require('sinon')
+const TaskFatalError = require('ponos').TaskFatalError
 
 // internal
-var Docker = require('models/docker')
-var Mavis = require('models/mavis')
+const Docker = require('models/docker')
+const Swarm = require('models/swarm')
 
 // internal (being tested)
-var imagesPruneDock = require('tasks/images/prune-dock')
+const imagesPruneDock = require('tasks/images/prune-dock')
+
+const assert = chai.assert
+chai.use(require('chai-as-promised'))
+require('sinon-as-promised')(Promise)
 
 describe('images prune dock task', function () {
   beforeEach(function () {
     sinon.stub(Bunyan.prototype, 'warn').returns()
     sinon.stub(Docker.prototype, 'getImages').yieldsAsync(null, [], [])
-    sinon.stub(Mavis.prototype, 'verifyHost').returns(Promise.resolve(true))
+    sinon.stub(Swarm.prototype, 'checkHostExists').returns(Promise.resolve(true))
     sinon.stub(rabbitmq.prototype, 'close').yieldsAsync()
     sinon.stub(rabbitmq.prototype, 'connect').yieldsAsync()
     sinon.stub(rabbitmq.prototype, 'publish').returns()
@@ -32,7 +33,7 @@ describe('images prune dock task', function () {
   afterEach(function () {
     Bunyan.prototype.warn.restore()
     Docker.prototype.getImages.restore()
-    Mavis.prototype.verifyHost.restore()
+    Swarm.prototype.checkHostExists.restore()
     rabbitmq.prototype.close.restore()
     rabbitmq.prototype.connect.restore()
     rabbitmq.prototype.publish.restore()
@@ -79,14 +80,14 @@ describe('images prune dock task', function () {
 
     describe('Mavis Error', function () {
       beforeEach(function () {
-        Mavis.prototype.verifyHost.throws(new Mavis.InvalidHostError())
+        Swarm.prototype.checkHostExists.throws(new Swarm.InvalidHostError())
       })
 
       it('should return an empty data if dock not in mavis', function () {
         return assert.isFulfilled(imagesPruneDock({ dockerHost: 'http://example.com' }))
           .then(function (result) {
-            sinon.assert.calledOnce(Mavis.prototype.verifyHost)
-            sinon.assert.calledWithExactly(Mavis.prototype.verifyHost, 'http://example.com')
+            sinon.assert.calledOnce(Swarm.prototype.checkHostExists)
+            sinon.assert.calledWithExactly(Swarm.prototype.checkHostExists, 'http://example.com')
             assert.deepEqual(result, {
               dockerHost: 'http://example.com',
               taglessJobsEnqueued: -1,

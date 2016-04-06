@@ -66,6 +66,8 @@
     "ponos": "^1.1.0",
     "request": "^2.69.0",
     "runnable-hermes": "6.3.0",
+    "sinon-as-promised": "^4.0.0",
+    "swarmerode": "^0.2.0",
     "uuid": "^2.0.1",
     "ws": "^1.0.1"
   },

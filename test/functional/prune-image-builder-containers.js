@@ -2,25 +2,26 @@
 
 require('loadenv')({ debugName: 'khronos:test' })
 
-var chai = require('chai')
-chai.use(require('chai-as-promised'))
-var assert = chai.assert
-var expect = chai.expect
-var nock = require('nock')
-
 // external
-var async = require('async')
-var Container = require('dockerode/lib/container')
-var Docker = require('dockerode')
-var dockerMock = require('docker-mock')
-var Hermes = require('runnable-hermes')
-var ponos = require('ponos')
-var sinon = require('sinon')
+const chai = require('chai')
+const nock = require('nock')
+const async = require('async')
+const Container = require('dockerode/lib/container')
+const Docker = require('dockerode')
+const dockerMock = require('docker-mock')
+const Hermes = require('runnable-hermes')
+const ponos = require('ponos')
+const sinon = require('sinon')
+const swarmInfoMock = require('swarmerode/test/fixtures/swarm-info')
 
 // internal
-var dockerFactory = require('../factories/docker')
+const dockerFactory = require('../factories/docker')
 
-var docker = new Docker({
+chai.use(require('chai-as-promised'))
+const assert = chai.assert
+const expect = chai.expect
+
+const docker = new Docker({
   host: process.env.KHRONOS_DOCKER_HOST,
   port: process.env.KHRONOS_DOCKER_PORT
 })
@@ -45,19 +46,20 @@ describe('Prune Exited Image-Builder Containers', function () {
     dockerMockServer = dockerMock.listen(process.env.KHRONOS_DOCKER_PORT, done)
   })
   beforeEach(function () {
+    nock('http://localhost:4242', { allowUnmocked: true })
+      .persist()
+      .get('/info')
+      .reply(200, swarmInfoMock([{
+        host: 'localhost:5454'
+      }]))
+  })
+  beforeEach(function () {
     sinon.spy(Container.prototype, 'remove')
     sinon.spy(tasks, 'khronos:containers:image-builder:prune-dock')
     sinon.spy(tasks, 'khronos:containers:delete')
     workerServer = new ponos.Server({ hermes: hermes })
     workerServer.setAllTasks(tasks)
     return assert.isFulfilled(workerServer.start())
-  })
-  beforeEach(function () {
-    var TLD = process.env.KHRONOS_MAVIS.replace('/docks', '')
-    nock(TLD)
-      .persist()
-      .get('/docks')
-      .reply(200, require('../mocks/mavis/docks.json'))
   })
   afterEach(function () {
     return assert.isFulfilled(workerServer.stop())
@@ -67,6 +69,9 @@ describe('Prune Exited Image-Builder Containers', function () {
     tasks['khronos:containers:image-builder:prune-dock'].restore()
     tasks['khronos:containers:delete'].restore()
     dockerFactory.deleteAllImagesAndContainers(docker, done)
+  })
+  afterEach(function () {
+    nock.cleanAll()
   })
   after(function (done) {
     dockerMockServer.close(done)
@@ -119,12 +124,15 @@ describe('Prune Exited Image-Builder Containers', function () {
 
     describe('with multiple docks', function () {
       beforeEach(function () {
-        var TLD = process.env.KHRONOS_MAVIS.replace('/docks', '')
         nock.cleanAll()
-        nock(TLD)
+        nock('http://localhost:4242', { allowUnmocked: true })
           .persist()
-          .get('/docks')
-          .reply(200, require('../mocks/mavis/multiple-docks.json'))
+          .get('/info')
+          .reply(200, swarmInfoMock([{
+            host: 'localhost:5454'
+          }, {
+            host: 'localhost:5454'
+          }]))
       })
       it('should run successfully', function (done) {
         workerServer.hermes.publish('khronos:containers:image-builder:prune', {})
@@ -150,16 +158,17 @@ describe('Prune Exited Image-Builder Containers', function () {
     })
 
     describe('where image-builder containers are present', function () {
+      beforeEach(function () {
+        nock.cleanAll()
+        nock('http://localhost:4242', { allowUnmocked: true })
+          .persist()
+          .get('/info')
+          .reply(200, swarmInfoMock([{
+            host: 'localhost:5454'
+          }]))
+      })
       beforeEach(function (done) {
         dockerFactory.createImageBuilderContainers(docker, 2, done)
-      })
-      beforeEach(function () {
-        var TLD = process.env.KHRONOS_MAVIS.replace('/docks', '')
-        nock.cleanAll()
-        nock(TLD)
-          .persist()
-          .get('/docks')
-          .reply(200, require('../mocks/mavis/docks.json'))
       })
 
       it('should only remove dead image-builder containers', function (done) {

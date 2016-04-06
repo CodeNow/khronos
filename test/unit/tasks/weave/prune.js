@@ -2,33 +2,34 @@
 
 require('loadenv')({ debugName: 'khronos:test' })
 
-var chai = require('chai')
-var assert = chai.assert
-chai.use(require('chai-as-promised'))
-
 // external
 var Bunyan = require('bunyan')
-var sinon = require('sinon')
+var chai = require('chai')
 var rabbitmq = require('runnable-hermes')
+var sinon = require('sinon')
 
 // internal
-var Mavis = require('models/mavis')
+const Swarm = require('models/swarm')
 
 // internal (being tested)
 var weavePrune = require('tasks/weave/prune')
+
+const assert = chai.assert
+chai.use(require('chai-as-promised'))
+require('sinon-as-promised')(require('bluebird'))
 
 describe('prune exited weave containers', function () {
   describe('task', function () {
     beforeEach(function () {
       sinon.stub(Bunyan.prototype, 'error')
-      sinon.stub(Mavis.prototype, 'getDocks').returns(['http://example.com'])
+      sinon.stub(Swarm.prototype, 'getSwarmHosts').resolves(['http://example.com'])
       sinon.stub(rabbitmq.prototype, 'close').yieldsAsync()
       sinon.stub(rabbitmq.prototype, 'connect').yieldsAsync()
       sinon.stub(rabbitmq.prototype, 'publish').returns()
     })
     afterEach(function () {
       Bunyan.prototype.error.restore()
-      Mavis.prototype.getDocks.restore()
+      Swarm.prototype.getSwarmHosts.restore()
       rabbitmq.prototype.connect.restore()
       rabbitmq.prototype.publish.restore()
       rabbitmq.prototype.close.restore()
@@ -37,7 +38,7 @@ describe('prune exited weave containers', function () {
     describe('success', function () {
       describe('with no docks', function () {
         beforeEach(function () {
-          Mavis.prototype.getDocks.returns([])
+          Swarm.prototype.getSwarmHosts.returns([])
         })
 
         it('should enqueue no tasks in rabbit', function () {
@@ -68,7 +69,7 @@ describe('prune exited weave containers', function () {
 
       describe('with many docks', function () {
         beforeEach(function () {
-          Mavis.prototype.getDocks.returns([
+          Swarm.prototype.getSwarmHosts.returns([
             'http://example1.com',
             'http://example2.com'
           ])
@@ -97,7 +98,7 @@ describe('prune exited weave containers', function () {
     describe('failure', function () {
       describe('of mavis', function () {
         beforeEach(function () {
-          Mavis.prototype.getDocks.throws(new Error('foobar'))
+          Swarm.prototype.getSwarmHosts.throws(new Error('foobar'))
         })
 
         it('should throw an error', function () {
@@ -126,7 +127,7 @@ describe('prune exited weave containers', function () {
             'foobar'
           )
             .then(function () {
-              sinon.assert.notCalled(Mavis.prototype.getDocks)
+              sinon.assert.notCalled(Swarm.prototype.getSwarmHosts)
             })
         })
       })
@@ -144,7 +145,7 @@ describe('prune exited weave containers', function () {
           )
             .then(function () {
               sinon.assert.calledOnce(rabbitmq.prototype.connect)
-              sinon.assert.calledOnce(Mavis.prototype.getDocks)
+              sinon.assert.calledOnce(Swarm.prototype.getSwarmHosts)
               sinon.assert.calledOnce(rabbitmq.prototype.close)
             })
         })
@@ -159,7 +160,7 @@ describe('prune exited weave containers', function () {
           assert.isFulfilled(weavePrune())
             .then(function () {
               sinon.assert.calledOnce(rabbitmq.prototype.connect)
-              sinon.assert.calledOnce(Mavis.prototype.getDocks)
+              sinon.assert.calledOnce(Swarm.prototype.getSwarmHosts)
               sinon.assert.calledOnce(rabbitmq.prototype.publish)
               sinon.assert.calledOnce(Bunyan.prototype.error)
               assert.equal(
