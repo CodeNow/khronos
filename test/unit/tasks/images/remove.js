@@ -2,21 +2,22 @@
 
 require('loadenv')({ debugName: 'khronos:test' })
 
-var chai = require('chai')
-var assert = chai.assert
-chai.use(require('chai-as-promised'))
-
 // external
-var Promise = require('bluebird')
-var sinon = require('sinon')
-var TaskFatalError = require('ponos').TaskFatalError
+const chai = require('chai')
+const Promise = require('bluebird')
+const sinon = require('sinon')
+const TaskFatalError = require('ponos').TaskFatalError
 
 // internal
-var Docker = require('models/docker')
-var Mavis = require('models/mavis')
+const Docker = require('models/docker')
+const Swarm = require('models/swarm')
 
 // internal (being tested)
-var removeImage = require('tasks/images/remove')
+const removeImage = require('tasks/images/remove')
+
+const assert = chai.assert
+chai.use(require('chai-as-promised'))
+require('sinon-as-promised')(Promise)
 
 describe('Remove Image Task', function () {
   var testJob = {
@@ -26,11 +27,11 @@ describe('Remove Image Task', function () {
 
   beforeEach(function () {
     sinon.stub(Docker.prototype, 'removeImage').yieldsAsync()
-    sinon.stub(Mavis.prototype, 'verifyHost').returns(Promise.resolve(true))
+    sinon.stub(Swarm.prototype, 'checkHostExists').resolves(true)
   })
   afterEach(function () {
     Docker.prototype.removeImage.restore()
-    Mavis.prototype.verifyHost.restore()
+    Swarm.prototype.checkHostExists.restore()
   })
 
   describe('errors', function () {
@@ -51,14 +52,14 @@ describe('Remove Image Task', function () {
 
     describe('Mavis Error', function () {
       beforeEach(function () {
-        Mavis.prototype.verifyHost.throws(new Mavis.InvalidHostError())
+        Swarm.prototype.checkHostExists.throws(new Swarm.InvalidHostError())
       })
 
       it('should return an empty data if dock not in mavis', function () {
         return assert.isFulfilled(removeImage(testJob))
           .then(function (result) {
-            sinon.assert.calledOnce(Mavis.prototype.verifyHost)
-            sinon.assert.calledWithExactly(Mavis.prototype.verifyHost, testJob.dockerHost)
+            sinon.assert.calledOnce(Swarm.prototype.checkHostExists)
+            sinon.assert.calledWithExactly(Swarm.prototype.checkHostExists, testJob.dockerHost)
             assert.deepEqual(
               result,
               {
