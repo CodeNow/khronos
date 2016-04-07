@@ -137,7 +137,7 @@ describe('Prune Orphan Images', function () {
       beforeEach(function (done) {
         var createdDate = Math.floor((new Date().getTime()) / 1000)
         var opts = {
-          fromImage: 'registry.runnable.com/100/bar',
+          fromImage: 'localhost/100/bar',
           Created: createdDate,
           tag: '012345678901234567898901' // 24 char object ID
         }
@@ -170,7 +170,7 @@ describe('Prune Orphan Images', function () {
       beforeEach(function (done) {
         var longTimeAgo = Math.floor((new Date().getTime() - Math.pow(10, 9)) / 1000)
         var opts = {
-          fromImage: 'registry.runnable.com/100/bar',
+          fromImage: 'localhost/100/bar',
           Created: longTimeAgo,
           tag: '012345678901234567894567' // 24 char object ID
         }
