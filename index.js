@@ -10,6 +10,7 @@ var tasks = {
   'khronos:canary:build': require('tasks/canary/build'),
   'khronos:canary:github-branch': require('tasks/canary/github-branch'),
   'khronos:canary:log': require('tasks/canary/log'),
+  'khronos:canary:network': require('tasks/canary/network'),
   'khronos:canary:network-ping': require('tasks/canary/network-ping'),
   'khronos:containers:delete': require('tasks/containers/delete'),
   'khronos:containers:image-builder:prune': require('tasks/image-builder/prune'),

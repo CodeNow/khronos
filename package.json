@@ -59,6 +59,7 @@
     "error-subclass": "^1.0.2",
     "github": "^0.2.4",
     "intercom-client": "^2.8.0",
+    "joi": "^8.0.5",
     "keypather": "^1.10.1",
     "loadenv": "^2.1.0",
     "mongodb": "^2.1.7",
