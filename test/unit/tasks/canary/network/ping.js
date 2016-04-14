@@ -7,8 +7,6 @@ const assert = chai.assert
 chai.use(require('chai-as-promised'))
 
 // external
-const noop = require('101/noop')
-const Promise = require('bluebird')
 const sinon = require('sinon')
 
 // internal
