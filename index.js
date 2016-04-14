@@ -12,6 +12,7 @@ var tasks = {
   'khronos:canary:log': require('tasks/canary/log'),
   'khronos:canary:network': require('tasks/canary/network/index'),
   'khronos:canary:network-ping': require('tasks/canary/network/ping'),
+  'khronos:canary:network-cleanup': require('tasks/canary/network/cleanup'),
   'khronos:containers:delete': require('tasks/containers/delete'),
   'khronos:containers:image-builder:prune': require('tasks/image-builder/prune'),
   'khronos:containers:image-builder:prune-dock': require('tasks/image-builder/prune-dock'),
