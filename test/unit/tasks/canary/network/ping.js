@@ -1,6 +1,6 @@
 'use strict'
 
-require('loadenv')()
+require('loadenv')('khronos:test')
 
 const chai = require('chai')
 const assert = chai.assert
