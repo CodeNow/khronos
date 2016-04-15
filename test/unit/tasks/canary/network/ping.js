@@ -73,7 +73,7 @@ describe('Network Ping Canary', () => {
       })
     })
 
-    it('should throw TaskFatalError', () => {
+    it('should throw TaskFatalError if url missing http', () => {
       return pingCanary({
         targetDockerUrl: '10.0.0.1:4242',
         targetIps: ['10.0.0.1'],
@@ -83,7 +83,7 @@ describe('Network Ping Canary', () => {
       })
     })
 
-    it('should throw TaskFatalError', () => {
+    it('should throw TaskFatalError if url empty string', () => {
       return pingCanary({
         targetDockerUrl: '',
         targetIps: ['10.0.0.1'],
@@ -93,7 +93,7 @@ describe('Network Ping Canary', () => {
       })
     })
 
-    it('should throw TaskFatalError', () => {
+    it('should throw TaskFatalError if ips are not strings', () => {
       return pingCanary({
         targetDockerUrl: 'http://10.0.0.1:4242',
         targetIps: [1, 2],
@@ -103,7 +103,7 @@ describe('Network Ping Canary', () => {
       })
     })
 
-    it('should throw TaskFatalError', () => {
+    it('should throw TaskFatalError if ips are invalid', () => {
       return pingCanary({
         targetDockerUrl: 'http://10.0.0.1:4242',
         targetIps: ['a', 'b'],
@@ -113,7 +113,7 @@ describe('Network Ping Canary', () => {
       })
     })
 
-    it('should throw TaskFatalError', () => {
+    it('should throw TaskFatalError if ips are not all strings', () => {
       return pingCanary({
         targetDockerUrl: 'http://10.0.0.1:4242',
         targetIps: ['10.0.0.1', [1]],
@@ -123,7 +123,7 @@ describe('Network Ping Canary', () => {
       })
     })
 
-    it('should throw TaskFatalError', () => {
+    it('should throw TaskFatalError if org is not a number', () => {
       return pingCanary({
         targetDockerUrl: 'http://10.0.0.1:4242',
         targetIps: ['10.0.0.1'],
