@@ -22,10 +22,11 @@ const pingCanary = require('tasks/canary/network/ping')
 // TODO anand: flesh out the unit tests for this canary
 describe('Network Ping Canary', () => {
   const cleanupQueue = 'khronos:canary:network-cleanup'
+  const testTartgetIps = ['10.0.0.1', '10.0.0.2']
   const mock = {
     job: {
       targetDockerUrl: 'http://1.2.3.4:4242',
-      targetIps: ['10.0.0.1', '10.0.0.2'],
+      targetIps: testTartgetIps,
       targetOrg: 123123
     }
   }
@@ -153,6 +154,18 @@ describe('Network Ping Canary', () => {
       })
     })
 
+    it('should run image', () => {
+      Dockerode.prototype.run.yieldsAsync(null, {
+        StatusCode: 0
+      })
+      return pingCanary(mock.job).then(() => {
+        const ips = testTartgetIps.join(' ')
+        const cmd = ['bash', '-c', process.env.RUNNABLE_WAIT_FOR_WEAVE + 'node index.js ' + ips]
+        sinon.assert.calledOnce(Dockerode.prototype.run)
+        sinon.assert.calledWith(Dockerode.prototype.run, process.env.NETWORK_PING_IMAGE, cmd, false)
+      })
+    })
+
     it('should enqueue the cleanup task', () => {
       return pingCanary(mock.job).then(() => {
         sinon.assert.calledOnce(Hermes.prototype.publish)
@@ -164,6 +177,67 @@ describe('Network Ping Canary', () => {
       })
     })
   }) // end 'on success'
+
+  describe('run failures', function () {
+    beforeEach(() => {
+      Swarm.prototype.checkHostExists.resolves()
+      Docker.prototype.pull.resolves()
+    })
+
+    it('should fail canary on error', () => {
+      Dockerode.prototype.run.returns({
+        on: sinon.stub()
+      }).yieldsAsync(new Error('bad'))
+      return pingCanary(mock.job).then(() => {
+        sinon.assert.calledOnce(CanaryBase.prototype.handleCanaryError)
+      })
+    })
+
+    it('should fail canary on exit 55', () => {
+      Dockerode.prototype.run.returns({
+        on: sinon.stub()
+      }).yieldsAsync(null, {
+        StatusCode: 55
+      })
+      return pingCanary(mock.job).then(() => {
+        sinon.assert.calledOnce(CanaryBase.prototype.handleCanaryError)
+      })
+    })
+
+    it('should fail canary on non-zero', () => {
+      Dockerode.prototype.run.returns({
+        on: sinon.stub()
+      }).yieldsAsync(null, {
+        StatusCode: 123
+      })
+      return pingCanary(mock.job).then(() => {
+        sinon.assert.calledOnce(CanaryBase.prototype.handleCanaryError)
+      })
+    })
+
+    it('should fail ERR in logs', () => {
+      Dockerode.prototype.run.restore()
+      sinon.stub(Dockerode.prototype, 'run', function (a, b, c, callback) {
+        return {
+          on: (name, cb) => {
+            assert.equal(name, 'stream')
+            cb({
+              on: function (name, cb) {
+                assert.equal(name, 'data')
+                cb('10.0.0.0: ERR: bad happened')
+                callback(null, {
+                  StatusCode: 0
+                })
+              }
+            })
+          }
+        }
+      })
+      return pingCanary(mock.job).then(() => {
+        sinon.assert.calledOnce(CanaryBase.prototype.handleCanaryError)
+      })
+    })
+  }) // end run failures
 
   describe('on failure', () => {
     beforeEach(() => {
