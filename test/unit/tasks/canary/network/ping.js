@@ -241,33 +241,37 @@ describe('Network Ping Canary', () => {
     })
 
     it('should fail canary on error', () => {
-      Dockerode.prototype.run.returns({
-        on: sinon.stub()
-      }).yieldsAsync(new Error('bad'))
+      Dockerode.prototype.run.yieldsAsync(new Error('bad'))
       return pingCanary(mock.job).then(() => {
         sinon.assert.calledOnce(CanaryBase.prototype.handleCanaryError)
+        assert.match(
+          CanaryBase.prototype.handleCanaryError.firstCall.args[0].message,
+          /Error trying to ping/i
+        )
       })
     })
 
-    it('should fail canary on exit 55', () => {
-      Dockerode.prototype.run.returns({
-        on: sinon.stub()
-      }).yieldsAsync(null, {
-        StatusCode: 55
-      })
+    it('should fail canary on network attach error', () => {
+      Dockerode.prototype.run
+        .yieldsAsync(null, { StatusCode: 55 }, mock.container)
       return pingCanary(mock.job).then(() => {
         sinon.assert.calledOnce(CanaryBase.prototype.handleCanaryError)
+        assert.match(
+          CanaryBase.prototype.handleCanaryError.firstCall.args[0].message,
+          /failed to attach network/i
+        )
       })
     })
 
     it('should fail canary on non-zero', () => {
-      Dockerode.prototype.run.returns({
-        on: sinon.stub()
-      }).yieldsAsync(null, {
-        StatusCode: 123
-      })
+      Dockerode.prototype.run
+        .yieldsAsync(null, { StatusCode: 123 }, mock.container)
       return pingCanary(mock.job).then(() => {
         sinon.assert.calledOnce(CanaryBase.prototype.handleCanaryError)
+        assert.match(
+          CanaryBase.prototype.handleCanaryError.firstCall.args[0].message,
+          /ping container had non-zero exit/i
+        )
       })
     })
 
@@ -281,9 +285,7 @@ describe('Network Ping Canary', () => {
               on: function (name, cb) {
                 assert.equal(name, 'data')
                 cb('10.0.0.0: ERR: bad happened')
-                callback(null, {
-                  StatusCode: 0
-                })
+                callback(null, { StatusCode: 0 }, mock.container)
               }
             })
           }
@@ -291,6 +293,10 @@ describe('Network Ping Canary', () => {
       })
       return pingCanary(mock.job).then(() => {
         sinon.assert.calledOnce(CanaryBase.prototype.handleCanaryError)
+        assert.match(
+          CanaryBase.prototype.handleCanaryError.firstCall.args[0].message,
+          /failed to ping a container/i
+        )
       })
     })
   }) // end run failures
