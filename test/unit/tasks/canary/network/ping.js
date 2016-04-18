@@ -8,6 +8,7 @@ chai.use(require('chai-as-promised'))
 
 // external
 const Dockerode = require('dockerode')
+const noop = require('101/noop')
 const sinon = require('sinon')
 
 // internal
@@ -21,13 +22,21 @@ const pingCanary = require('tasks/canary/network/ping')
 
 // TODO anand: flesh out the unit tests for this canary
 describe('Network Ping Canary', () => {
-  const cleanupQueue = 'khronos:canary:network-cleanup'
   const testTartgetIps = ['10.0.0.1', '10.0.0.2']
   const mock = {
     job: {
       targetDockerUrl: 'http://1.2.3.4:4242',
       targetIps: testTartgetIps,
       targetOrg: 123123
+    },
+    runData: {
+      StatusCode: 0
+    },
+    runEventEmitter: {
+      on: noop
+    },
+    container: {
+      id: 'some-container-id'
     }
   }
 
@@ -42,6 +51,8 @@ describe('Network Ping Canary', () => {
     sinon.stub(CanaryBase.prototype, 'handleSuccess')
     sinon.stub(Docker.prototype, 'pull')
     sinon.stub(Dockerode.prototype, 'run')
+      .returns(mock.runEventEmitter)
+      .yieldsAsync(null, mock.runData, mock.container)
     sinon.stub(Hermes.prototype, 'close').yieldsAsync()
     sinon.stub(Hermes.prototype, 'connect').yieldsAsync()
     sinon.stub(Hermes.prototype, 'publish')
@@ -166,14 +177,44 @@ describe('Network Ping Canary', () => {
       })
     })
 
-    it('should enqueue the cleanup task', () => {
+    it('should cleanup the test container', () => {
       return pingCanary(mock.job).then(() => {
         sinon.assert.calledOnce(Hermes.prototype.publish)
-        sinon.assert.calledWith(Hermes.prototype.publish, cleanupQueue)
+        sinon.assert.calledWith(
+          Hermes.prototype.publish,
+          'khronos:containers:delete'
+        )
         assert.deepEqual(
           Hermes.prototype.publish.firstCall.args[1],
-          { dockerHost: mock.job.targetDockerUrl }
+          {
+            dockerHost: mock.job.targetDockerUrl,
+            containerId: mock.container.id
+          }
         )
+      })
+    })
+
+    describe('without container', () => {
+      beforeEach(() => {
+        Dockerode.prototype.run.yieldsAsync(null, mock.runData, null)
+      })
+
+      it('should not cleanup the test container', () => {
+        return pingCanary(mock.job).then(() => {
+          assert.equal(Hermes.prototype.publish.callCount, 0)
+        })
+      })
+    })
+
+    describe('with malformed container', () => {
+      beforeEach(() => {
+        Dockerode.prototype.run.yieldsAsync(null, mock.runData, {})
+      })
+
+      it('should not cleanup the test container', () => {
+        return pingCanary(mock.job).then(() => {
+          assert.equal(Hermes.prototype.publish.callCount, 0)
+        })
       })
     })
   }) // end 'on success'
@@ -238,23 +279,4 @@ describe('Network Ping Canary', () => {
       })
     })
   }) // end run failures
-
-  describe('on failure', () => {
-    beforeEach(() => {
-      Swarm.prototype.checkHostExists
-        .rejects(new Swarm.InvalidHostError('Dock not there'))
-    })
-
-    it('should cleanup the test containers', () => {
-      return pingCanary(mock.job).then(() => {
-        sinon.assert.calledOnce(CanaryBase.prototype.handleGenericError)
-        sinon.assert.calledOnce(Hermes.prototype.publish)
-        sinon.assert.calledWith(Hermes.prototype.publish, cleanupQueue)
-        assert.deepEqual(
-          Hermes.prototype.publish.firstCall.args[1],
-          { dockerHost: mock.job.targetDockerUrl }
-        )
-      })
-    })
-  }) // end 'on failure'
 })
