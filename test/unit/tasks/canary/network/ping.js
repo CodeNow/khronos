@@ -154,14 +154,20 @@ describe('Network Ping Canary', () => {
     it('should checkHostExists', () => {
       return pingCanary(mock.job).then(() => {
         sinon.assert.calledOnce(Swarm.prototype.checkHostExists)
-        sinon.assert.calledWith(Swarm.prototype.checkHostExists, mock.job.targetDockerUrl)
+        sinon.assert.calledWith(
+          Swarm.prototype.checkHostExists,
+          mock.job.targetDockerUrl
+        )
       })
     })
 
     it('should pull image', () => {
       return pingCanary(mock.job).then(() => {
         sinon.assert.calledOnce(Docker.prototype.pull)
-        sinon.assert.calledWith(Docker.prototype.pull, process.env.NETWORK_PING_IMAGE)
+        sinon.assert.calledWith(
+          Docker.prototype.pull,
+          process.env.NETWORK_PING_IMAGE
+        )
       })
     })
 
@@ -171,9 +177,18 @@ describe('Network Ping Canary', () => {
       })
       return pingCanary(mock.job).then(() => {
         const ips = testTartgetIps.join(' ')
-        const cmd = ['bash', '-c', process.env.RUNNABLE_WAIT_FOR_WEAVE + 'node index.js ' + ips]
+        const cmd = [
+          'bash',
+          '-c',
+          process.env.RUNNABLE_WAIT_FOR_WEAVE + 'node index.js ' + ips
+        ]
         sinon.assert.calledOnce(Dockerode.prototype.run)
-        sinon.assert.calledWith(Dockerode.prototype.run, process.env.NETWORK_PING_IMAGE, cmd, false)
+        sinon.assert.calledWith(
+          Dockerode.prototype.run,
+          process.env.NETWORK_PING_IMAGE,
+          cmd,
+          false
+        )
       })
     })
 
