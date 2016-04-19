@@ -2,34 +2,35 @@
 
 require('loadenv')({ debugName: 'khronos:test' })
 
-var chai = require('chai')
-var assert = chai.assert
-chai.use(require('chai-as-promised'))
-
 // external
-var Hermes = require('runnable-hermes')
-var sinon = require('sinon')
-var TaskFatalError = require('ponos').TaskFatalError
+const chai = require('chai')
+const Hermes = require('runnable-hermes')
+const sinon = require('sinon')
+const TaskFatalError = require('ponos').TaskFatalError
 
 // internal
-var Docker = require('models/docker')
-var Mavis = require('models/mavis')
+const Docker = require('models/docker')
+const Swarm = require('models/swarm')
 
 // internal (being tested)
-var enqueueContainerJobsHelper = require('tasks/utils/enqueue-container-jobs')
+const enqueueContainerJobsHelper = require('tasks/utils/enqueue-container-jobs')
+
+const assert = chai.assert
+chai.use(require('chai-as-promised'))
+require('sinon-as-promised')(require('bluebird'))
 
 describe('Enqueue Container Jobs Helper', function () {
   beforeEach(function () {
     sinon.stub(Docker.prototype, 'getContainers').yieldsAsync(null, [])
     sinon.stub(Hermes.prototype, 'connect').yieldsAsync()
     sinon.stub(Hermes.prototype, 'publish').returns()
-    sinon.stub(Mavis.prototype, 'verifyHost').returns(true)
+    sinon.stub(Swarm.prototype, 'checkHostExists').resolves(true)
   })
   afterEach(function () {
     Docker.prototype.getContainers.restore()
     Hermes.prototype.connect.restore()
     Hermes.prototype.publish.restore()
-    Mavis.prototype.verifyHost.restore()
+    Swarm.prototype.checkHostExists.restore()
   })
 
   var options
@@ -133,7 +134,7 @@ describe('Enqueue Container Jobs Helper', function () {
     })
 
     it('should not enqueue jobs if the dock no longer exists', function () {
-      Mavis.prototype.verifyHost.throws(new Mavis.InvalidHostError())
+      Swarm.prototype.checkHostExists.throws(new Swarm.InvalidHostError())
       Docker.prototype.getContainers.yieldsAsync(null, [{ Id: 4 }])
       return assert.isFulfilled(enqueueContainerJobsHelper(options))
         .then(function (result) {

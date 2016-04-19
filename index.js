@@ -7,24 +7,30 @@ var ponos = require('ponos')
 var rabbitmq = require('models/rabbitmq')
 
 var tasks = {
+  'khronos:canary:build': require('tasks/canary/build'),
+  'khronos:canary:github-branch': require('tasks/canary/github-branch'),
+  'khronos:canary:log': require('tasks/canary/log'),
+  'khronos:canary:network': require('tasks/canary/network/index'),
+  'khronos:canary:network-ping': require('tasks/canary/network/ping'),
   'khronos:containers:delete': require('tasks/containers/delete'),
-  'khronos:containers:image-builder:prune-dock': require('tasks/image-builder/prune-dock'),
   'khronos:containers:image-builder:prune': require('tasks/image-builder/prune'),
+  'khronos:containers:image-builder:prune-dock': require('tasks/image-builder/prune-dock'),
   'khronos:containers:orphan:check-against-mongo': require('tasks/containers/check-against-mongo'),
-  'khronos:containers:orphan:prune-dock': require('tasks/containers/prune-orphans-dock'),
   'khronos:containers:orphan:prune': require('tasks/containers/prune-orphans'),
+  'khronos:containers:orphan:prune-dock': require('tasks/containers/prune-orphans-dock'),
   'khronos:containers:remove': require('tasks/containers/remove'),
   'khronos:context-versions:check-recent-usage': require('tasks/context-versions/check-recent-usage'),
   'khronos:context-versions:prune-expired': require('tasks/context-versions/prune-expired'),
   'khronos:context-versions:remove-and-protect-instances': require('tasks/context-versions/remove-and-protect-instances'),
-  'khronos:images:check-against-context-versions': require('tasks/images/check-against-context-versions'),
-  'khronos:images:prune-dock': require('tasks/images/prune-dock'),
-  'khronos:images:prune': require('tasks/images/prune'),
-  'khronos:images:remove': require('tasks/images/remove'),
-  'khronos:weave:prune-dock': require('tasks/weave/prune-dock'),
-  'khronos:weave:prune': require('tasks/weave/prune'),
   'khronos:docks:obliterate-codenow': require('tasks/docks/obliterate-codenow'),
-  'khronos:canary:build': require('tasks/canary/build')
+  'khronos:images:check-against-context-versions': require('tasks/images/check-against-context-versions'),
+  'khronos:images:prune': require('tasks/images/prune'),
+  'khronos:images:prune-dock': require('tasks/images/prune-dock'),
+  'khronos:images:remove': require('tasks/images/remove'),
+  'khronos:metrics:container-status': require('tasks/metrics/container-status'),
+  'khronos:metrics:report-org-container-status': require('tasks/metrics/report-org-container-status'),
+  'khronos:weave:prune': require('tasks/weave/prune'),
+  'khronos:weave:prune-dock': require('tasks/weave/prune-dock')
 }
 var hermes = rabbitmq(Object.keys(tasks))
 var server = new ponos.Server({

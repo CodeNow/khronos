@@ -91,4 +91,38 @@ describe('Docker Model', function () {
       })
     })
   })
+
+  describe('pull', () => {
+    const imageName = 'some:image'
+    const mockStream = 'some-mock-stream'
+
+    beforeEach(() => {
+      sinon.stub(docker.client, 'pull').yieldsAsync(null, mockStream)
+      sinon.stub(docker.client.modem, 'followProgress').yieldsAsync()
+    })
+
+    afterEach(() => {
+      docker.client.pull.restore()
+      docker.client.modem.followProgress.restore()
+    })
+
+    it('should call pull via the client', () => {
+      return assert.isFulfilled(docker.pull(imageName))
+        .then(() => {
+          sinon.assert.calledOnce(docker.client.pull)
+          sinon.assert.calledWith(docker.client.pull, imageName)
+        })
+    })
+
+    it('should follow the pull progress via the pull stream', () => {
+      return assert.isFulfilled(docker.pull(imageName))
+        .then(() => {
+          sinon.assert.calledOnce(docker.client.modem.followProgress)
+          sinon.assert.calledWith(
+            docker.client.modem.followProgress,
+            mockStream
+          )
+        })
+    })
+  })
 })

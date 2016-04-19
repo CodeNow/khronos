@@ -2,24 +2,26 @@
 
 require('loadenv')({ debugName: 'khronos:test' })
 
-var chai = require('chai')
-chai.use(require('chai-as-promised'))
-var assert = chai.assert
-
 // external
-var async = require('async')
-var Docker = require('dockerode')
-var dockerMock = require('docker-mock')
-var Hermes = require('runnable-hermes')
-var Image = require('dockerode/lib/image')
-var ponos = require('ponos')
-var sinon = require('sinon')
+const async = require('async')
+const chai = require('chai')
+const Docker = require('dockerode')
+const dockerMock = require('docker-mock')
+const Hermes = require('runnable-hermes')
+const Image = require('dockerode/lib/image')
+const nock = require('nock')
+const ponos = require('ponos')
+const sinon = require('sinon')
+const swarmInfoMock = require('swarmerode/test/fixtures/swarm-info')
 
 // internal
-var dockerFactory = require('../factories/docker')
-var mongodbFactory = require('../factories/mongodb')
+const dockerFactory = require('../factories/docker')
+const mongodbFactory = require('../factories/mongodb')
 
-var docker = new Docker({
+chai.use(require('chai-as-promised'))
+const assert = chai.assert
+
+const docker = new Docker({
   host: process.env.KHRONOS_DOCKER_HOST,
   port: process.env.KHRONOS_DOCKER_PORT
 })
@@ -45,6 +47,14 @@ describe('Prune Orphan Images', function () {
   before(function (done) {
     dockerMockServer = dockerMock.listen(process.env.KHRONOS_DOCKER_PORT, done)
   })
+  before(function () {
+    nock('http://localhost:4242', { allowUnmocked: true })
+      .persist()
+      .get('/info')
+      .reply(200, swarmInfoMock([{
+        host: 'localhost:5454'
+      }]))
+  })
   beforeEach(function () {
     sinon.spy(Image.prototype, 'remove')
     sinon.spy(Docker.prototype, 'listImages')
@@ -66,6 +76,9 @@ describe('Prune Orphan Images', function () {
   })
   afterEach(function (done) {
     mongodbFactory.removeAllContextVersions(done)
+  })
+  after(function () {
+    nock.cleanAll()
   })
   after(function (done) {
     dockerMockServer.close(done)
@@ -124,7 +137,7 @@ describe('Prune Orphan Images', function () {
       beforeEach(function (done) {
         var createdDate = Math.floor((new Date().getTime()) / 1000)
         var opts = {
-          fromImage: 'registry.runnable.com/100/bar',
+          fromImage: 'localhost/100/bar',
           Created: createdDate,
           tag: '012345678901234567898901' // 24 char object ID
         }
@@ -157,7 +170,7 @@ describe('Prune Orphan Images', function () {
       beforeEach(function (done) {
         var longTimeAgo = Math.floor((new Date().getTime() - Math.pow(10, 9)) / 1000)
         var opts = {
-          fromImage: 'registry.runnable.com/100/bar',
+          fromImage: 'localhost/100/bar',
           Created: longTimeAgo,
           tag: '012345678901234567894567' // 24 char object ID
         }

@@ -2,31 +2,31 @@
 
 require('loadenv')({ debugName: 'khronos:test' })
 
-var chai = require('chai')
-chai.use(require('chai-as-promised'))
-var assert = chai.assert
-var expect = chai.expect
-var nock = require('nock')
-
 // external
-var async = require('async')
-var Container = require('dockerode/lib/container')
-var Docker = require('dockerode')
-var dockerMock = require('docker-mock')
-var Hermes = require('runnable-hermes')
-var ponos = require('ponos')
-var sinon = require('sinon')
+const async = require('async')
+const chai = require('chai')
+const Container = require('dockerode/lib/container')
+const Docker = require('dockerode')
+const dockerMock = require('docker-mock')
+const Hermes = require('runnable-hermes')
+const nock = require('nock')
+const ponos = require('ponos')
+const sinon = require('sinon')
+const swarmInfoMock = require('swarmerode/test/fixtures/swarm-info')
 
 // internal
-var dockerFactory = require('../factories/docker')
+const dockerFactory = require('../factories/docker')
 
-var docker = new Docker({
+chai.use(require('chai-as-promised'))
+const assert = chai.assert
+const expect = chai.expect
+
+const docker = new Docker({
   host: process.env.KHRONOS_DOCKER_HOST,
   port: process.env.KHRONOS_DOCKER_PORT
 })
 
 describe('Prune Exited Weave Containers', function () {
-  var nockScope = null
   var tasks = {
     'khronos:containers:delete': require('../../lib/tasks/containers/delete'),
     'khronos:weave:prune-dock': require('../../lib/tasks/weave/prune-dock'),
@@ -57,11 +57,12 @@ describe('Prune Exited Weave Containers', function () {
     return assert.isFulfilled(workerServer.start())
   })
   beforeEach(function () {
-    var TLD = process.env.KHRONOS_MAVIS.replace('/docks', '')
-    nockScope = nock(TLD)
+    nock('http://localhost:4242', { allowUnmocked: true })
       .persist()
-      .get('/docks')
-      .reply(200, require('../mocks/mavis/docks.json'))
+      .get('/info')
+      .reply(200, swarmInfoMock([{
+        host: 'localhost:5454'
+      }]))
   })
   afterEach(function () {
     return assert.isFulfilled(workerServer.stop())
@@ -89,7 +90,6 @@ describe('Prune Exited Weave Containers', function () {
         },
         function (err) {
           if (err) { return done(err) }
-          expect(nockScope.isDone(), '/docks fetched').to.equal(true)
           expect(Container.prototype.remove.callCount).to.equal(0)
           setTimeout(done, 100)
         })
@@ -120,12 +120,15 @@ describe('Prune Exited Weave Containers', function () {
     })
     describe('with multiple docks', function () {
       beforeEach(function () {
-        var TLD = process.env.KHRONOS_MAVIS.replace('/docks', '')
         nock.cleanAll()
-        nockScope = nock(TLD)
+        nock('http://localhost:4242', { allowUnmocked: true })
           .persist()
-          .get('/docks')
-          .reply(200, require('../mocks/mavis/multiple-docks.json'))
+          .get('/info')
+          .reply(200, swarmInfoMock([{
+            host: 'localhost:5454'
+          }, {
+            host: 'localhost:5454'
+          }]))
       })
       it('should run successfully', function (done) {
         workerServer.hermes.publish('khronos:weave:prune', {})

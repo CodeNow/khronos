@@ -1,6 +1,6 @@
 {
   "name": "khronos",
-  "version": "2.6.2",
+  "version": "3.1.5",
   "description": "Task Runner for various Runnable operations",
   "main": "index.js",
   "bin": "./bin/cli.js",
@@ -12,7 +12,6 @@
     "functional": "NODE_ENV=test NODE_PATH=./lib mocha $npm_package_options_mocha --slow 1000 test/functional",
     "lint": "standard --verbose | snazzy",
     "start": "NODE_PATH=./lib node --abort-on-uncaught-exception ./index.js",
-    "start-json-output": "npm start 2>&1 | bunyan -o json-0 --strict",
     "test-watch": "rerun-script test",
     "test": "npm run lint && npm run unit && npm run functional",
     "unit": "NODE_ENV=test NODE_PATH=./lib mocha $npm_package_options_mocha test/unit"
@@ -49,20 +48,28 @@
   },
   "dependencies": {
     "101": "^1.0.0",
+    "@runnable/api-client": "^5.1.1",
     "async": "^1.4.2",
     "bluebird": "^3.0.5",
     "bunyan": "^1.4.0",
     "commander": "^2.8.1",
+    "docker-stream-cleanser": "^0.3.0",
     "dockerode": "^2.0.4",
     "error-subclass": "^1.0.2",
+    "github": "^0.2.4",
+    "intercom-client": "^2.8.0",
+    "joi": "^8.0.5",
     "keypather": "^1.10.1",
-    "loadenv": "^2.1.0",
+    "loadenv": "^2.2.0",
     "mongodb": "^2.1.7",
     "monitor-dog": "^1.5.0",
     "ponos": "^1.1.0",
     "request": "^2.69.0",
-    "@runnable/api-client": "^5.1.0",
-    "runnable-hermes": "6.3.0"
+    "runnable-hermes": "6.3.0",
+    "sinon-as-promised": "^4.0.0",
+    "swarmerode": "^0.2.0",
+    "uuid": "^2.0.1",
+    "ws": "^1.0.1"
   },
   "devDependencies": {
     "chai": "^3.3.0",
