@@ -38,7 +38,7 @@ describe('Enqueue Container Jobs Helper', function () {
     options = {
       job: { dockerHost: 'http://example.com' },
       targetQueue: 'queue:one',
-      imageFilters: ['philter']
+      imageBlacklist: ['philter']
     }
   })
 
@@ -78,8 +78,8 @@ describe('Enqueue Container Jobs Helper', function () {
       )
     })
 
-    it('should require object.imageFilters', function () {
-      options.imageFilters = undefined
+    it('should require object.imageBlacklist', function () {
+      options.imageBlacklist = undefined
       return assert.isRejected(
         enqueueContainerJobsHelper(options),
         TaskFatalError,
@@ -87,8 +87,8 @@ describe('Enqueue Container Jobs Helper', function () {
       )
     })
 
-    it('should require object.imageFilters to be an array', function () {
-      options.imageFilters = {}
+    it('should require object.imageBlacklist to be an array', function () {
+      options.imageBlacklist = {}
       return assert.isRejected(
         enqueueContainerJobsHelper(options),
         TaskFatalError,
