@@ -26,6 +26,12 @@ describe('Docker Model', function () {
     }, {
       Id: '2',
       Image: 'centos'
+    }, {
+      Id: '3',
+      Image: 'ubuntu'
+    }, {
+      Id: '4',
+      Image: 'ubuntu'
     }]
     beforeEach(function () {
       sinon.stub(Dockerode.prototype, 'listContainers')
@@ -39,7 +45,7 @@ describe('Docker Model', function () {
       docker.getContainers()
         .asCallback(function (err, containers) {
           if (err) { return done(err) }
-          assert.lengthOf(containers, 2)
+          assert.lengthOf(containers, 4)
           assert.deepEqual(containers, mockContainers)
           assert.ok(Dockerode.prototype.listContainers.calledOnce)
           done()
@@ -57,11 +63,11 @@ describe('Docker Model', function () {
         })
     })
     it('should filter out the container ids from containerIdsToFilterOut', function (done) {
-      docker.getContainers({}, [/centos/, /ubuntu/], ['1'])
+      docker.getContainers({}, [/ubuntu/], ['1', '3'])
         .asCallback(function (err, containers) {
           if (err) { return done(err) }
           assert.lengthOf(containers, 1)
-          assert.deepEqual(containers, [mockContainers[0]])
+          assert.deepEqual(containers, [mockContainers[3]])
           assert.ok(Dockerode.prototype.listContainers.calledOnce)
           done()
         })

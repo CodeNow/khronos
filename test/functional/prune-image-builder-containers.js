@@ -179,7 +179,7 @@ describe('Prune Exited Image-Builder Containers', function () {
             }
           }
           sinon.stub(MongoDB.prototype, 'fetchInstances').yieldsAsync(null, [instance])
-          done()
+          done(err)
         })
       })
       afterEach(function () {
