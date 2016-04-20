@@ -201,9 +201,10 @@ describe.only('Prune Exited Image-Builder Containers', function () {
               tasks['khronos:containers:image-builder:prune-dock'].callCount
             expect(pruneDockTaskCallCount).to.equal(1)
             expect(tasks['khronos:containers:delete'].callCount).to.equal(1)
+            // 6 containers for: 5 user containers + 1 build container (1 was removed)
             dockerFactory.listContainersAndAssert(
               docker,
-              function (containers) { expect(containers).to.have.length(6) }, //5 + 1 buildContainer
+              function (containers) { expect(containers).to.have.length(6) },
               function (err) {
                 if (err) { return done(err) }
                 setTimeout(done, 100)
