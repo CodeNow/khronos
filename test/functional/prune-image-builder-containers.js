@@ -77,6 +77,13 @@ describe('Prune Exited Image-Builder Containers', function () {
   after(function (done) {
     dockerMockServer.close(done)
   })
+  afterEach(function (done) {
+    async.parallel([
+      mongodbFactory.removeAllContextVersions,
+      mongodbFactory.removeAllInstances,
+      mongodbFactory.removeAllBuilds
+    ], done)
+  })
 
   describe('unpopulated dock', function () {
     it('should run successfully', function (done) {
@@ -159,7 +166,6 @@ describe('Prune Exited Image-Builder Containers', function () {
     })
 
     describe('where image-builder containers are present', function () {
-      var instance
       beforeEach(function () {
         nock.cleanAll()
         nock('http://localhost:4242', { allowUnmocked: true })
@@ -169,18 +175,23 @@ describe('Prune Exited Image-Builder Containers', function () {
             host: 'localhost:5454'
           }]))
       })
+      var containerId
       beforeEach(function (done) {
         dockerFactory.createImageBuilderContainers(docker, 2, function (err, containers) {
-          if (err) { return done(err) }
-          instance = {
-            contextVersion: {
-              build: {
-                dockerContainer: containers[0].id
-              }
-            }
-          }
-          mongodbFactory.createInstance(instance, done)
+          containerId = containers[0].id
+          done(err)
         })
+      })
+      beforeEach(function (done) {
+        var instance = {
+          contextVersion: {
+            build: {
+              dockerContainer: containerId
+            },
+            dockerHost: 'http://localhost:5454'
+          }
+        }
+        mongodbFactory.createInstance(instance, done)
       })
 
       it('should only remove dead image-builder containers', function (done) {
