@@ -27,7 +27,7 @@ const docker = new Docker({
   port: process.env.KHRONOS_DOCKER_PORT
 })
 
-describe('Prune Exited Image-Builder Containers', function () {
+describe.only('Prune Exited Image-Builder Containers', function () {
   var tasks = {
     'khronos:containers:delete': require('../../lib/tasks/containers/delete'),
     'khronos:containers:image-builder:prune': require('../../lib/tasks/image-builder/prune'),
@@ -200,7 +200,7 @@ describe('Prune Exited Image-Builder Containers', function () {
             var pruneDockTaskCallCount =
               tasks['khronos:containers:image-builder:prune-dock'].callCount
             expect(pruneDockTaskCallCount).to.equal(1)
-            expect(tasks['khronos:containers:delete'].callCount).to.equal(2)
+            expect(tasks['khronos:containers:delete'].callCount).to.equal(1)
             dockerFactory.listContainersAndAssert(
               docker,
               function (containers) { expect(containers).to.have.length(5) },
