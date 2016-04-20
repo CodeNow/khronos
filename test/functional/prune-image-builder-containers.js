@@ -170,15 +170,15 @@ describe('Prune Exited Image-Builder Containers', function () {
           }]))
       })
       beforeEach(function (done) {
-        sinon.stub(MongoDB.prototype, 'fetchInstances').yieldsAsync(null, [instance])
-        dockerFactory.createImageBuilderContainers(docker, 2, function (a, b, c) {
+        dockerFactory.createImageBuilderContainers(docker, 2, function (err, containers) {
           instance = {
             contextVersion: {
               build: {
-                dockerContainer: 'sdfsadfgasdfdsfwfds67'
+                dockerContainer: containers[0].id
               }
             }
           }
+          sinon.stub(MongoDB.prototype, 'fetchInstances').yieldsAsync(null, [instance])
           done()
         })
       })
@@ -193,7 +193,7 @@ describe('Prune Exited Image-Builder Containers', function () {
         async.doUntil(
           function (cb) { setTimeout(cb, 100) },
           function () {
-            return Container.prototype.remove.callCount === 2
+            return Container.prototype.remove.callCount === 1
           },
           function (err) {
             if (err) { return done(err) }
