@@ -27,7 +27,7 @@ const docker = new Docker({
   port: process.env.KHRONOS_DOCKER_PORT
 })
 
-describe.only('Prune Exited Image-Builder Containers', function () {
+describe('Prune Exited Image-Builder Containers', function () {
   var tasks = {
     'khronos:containers:delete': require('../../lib/tasks/containers/delete'),
     'khronos:containers:image-builder:prune': require('../../lib/tasks/image-builder/prune'),
