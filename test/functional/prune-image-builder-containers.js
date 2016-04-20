@@ -203,7 +203,7 @@ describe.only('Prune Exited Image-Builder Containers', function () {
             expect(tasks['khronos:containers:delete'].callCount).to.equal(1)
             dockerFactory.listContainersAndAssert(
               docker,
-              function (containers) { expect(containers).to.have.length(5) },
+              function (containers) { expect(containers).to.have.length(6) }, //5 + 1 buildContainer
               function (err) {
                 if (err) { return done(err) }
                 setTimeout(done, 100)
