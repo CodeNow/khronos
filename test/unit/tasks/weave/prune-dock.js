@@ -23,7 +23,7 @@ require('sinon-as-promised')(require('bluebird'))
 describe('Delete Weave Container Dock Task', function () {
   beforeEach(function () {
     sinon.stub(Bunyan.prototype, 'error').returns()
-    sinon.stub(Docker.prototype, 'getContainers').yieldsAsync(null, [])
+    sinon.stub(Docker.prototype, 'getContainers').resolves([])
     sinon.stub(Swarm.prototype, 'checkHostExists').returns(true)
     sinon.stub(rabbitmq.prototype, 'close').yieldsAsync()
     sinon.stub(rabbitmq.prototype, 'connect').yieldsAsync()
@@ -87,7 +87,7 @@ describe('Delete Weave Container Dock Task', function () {
             Docker.prototype.getContainers,
             { filters: '{"status":["exited"]}' },
             sinon.match.array,
-            sinon.match.func
+            undefined
           )
           assert.equal(result, 0, 'result is 0')
         })
@@ -99,7 +99,7 @@ describe('Delete Weave Container Dock Task', function () {
       var containers = [{
         Id: 4
       }]
-      Docker.prototype.getContainers.yieldsAsync(null, containers)
+      Docker.prototype.getContainers.resolves(containers)
     })
 
     it('should enqueue a job to remove the container', function () {
@@ -110,7 +110,7 @@ describe('Delete Weave Container Dock Task', function () {
             Docker.prototype.getContainers,
             { filters: '{"status":["exited"]}' },
             sinon.match.array,
-            sinon.match.func
+            undefined
           )
           sinon.assert.calledOnce(rabbitmq.prototype.publish)
           assert.equal(result, 1, 'result is 0')
@@ -125,7 +125,7 @@ describe('Delete Weave Container Dock Task', function () {
       }, {
         Id: 5
       }]
-      Docker.prototype.getContainers.yieldsAsync(null, containers)
+      Docker.prototype.getContainers.resolves(containers)
     })
 
     it('should remove all the containers', function () {
@@ -136,7 +136,7 @@ describe('Delete Weave Container Dock Task', function () {
             Docker.prototype.getContainers,
             { filters: '{"status":["exited"]}' },
             sinon.match.array,
-            sinon.match.func
+            undefined
           )
           sinon.assert.calledTwice(rabbitmq.prototype.publish)
           assert.equal(result, 2, 'result is 0')

@@ -24,7 +24,7 @@ require('sinon-as-promised')(require('bluebird'))
 describe('Prune Orphans Dock Task', function () {
   beforeEach(function () {
     sinon.stub(Bunyan.prototype, 'error').returns()
-    sinon.stub(Docker.prototype, 'getContainers').yieldsAsync(null, [])
+    sinon.stub(Docker.prototype, 'getContainers').resolves()
     sinon.stub(Swarm.prototype, 'checkHostExists').resolves(true)
     sinon.stub(rabbitmq.prototype, 'close').yieldsAsync()
     sinon.stub(rabbitmq.prototype, 'connect').yieldsAsync()
@@ -66,7 +66,7 @@ describe('Prune Orphans Dock Task', function () {
 
     describe('if docker throws an error', function () {
       beforeEach(function () {
-        Docker.prototype.getContainers.yieldsAsync(new Error('foobar'))
+        Docker.prototype.getContainers.rejects(new Error('foobar'))
       })
 
       it('should throw the error', function () {
@@ -80,6 +80,9 @@ describe('Prune Orphans Dock Task', function () {
   })
 
   describe('with a no containers on a host', function () {
+    beforeEach(function () {
+      Docker.prototype.getContainers.resolves([])
+    })
     it('should not enqueue any task', function () {
       var job = { dockerHost: 'http://example.com' }
       return assert.isFulfilled(enqueueContainerVerificationTask(job))
@@ -91,7 +94,7 @@ describe('Prune Orphans Dock Task', function () {
               filters: '{"status":["exited"]}'
             },
             sinon.match.array,
-            sinon.match.func
+            undefined
           )
           sinon.assert.notCalled(rabbitmq.prototype.publish)
           assert.equal(result, 0, 'result is 0')
@@ -104,7 +107,7 @@ describe('Prune Orphans Dock Task', function () {
       var containers = [{
         Id: 4
       }]
-      Docker.prototype.getContainers.yieldsAsync(null, containers)
+      Docker.prototype.getContainers.resolves(containers)
     })
 
     it('should enqueue a job to remove the container', function () {
@@ -118,7 +121,7 @@ describe('Prune Orphans Dock Task', function () {
               filters: '{"status":["exited"]}'
             },
             sinon.match.array,
-            sinon.match.func
+            undefined
           )
           sinon.assert.calledOnce(rabbitmq.prototype.publish)
           sinon.assert.calledWithExactly(
@@ -141,7 +144,7 @@ describe('Prune Orphans Dock Task', function () {
       }, {
         Id: 5
       }]
-      Docker.prototype.getContainers.yieldsAsync(null, containers)
+      Docker.prototype.getContainers.resolves(containers)
     })
 
     it('should remove all the containers', function () {
@@ -155,7 +158,7 @@ describe('Prune Orphans Dock Task', function () {
               filters: '{"status":["exited"]}'
             },
             sinon.match.array,
-            sinon.match.func
+            undefined
           )
           sinon.assert.calledTwice(rabbitmq.prototype.publish)
           sinon.assert.calledWithExactly(
