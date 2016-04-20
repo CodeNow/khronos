@@ -13,7 +13,7 @@ const Hermes = require('runnable-hermes')
 const ponos = require('ponos')
 const sinon = require('sinon')
 const swarmInfoMock = require('swarmerode/test/fixtures/swarm-info')
-const MongoDB = require('models/mongodb')
+const mongodbFactory = require('../factories/mongodb')
 
 // internal
 const dockerFactory = require('../factories/docker')
@@ -171,6 +171,7 @@ describe('Prune Exited Image-Builder Containers', function () {
       })
       beforeEach(function (done) {
         dockerFactory.createImageBuilderContainers(docker, 2, function (err, containers) {
+          if (err) { return done(err) }
           instance = {
             contextVersion: {
               build: {
@@ -178,12 +179,8 @@ describe('Prune Exited Image-Builder Containers', function () {
               }
             }
           }
-          sinon.stub(MongoDB.prototype, 'fetchInstances').yieldsAsync(null, [instance])
-          done(err)
+          mongodbFactory.createInstance(instance, done)
         })
-      })
-      afterEach(function () {
-        MongoDB.prototype.fetchInstances.restore()
       })
 
       it('should only remove dead image-builder containers', function (done) {
