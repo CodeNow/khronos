@@ -21,7 +21,7 @@ require('sinon-as-promised')(require('bluebird'))
 
 describe('Enqueue Container Jobs Helper', function () {
   beforeEach(function () {
-    sinon.stub(Docker.prototype, 'getContainers').yieldsAsync(null, [])
+    sinon.stub(Docker.prototype, 'getContainers').resolves([])
     sinon.stub(Hermes.prototype, 'connect').yieldsAsync()
     sinon.stub(Hermes.prototype, 'publish').returns()
     sinon.stub(Swarm.prototype, 'checkHostExists').resolves(true)
@@ -38,7 +38,7 @@ describe('Enqueue Container Jobs Helper', function () {
     options = {
       job: { dockerHost: 'http://example.com' },
       targetQueue: 'queue:one',
-      imageFilters: ['philter']
+      imageBlacklist: ['philter']
     }
   })
 
@@ -78,8 +78,8 @@ describe('Enqueue Container Jobs Helper', function () {
       )
     })
 
-    it('should require object.imageFilters', function () {
-      options.imageFilters = undefined
+    it('should require object.imageBlacklist', function () {
+      options.imageBlacklist = undefined
       return assert.isRejected(
         enqueueContainerJobsHelper(options),
         TaskFatalError,
@@ -87,8 +87,8 @@ describe('Enqueue Container Jobs Helper', function () {
       )
     })
 
-    it('should require object.imageFilters to be an array', function () {
-      options.imageFilters = {}
+    it('should require object.imageBlacklist to be an array', function () {
+      options.imageBlacklist = {}
       return assert.isRejected(
         enqueueContainerJobsHelper(options),
         TaskFatalError,
@@ -97,7 +97,7 @@ describe('Enqueue Container Jobs Helper', function () {
     })
 
     it('should throw if Docker errors', function () {
-      Docker.prototype.getContainers.yieldsAsync(new Error('foobar'))
+      Docker.prototype.getContainers.rejects(new Error('foobar'))
       return assert.isRejected(
         enqueueContainerJobsHelper(options),
         Error,
@@ -124,7 +124,7 @@ describe('Enqueue Container Jobs Helper', function () {
 
   describe('successes', function () {
     it('should not enqueue jobs if there are no containers', function () {
-      Docker.prototype.getContainers.yieldsAsync(null, [])
+      Docker.prototype.getContainers.resolves([])
       return assert.isFulfilled(enqueueContainerJobsHelper(options))
         .then(function (result) {
           assert.equal(result, 0, 'no jobs enqueued')
@@ -135,7 +135,7 @@ describe('Enqueue Container Jobs Helper', function () {
 
     it('should not enqueue jobs if the dock no longer exists', function () {
       Swarm.prototype.checkHostExists.throws(new Swarm.InvalidHostError())
-      Docker.prototype.getContainers.yieldsAsync(null, [{ Id: 4 }])
+      Docker.prototype.getContainers.resolves([{ Id: 4 }])
       return assert.isFulfilled(enqueueContainerJobsHelper(options))
         .then(function (result) {
           assert.equal(result, 0, 'no jobs queued')
@@ -145,7 +145,7 @@ describe('Enqueue Container Jobs Helper', function () {
     })
 
     it('should return a promise resolving the number of jobs', function () {
-      Docker.prototype.getContainers.yieldsAsync(null, [{ Id: 4 }])
+      Docker.prototype.getContainers.resolves([{ Id: 4 }])
       return assert.isFulfilled(enqueueContainerJobsHelper(options))
         .then(function (result) {
           assert.equal(result, 1, 'had 1 container')
@@ -153,7 +153,7 @@ describe('Enqueue Container Jobs Helper', function () {
             Docker.prototype.getContainers,
             sinon.match.object,
             ['philter'],
-            sinon.match.func
+            undefined
           )
           sinon.assert.calledOnce(Hermes.prototype.publish)
           sinon.assert.calledWithExactly(

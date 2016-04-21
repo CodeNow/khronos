@@ -21,11 +21,17 @@ var docker = new Docker(url.format({
 describe('Docker Model', function () {
   describe('getContainers', function () {
     var mockContainers = [{
-      Id: 1,
+      Id: '1',
       Image: 'ubuntu'
     }, {
-      Id: 2,
+      Id: '2',
       Image: 'centos'
+    }, {
+      Id: '3',
+      Image: 'ubuntu'
+    }, {
+      Id: '4',
+      Image: 'ubuntu'
     }]
     beforeEach(function () {
       sinon.stub(Dockerode.prototype, 'listContainers')
@@ -36,23 +42,35 @@ describe('Docker Model', function () {
     })
 
     it('should return containers', function (done) {
-      docker.getContainers(function (err, containers) {
-        if (err) { return done(err) }
-        assert.lengthOf(containers, 2)
-        assert.deepEqual(containers, mockContainers)
-        assert.ok(Dockerode.prototype.listContainers.calledOnce)
-        done()
-      })
+      docker.getContainers()
+        .asCallback(function (err, containers) {
+          if (err) { return done(err) }
+          assert.lengthOf(containers, 4)
+          assert.deepEqual(containers, mockContainers)
+          assert.ok(Dockerode.prototype.listContainers.calledOnce)
+          done()
+        })
     })
     it('should filter containers', function (done) {
       var filters = [/centos/]
-      docker.getContainers({}, filters, function (err, containers) {
-        if (err) { return done(err) }
-        assert.lengthOf(containers, 1)
-        assert.deepEqual(containers, [mockContainers[1]])
-        assert.ok(Dockerode.prototype.listContainers.calledOnce)
-        done()
-      })
+      docker.getContainers({}, filters)
+        .asCallback(function (err, containers) {
+          if (err) { return done(err) }
+          assert.lengthOf(containers, 1)
+          assert.deepEqual(containers, [mockContainers[1]])
+          assert.ok(Dockerode.prototype.listContainers.calledOnce)
+          done()
+        })
+    })
+    it('should filter out the container ids from containerIdsToFilterOut', function (done) {
+      docker.getContainers({}, [/ubuntu/], ['1', '3'])
+        .asCallback(function (err, containers) {
+          if (err) { return done(err) }
+          assert.lengthOf(containers, 1)
+          assert.deepEqual(containers, [mockContainers[3]])
+          assert.ok(Dockerode.prototype.listContainers.calledOnce)
+          done()
+        })
     })
   })
 

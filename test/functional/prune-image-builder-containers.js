@@ -13,6 +13,7 @@ const Hermes = require('runnable-hermes')
 const ponos = require('ponos')
 const sinon = require('sinon')
 const swarmInfoMock = require('swarmerode/test/fixtures/swarm-info')
+const mongodbFactory = require('../factories/mongodb')
 
 // internal
 const dockerFactory = require('../factories/docker')
@@ -75,6 +76,13 @@ describe('Prune Exited Image-Builder Containers', function () {
   })
   after(function (done) {
     dockerMockServer.close(done)
+  })
+  afterEach(function (done) {
+    async.parallel([
+      mongodbFactory.removeAllContextVersions,
+      mongodbFactory.removeAllInstances,
+      mongodbFactory.removeAllBuilds
+    ], done)
   })
 
   describe('unpopulated dock', function () {
@@ -167,8 +175,23 @@ describe('Prune Exited Image-Builder Containers', function () {
             host: 'localhost:5454'
           }]))
       })
+      var containerId
       beforeEach(function (done) {
-        dockerFactory.createImageBuilderContainers(docker, 2, done)
+        dockerFactory.createImageBuilderContainers(docker, 2, function (err, containers) {
+          containerId = containers[0].id
+          done(err)
+        })
+      })
+      beforeEach(function (done) {
+        var instance = {
+          contextVersion: {
+            build: {
+              dockerContainer: containerId
+            },
+            dockerHost: 'http://localhost:5454'
+          }
+        }
+        mongodbFactory.createInstance(instance, done)
       })
 
       it('should only remove dead image-builder containers', function (done) {
@@ -178,17 +201,18 @@ describe('Prune Exited Image-Builder Containers', function () {
         async.doUntil(
           function (cb) { setTimeout(cb, 100) },
           function () {
-            return Container.prototype.remove.callCount === 2
+            return Container.prototype.remove.callCount === 1
           },
           function (err) {
             if (err) { return done(err) }
             var pruneDockTaskCallCount =
               tasks['khronos:containers:image-builder:prune-dock'].callCount
             expect(pruneDockTaskCallCount).to.equal(1)
-            expect(tasks['khronos:containers:delete'].callCount).to.equal(2)
+            expect(tasks['khronos:containers:delete'].callCount).to.equal(1)
+            // 6 containers for: 5 user containers + 1 build container (1 was removed)
             dockerFactory.listContainersAndAssert(
               docker,
-              function (containers) { expect(containers).to.have.length(5) },
+              function (containers) { expect(containers).to.have.length(6) },
               function (err) {
                 if (err) { return done(err) }
                 setTimeout(done, 100)
