@@ -57,9 +57,15 @@ describe('Prune Exited Weave Containers', function () {
     return assert.isFulfilled(workerServer.start())
   })
   beforeEach(function () {
-    nock('http://localhost:8500', { allowUnmocked: true })
+    nock('http://localhost:4242', { allowUnmocked: true })
       .persist()
-      .get('/v1/kv/swarm/docker/swarm/nodes?recurse=true')
+      .get('/info')
+      .reply(200, swarmInfoMock([{
+        host: 'localhost:5454'
+      }]))
+    nock('http://127.0.0.1:8500', { allowUnmocked: true })
+      .persist()
+      .get('/v1/kv/swarm/docker/swarm/nodes/?recurse=true')
       .reply(200, [
         { Key: 'swarm/docker/swarm/nodes/10.4.129.200:4242',
           Value: '10.4.129.200:4242' },
