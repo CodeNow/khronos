@@ -57,7 +57,7 @@ describe('Prune Exited Weave Containers', function () {
       .get('/v1/kv/swarm/docker/swarm/nodes/?recurse=true')
       .reply(200, [
         { Key: 'swarm/docker/swarm/nodes/localhost:5454',
-          Value: 'localhost:5454' },
+          Value: 'localhost:5454' }
       ])
   })
   beforeEach(function () {
@@ -136,12 +136,20 @@ describe('Prune Exited Weave Containers', function () {
           }, {
             host: 'localhost:5454'
           }]))
+        nock('http://127.0.0.1:8500', { allowUnmocked: true })
+          .persist()
+          .get('/v1/kv/swarm/docker/swarm/nodes/?recurse=true')
+          .reply(200, [
+            { Key: 'swarm/docker/swarm/nodes/localhost:5454',
+              Value: 'localhost:5454' }
+          ])
       })
       it('should run successfully', function (done) {
         workerServer.hermes.publish('khronos:weave:prune', {})
         async.doUntil(
           function (cb) { setTimeout(cb, 100) },
           function () {
+            console.log('xxxxxxx', tasks['khronos:weave:prune-dock'].callCount)
             return tasks['khronos:weave:prune-dock'].callCount === 2
           },
           function (err) {
