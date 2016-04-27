@@ -62,13 +62,13 @@ describe('Image Check Against Context Version', function () {
   describe('Regex Error', function () {
     it('should throw the error', function () {
       return assert.isRejected(
-        checkImageAgainstContextVersions( {
+        checkImageAgainstContextVersions({
           dockerHost: 'http://example.com',
           imageId: '/100/bar:507c7f79bcf86cd7994f6c0e'
         }),
         TaskFatalError,
         /imageId.+scheme/
-        )
+      )
         .then(function () {
           sinon.assert.notCalled(Hermes.prototype.publish)
         })
@@ -140,9 +140,9 @@ describe('Image Check Against Context Version', function () {
   it('should remove the container if the context versionId isn\'t an objectId', function () {
     MongoDB.prototype.countContextVersions.yields(null, 1)
     return assert.isFulfilled(checkImageAgainstContextVersions({
-        dockerHost: 'http://example.com',
-        imageId: process.env.KHRONOS_DOCKER_REGISTRY + '/100/bar:baz'
-      }))
+      dockerHost: 'http://example.com',
+      imageId: process.env.KHRONOS_DOCKER_REGISTRY + '/100/bar:baz'
+    }))
       .then(function (result) {
         sinon.assert.calledOnce(Hermes.prototype.publish)
         assert.deepEqual(result, {
