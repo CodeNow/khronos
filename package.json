@@ -13,7 +13,7 @@
     "lint": "standard --verbose | snazzy",
     "start": "NODE_PATH=./lib node --abort-on-uncaught-exception ./index.js",
     "test-watch": "rerun-script test",
-    "test": "npm run functional",
+    "test": "npm run lint && npm run unit && npm run functional",
     "unit": "NODE_ENV=test NODE_PATH=./lib mocha $npm_package_options_mocha test/unit"
   },
   "watches": {
@@ -77,7 +77,7 @@
     "docker-mock": "^5.0.2",
     "istanbul": "^0.4.0",
     "mocha": "^2.3.3",
-    "nock": "^7.7.2",
+    "nock": "^7.2.2",
     "rerun-script": "^0.6.0",
     "sinon": "^1.12.1",
     "snazzy": "^3.0.0",
