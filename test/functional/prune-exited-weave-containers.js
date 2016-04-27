@@ -56,10 +56,8 @@ describe('Prune Exited Weave Containers', function () {
       .persist()
       .get('/v1/kv/swarm/docker/swarm/nodes/?recurse=true')
       .reply(200, [
-        { Key: 'swarm/docker/swarm/nodes/10.4.129.200:4242',
-          Value: '10.4.129.200:4242' },
-        { Key: 'swarm/docker/swarm/nodes/10.4.129.201:4242',
-          Value: '10.4.129.201:4242' }
+        { Key: 'swarm/docker/swarm/nodes/localhost:4242',
+          Value: 'localhost:4242' },
       ])
   })
   beforeEach(function () {
