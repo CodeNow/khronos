@@ -53,6 +53,13 @@ describe('Prune Exited Image-Builder Containers', function () {
       .reply(200, swarmInfoMock([{
         host: 'localhost:5454'
       }]))
+    nock('http://127.0.0.1:8500', { allowUnmocked: true })
+      .persist()
+      .get('/v1/kv/swarm/docker/swarm/nodes/?recurse=true')
+      .reply(200, [
+        { Key: 'swarm/docker/swarm/nodes/localhost:5454',
+          Value: 'localhost:5454' }
+      ])
   })
   beforeEach(function () {
     sinon.spy(Container.prototype, 'remove')
@@ -141,6 +148,15 @@ describe('Prune Exited Image-Builder Containers', function () {
           }, {
             host: 'localhost:5454'
           }]))
+        nock('http://127.0.0.1:8500', { allowUnmocked: true })
+          .persist()
+          .get('/v1/kv/swarm/docker/swarm/nodes/?recurse=true')
+          .reply(200, [
+            { Key: 'swarm/docker/swarm/nodes/localhost:5454',
+              Value: 'localhost:5454' },
+            { Key: 'swarm/docker/swarm/nodes/localhost:5454',
+              Value: 'localhost:5454' }
+          ])
       })
       it('should run successfully', function (done) {
         workerServer.hermes.publish('khronos:containers:image-builder:prune', {})
@@ -174,6 +190,13 @@ describe('Prune Exited Image-Builder Containers', function () {
           .reply(200, swarmInfoMock([{
             host: 'localhost:5454'
           }]))
+        nock('http://127.0.0.1:8500', { allowUnmocked: true })
+          .persist()
+          .get('/v1/kv/swarm/docker/swarm/nodes/?recurse=true')
+          .reply(200, [
+            { Key: 'swarm/docker/swarm/nodes/localhost:5454',
+              Value: 'localhost:5454' }
+          ])
       })
       var containerId
       beforeEach(function (done) {

@@ -46,6 +46,21 @@ describe('Prune Exited Weave Containers', function () {
     dockerMockServer = dockerMock.listen(process.env.KHRONOS_DOCKER_PORT, done)
   })
   beforeEach(function () {
+    nock('http://localhost:4242', { allowUnmocked: true })
+      .persist()
+      .get('/info')
+      .reply(200, swarmInfoMock([{
+        host: 'localhost:5454'
+      }]))
+    nock('http://127.0.0.1:8500', { allowUnmocked: true })
+      .persist()
+      .get('/v1/kv/swarm/docker/swarm/nodes/?recurse=true')
+      .reply(200, [
+        { Key: 'swarm/docker/swarm/nodes/localhost:5454',
+          Value: 'localhost:5454' }
+      ])
+  })
+  beforeEach(function () {
     sinon.spy(Container.prototype, 'remove')
     sinon.spy(tasks, 'khronos:weave:prune-dock')
     sinon.spy(tasks, 'khronos:containers:delete')
@@ -55,14 +70,6 @@ describe('Prune Exited Weave Containers', function () {
     })
     workerServer.setAllTasks(tasks)
     return assert.isFulfilled(workerServer.start())
-  })
-  beforeEach(function () {
-    nock('http://localhost:4242', { allowUnmocked: true })
-      .persist()
-      .get('/info')
-      .reply(200, swarmInfoMock([{
-        host: 'localhost:5454'
-      }]))
   })
   afterEach(function () {
     return assert.isFulfilled(workerServer.stop())
@@ -129,6 +136,15 @@ describe('Prune Exited Weave Containers', function () {
           }, {
             host: 'localhost:5454'
           }]))
+        nock('http://127.0.0.1:8500', { allowUnmocked: true })
+          .persist()
+          .get('/v1/kv/swarm/docker/swarm/nodes/?recurse=true')
+          .reply(200, [
+            { Key: 'swarm/docker/swarm/nodes/localhost:5454',
+              Value: 'localhost:5454' },
+            { Key: 'swarm/docker/swarm/nodes/localhost:5454',
+              Value: 'localhost:5454' }
+          ])
       })
       it('should run successfully', function (done) {
         workerServer.hermes.publish('khronos:weave:prune', {})

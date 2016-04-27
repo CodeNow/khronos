@@ -54,6 +54,13 @@ describe('Prune Orphan Images', function () {
       .reply(200, swarmInfoMock([{
         host: 'localhost:5454'
       }]))
+    nock('http://127.0.0.1:8500', { allowUnmocked: true })
+      .persist()
+      .get('/v1/kv/swarm/docker/swarm/nodes/?recurse=true')
+      .reply(200, [
+        { Key: 'swarm/docker/swarm/nodes/localhost:5454',
+          Value: 'localhost:5454' }
+      ])
   })
   beforeEach(function () {
     sinon.spy(Image.prototype, 'remove')
