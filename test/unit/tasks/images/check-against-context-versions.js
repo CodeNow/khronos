@@ -20,7 +20,7 @@ var checkImageAgainstContextVersions = require('tasks/images/check-against-conte
 describe('Image Check Against Context Version', function () {
   var testJob = {
     dockerHost: 'http://example.com',
-    imageId: process.env.KHRONOS_DOCKER_REGISTRY + '/100/bar:baz'
+    imageId: process.env.KHRONOS_DOCKER_REGISTRY + '/100/bar:507c7f79bcf86cd7994f6c0e'
   }
 
   beforeEach(function () {
@@ -57,6 +57,21 @@ describe('Image Check Against Context Version', function () {
         TaskFatalError,
         /dockerHost.+required/
       )
+    })
+  })
+  describe('Regex Error', function () {
+    it('should throw the error', function () {
+      return assert.isRejected(
+        checkImageAgainstContextVersions({
+          dockerHost: 'http://example.com',
+          imageId: '/100/bar:507c7f79bcf86cd7994f6c0e'
+        }),
+        TaskFatalError,
+        /imageId.+scheme/
+      )
+        .then(function () {
+          sinon.assert.notCalled(Hermes.prototype.publish)
+        })
     })
   })
 
@@ -102,7 +117,7 @@ describe('Image Check Against Context Version', function () {
         sinon.assert.calledWithExactly(
           MongoDB.prototype.countContextVersions,
           {
-            _id: 'baz'
+            _id: '507c7f79bcf86cd7994f6c0e'
           },
           sinon.match.func
         )
@@ -116,8 +131,24 @@ describe('Image Check Against Context Version', function () {
         sinon.assert.notCalled(Hermes.prototype.publish)
         assert.deepEqual(result, {
           dockerHost: 'http://example.com',
-          imageId: process.env.KHRONOS_DOCKER_REGISTRY + '/100/bar:baz',
+          imageId: process.env.KHRONOS_DOCKER_REGISTRY + '/100/bar:507c7f79bcf86cd7994f6c0e',
           imageRemoveTaskQueued: false
+        })
+      })
+  })
+
+  it('should remove the container if the context versionId isn\'t an objectId', function () {
+    MongoDB.prototype.countContextVersions.yields(null, 1)
+    return assert.isFulfilled(checkImageAgainstContextVersions({
+      dockerHost: 'http://example.com',
+      imageId: process.env.KHRONOS_DOCKER_REGISTRY + '/100/bar:baz'
+    }))
+      .then(function (result) {
+        sinon.assert.calledOnce(Hermes.prototype.publish)
+        assert.deepEqual(result, {
+          dockerHost: 'http://example.com',
+          imageId: process.env.KHRONOS_DOCKER_REGISTRY + '/100/bar:baz',
+          imageRemoveTaskQueued: true
         })
       })
   })
@@ -134,7 +165,7 @@ describe('Image Check Against Context Version', function () {
         )
         assert.deepEqual(result, {
           dockerHost: 'http://example.com',
-          imageId: process.env.KHRONOS_DOCKER_REGISTRY + '/100/bar:baz',
+          imageId: process.env.KHRONOS_DOCKER_REGISTRY + '/100/bar:507c7f79bcf86cd7994f6c0e',
           imageRemoveTaskQueued: true
         })
       })
