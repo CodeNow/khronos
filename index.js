@@ -30,7 +30,9 @@ var tasks = {
   'khronos:metrics:container-status': require('tasks/metrics/container-status'),
   'khronos:metrics:report-org-container-status': require('tasks/metrics/report-org-container-status'),
   'khronos:weave:prune': require('tasks/weave/prune'),
-  'khronos:weave:prune-dock': require('tasks/weave/prune-dock')
+  'khronos:weave:prune-dock': require('tasks/weave/prune-dock'),
+  'instance.context-version.updated': require('tasks/context-versions/updated'),
+  'khronos:instance:context-version:updated': require('tasks/context-versions/updated')
 }
 var hermes = rabbitmq(Object.keys(tasks))
 var server = new ponos.Server({
