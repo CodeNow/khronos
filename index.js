@@ -6,7 +6,10 @@ var log = require('logger')
 var ponos = require('ponos')
 var rabbitmq = require('models/rabbitmq')
 
-var tasks = {
+var subscribedEvents = {
+  'instance.context-version.updated': require('tasks/context-versions/updated')
+}
+var queues = {
   'khronos:canary:build': require('tasks/canary/build'),
   'khronos:canary:github-branch': require('tasks/canary/github-branch'),
   'khronos:canary:log': require('tasks/canary/log'),
@@ -30,17 +33,15 @@ var tasks = {
   'khronos:metrics:container-status': require('tasks/metrics/container-status'),
   'khronos:metrics:report-org-container-status': require('tasks/metrics/report-org-container-status'),
   'khronos:weave:prune': require('tasks/weave/prune'),
-  'khronos:weave:prune-dock': require('tasks/weave/prune-dock'),
-  'instance.context-version.updated': require('tasks/context-versions/updated'),
-  'khronos:instance:context-version:updated': require('tasks/context-versions/updated')
+  'khronos:weave:prune-dock': require('tasks/weave/prune-dock')
 }
-var hermes = rabbitmq(Object.keys(tasks))
+var hermes = rabbitmq(Object.keys(queues), Object.keys(subscribedEvents))
 var server = new ponos.Server({
   hermes: hermes,
   log: log.child({ module: 'ponos' })
 })
 
-server.setAllTasks(tasks)
+server.setAllTasks(Object.assign({}, queues, subscribedEvents))
 server.start()
   .then(function () { log.info('Worker Server has started') })
   .catch(function (err) {
