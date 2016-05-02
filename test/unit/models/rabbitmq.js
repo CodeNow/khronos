@@ -30,12 +30,14 @@ describe('RabbitMQ Factory', function () {
     sinon.assert.calledWithExactly(
       rabbitmqFactory._createClient,
       {
+        name: 'khronos',
         hostname: 'localhost',
         port: 5672,
         username: 'guest',
         password: 'guest',
         prefetch: 3,
-        queues: queues
+        queues: queues,
+        subscribedEvents: undefined
       }
     )
   })
@@ -59,12 +61,14 @@ describe('RabbitMQ Factory', function () {
     sinon.assert.calledWithExactly(
       rabbitmqFactory._createClient,
       {
+        name: 'khronos',
         hostname: 'foobar',
         port: 42,
         username: 'luke',
         password: 'skywalker',
         prefetch: 3,
-        queues: queues
+        queues: queues,
+        subscribedEvents: undefined
       }
     )
     Object.keys(envs).forEach(function (k) {
