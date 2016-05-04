@@ -7,7 +7,7 @@ var ponos = require('ponos')
 var rabbitmq = require('models/rabbitmq')
 
 var subscribedEvents = {
-  'instance.context-version.updated': require('tasks/context-versions/updated')
+  'context-version.deleted': require('tasks/context-versions/deleted')
 }
 var queues = {
   'khronos:canary:build': require('tasks/canary/build'),
