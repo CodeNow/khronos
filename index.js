@@ -43,6 +43,7 @@ var server = new ponos.Server({
 })
 
 server.setAllTasks(queues)
+log.info('Server start')
 server.start()
   .then(function () { log.info('Worker Server has started') })
   .catch(function (err) {
