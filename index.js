@@ -5,7 +5,6 @@ require('loadenv')({ debugName: 'khronos:test' })
 var log = require('logger')
 var ponos = require('ponos')
 var rabbitmq = require('models/rabbitmq')
-var assign = require('101/assign')
 
 var subscribedEvents = [
   'context-version.deleted'
@@ -43,7 +42,7 @@ var server = new ponos.Server({
   log: log.child({ module: 'ponos' })
 })
 
-server.setAllTasks(assign({}, queues, subscribedEvents))
+server.setAllTasks(queues)
 server.start()
   .then(function () { log.info('Worker Server has started') })
   .catch(function (err) {
