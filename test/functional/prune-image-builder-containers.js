@@ -34,6 +34,7 @@ describe('Prune Exited Image-Builder Containers', function () {
     'khronos:containers:image-builder:prune-dock': require('../../lib/tasks/image-builder/prune-dock')
   }
   var hermes = new Hermes({
+    name: 'khronos',
     hostname: process.env.RABBITMQ_HOSTNAME,
     port: process.env.RABBITMQ_PORT,
     username: process.env.RABBITMQ_USERNAME || 'guest',

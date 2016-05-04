@@ -33,6 +33,7 @@ describe('Prune Exited Weave Containers', function () {
     'khronos:weave:prune': require('../../lib/tasks/weave/prune')
   }
   var hermes = new Hermes({
+    name: 'khronos',
     hostname: process.env.RABBITMQ_HOSTNAME,
     port: process.env.RABBITMQ_PORT,
     username: process.env.RABBITMQ_USERNAME || 'guest',

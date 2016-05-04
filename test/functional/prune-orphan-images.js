@@ -35,6 +35,7 @@ describe('Prune Orphan Images', function () {
       require('../../lib/tasks/images/check-against-context-versions')
   }
   var hermes = new Hermes({
+    name: 'khronos',
     hostname: process.env.RABBITMQ_HOSTNAME,
     port: process.env.RABBITMQ_PORT,
     username: process.env.RABBITMQ_USERNAME || 'guest',
