@@ -26,6 +26,7 @@ describe('Prune Expired Context Versions', function () {
     'khronos:context-versions:remove-and-protect-instances': require('tasks/context-versions/remove-and-protect-instances')
   }
   var hermes = new Hermes({
+    name: 'khronos',
     hostname: process.env.RABBITMQ_HOSTNAME,
     port: process.env.RABBITMQ_PORT,
     username: process.env.RABBITMQ_USERNAME || 'guest',

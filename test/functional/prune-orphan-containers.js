@@ -34,6 +34,7 @@ describe('Prune Orphaned Containers', function () {
     'khronos:containers:remove': require('../../lib/tasks/containers/remove')
   }
   var hermes = new Hermes({
+    name: 'khronos',
     hostname: process.env.RABBITMQ_HOSTNAME,
     port: process.env.RABBITMQ_PORT,
     username: process.env.RABBITMQ_USERNAME || 'guest',

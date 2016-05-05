@@ -6,7 +6,10 @@ var log = require('logger')
 var ponos = require('ponos')
 var rabbitmq = require('models/rabbitmq')
 
-var tasks = {
+var subscribedEvents = [
+  'context-version.deleted'
+]
+var queues = {
   'khronos:canary:build': require('tasks/canary/build'),
   'khronos:canary:github-branch': require('tasks/canary/github-branch'),
   'khronos:canary:log': require('tasks/canary/log'),
@@ -19,6 +22,8 @@ var tasks = {
   'khronos:containers:orphan:prune': require('tasks/containers/prune-orphans'),
   'khronos:containers:orphan:prune-dock': require('tasks/containers/prune-orphans-dock'),
   'khronos:containers:remove': require('tasks/containers/remove'),
+  'khronos.context-version.deleted': require('tasks/context-versions/deleted'),
+  'context-version.deleted': require('tasks/context-versions/deleted'),
   'khronos:context-versions:check-recent-usage': require('tasks/context-versions/check-recent-usage'),
   'khronos:context-versions:prune-expired': require('tasks/context-versions/prune-expired'),
   'khronos:context-versions:remove-and-protect-instances': require('tasks/context-versions/remove-and-protect-instances'),
@@ -32,13 +37,14 @@ var tasks = {
   'khronos:weave:prune': require('tasks/weave/prune'),
   'khronos:weave:prune-dock': require('tasks/weave/prune-dock')
 }
-var hermes = rabbitmq(Object.keys(tasks))
+var hermes = rabbitmq(Object.keys(queues), subscribedEvents)
 var server = new ponos.Server({
   hermes: hermes,
   log: log.child({ module: 'ponos' })
 })
 
-server.setAllTasks(tasks)
+server.setAllTasks(queues)
+log.info('Server start')
 server.start()
   .then(function () { log.info('Worker Server has started') })
   .catch(function (err) {
