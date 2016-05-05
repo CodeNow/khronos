@@ -23,9 +23,10 @@ describe('RabbitMQ Factory', function () {
 
   it('should have default arguments', function () {
     var queues = ['queue:one']
-    var r = rabbitmqFactory(queues)
+    var subscribedEvents = ['eventName']
+    var r = rabbitmqFactory(queues, subscribedEvents)
     assert.instanceOf(r, Hermes, 'returned a Hermes client')
-    assert.deepEqual(r.getQueues(), queues)
+    assert.deepEqual(r.getQueues(), queues.concat(subscribedEvents))
     sinon.assert.calledOnce(rabbitmqFactory._createClient)
     sinon.assert.calledWithExactly(
       rabbitmqFactory._createClient,
@@ -37,7 +38,7 @@ describe('RabbitMQ Factory', function () {
         password: 'guest',
         prefetch: 3,
         queues: queues,
-        subscribedEvents: undefined
+        subscribedEvents: subscribedEvents
       }
     )
   })
@@ -55,8 +56,9 @@ describe('RabbitMQ Factory', function () {
       envs[k] = oldVal
     })
     var queues = ['queue:one']
-    var r = rabbitmqFactory(queues)
-    assert.deepEqual(r.getQueues(), queues)
+    var subscribedEvents = ['eventName']
+    var r = rabbitmqFactory(queues, subscribedEvents)
+    assert.deepEqual(r.getQueues(), queues.concat(subscribedEvents))
     sinon.assert.calledOnce(rabbitmqFactory._createClient)
     sinon.assert.calledWithExactly(
       rabbitmqFactory._createClient,
@@ -68,7 +70,7 @@ describe('RabbitMQ Factory', function () {
         password: 'skywalker',
         prefetch: 3,
         queues: queues,
-        subscribedEvents: undefined
+        subscribedEvents: subscribedEvents
       }
     )
     Object.keys(envs).forEach(function (k) {
