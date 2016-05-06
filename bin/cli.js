@@ -33,6 +33,7 @@ function main () {
 
   var hermesClient = require('runnable-hermes')
     .hermesSingletonFactory({
+      name: 'khronos',
       hostname: hostname,
       port: port,
       username: username,
