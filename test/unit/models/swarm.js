@@ -6,11 +6,9 @@ const chai = require('chai')
 const assert = chai.assert
 
 // external
-const Dockerode = require('dockerode')
 const sinon = require('sinon')
 const Promise = require('bluebird')
 require('sinon-as-promised')(Promise)
-const url = require('url')
 const SwarmClient = require('@runnable/loki').Swarm
 // internal (being tested)
 
