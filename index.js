@@ -11,6 +11,7 @@ var subscribedEvents = [
 ]
 var queues = {
   'khronos:canary:build': require('tasks/canary/build'),
+  'khronos:canary:failover': require('tasks/canary/failover'),
   'khronos:canary:github-branch': require('tasks/canary/github-branch'),
   'khronos:canary:log': require('tasks/canary/log'),
   'khronos:canary:network': require('tasks/canary/network/index'),
