@@ -2,17 +2,17 @@
 
 require('loadenv')({ debugName: 'khronos:test' })
 
-var chai = require('chai')
-var assert = chai.assert
+const chai = require('chai')
+const assert = chai.assert
 
 // external
-var Dockerode = require('dockerode')
-var sinon = require('sinon')
-var url = require('url')
+const Dockerode = require('dockerode')
+const sinon = require('sinon')
+const url = require('url')
 
 // internal (being tested)
-var Docker = require('models/docker')
-var docker = new Docker(url.format({
+const Docker = require('models/docker')
+const docker = new Docker(url.format({
   protocol: 'http:',
   hostname: process.env.KHRONOS_DOCKER_HOST,
   port: process.env.KHRONOS_DOCKER_PORT
@@ -115,20 +115,20 @@ describe('Docker Model', function () {
     const mockStream = 'some-mock-stream'
 
     beforeEach(() => {
-      sinon.stub(docker.client, 'pull').yieldsAsync(null, mockStream)
+      sinon.stub(docker, 'pullAsync').resolves(mockStream)
       sinon.stub(docker.client.modem, 'followProgress').yieldsAsync()
     })
 
     afterEach(() => {
-      docker.client.pull.restore()
+      docker.pullAsync.restore()
       docker.client.modem.followProgress.restore()
     })
 
-    it('should call pull via the client', () => {
+    it('should call pullAsync', () => {
       return assert.isFulfilled(docker.pull(imageName))
         .then(() => {
-          sinon.assert.calledOnce(docker.client.pull)
-          sinon.assert.calledWith(docker.client.pull, imageName)
+          sinon.assert.calledOnce(docker.pullAsync)
+          sinon.assert.calledWith(docker.pullAsync, imageName)
         })
     })
 

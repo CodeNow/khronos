@@ -14,7 +14,7 @@
     "start": "NODE_PATH=./lib node --abort-on-uncaught-exception ./index.js",
     "test-watch": "rerun-script test",
     "test": "npm run lint && npm run unit && npm run functional",
-    "unit": "NODE_ENV=test NODE_PATH=./lib mocha $npm_package_options_mocha test/unit"
+    "unit": "NODE_ENV=test NODE_PATH=./lib mocha $npm_package_options_mocha test/unit/"
   },
   "watches": {
     "test": [
@@ -55,7 +55,6 @@
     "bunyan": "^1.4.0",
     "commander": "^2.8.1",
     "docker-stream-cleanser": "^0.3.0",
-    "dockerode": "^2.0.4",
     "error-subclass": "^1.0.2",
     "github": "^0.2.4",
     "intercom-client": "^2.8.0",
@@ -75,6 +74,7 @@
     "chai": "^3.3.0",
     "chai-as-promised": "^5.1.0",
     "docker-mock": "^5.0.2",
+    "dockerode": "^2.0.4",
     "istanbul": "^0.4.0",
     "mocha": "^2.3.3",
     "nock": "^7.2.2",
