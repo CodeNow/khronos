@@ -194,4 +194,119 @@ describe('Docker Model', function () {
         })
     })
   })
+
+  describe('removeImage', function () {
+    beforeEach(() => {
+      sinon.stub(docker, 'getImage').returns({
+        remove: function (opts, cb) {
+          cb()
+        }
+      })
+    })
+
+    afterEach(() => {
+      docker.getImage.restore()
+    })
+
+    it('should fail if image remove failed', (done) => {
+      docker.getImage.returns({
+        remove: function () {
+          throw new Error('Docker error')
+        }
+      })
+      docker.removeImage('image-id-1')
+      .then(() => {
+        throw new Error('Should never happen')
+      })
+      .catch((err) => {
+        assert.equal(err.message, 'Docker error')
+        done()
+      })
+    })
+
+    it('should call image remove', () => {
+      return assert.isFulfilled(docker.removeImage('image-id-1'))
+        .then(() => {
+          sinon.assert.calledOnce(docker.getImage)
+          sinon.assert.calledWith(docker.getImage, 'image-id-1')
+        })
+    })
+  })
+
+  describe('removeStoppedContainer', function () {
+    beforeEach(() => {
+      sinon.stub(docker, 'removeContainerAsync').resolves()
+    })
+
+    afterEach(() => {
+      docker.removeContainerAsync.restore()
+    })
+
+    it('should fail if removeContainerAsync failed', (done) => {
+      docker.removeContainerAsync.rejects(new Error('Docker error'))
+      docker.removeStoppedContainer('container-id-1')
+      .then(() => {
+        throw new Error('Should never happen')
+      })
+      .catch((err) => {
+        assert.equal(err.message, 'Docker error')
+        done()
+      })
+    })
+
+    it('should call removeContainerAsync', () => {
+      return assert.isFulfilled(docker.removeStoppedContainer('container-id-1'))
+        .then(() => {
+          sinon.assert.calledOnce(docker.removeContainerAsync)
+          sinon.assert.calledWith(docker.removeContainerAsync, 'container-id-1')
+        })
+    })
+  })
+
+  describe('removeContainer', function () {
+    beforeEach(() => {
+      sinon.stub(docker, 'killContainerAsync').resolves()
+      sinon.stub(docker, 'removeStoppedContainer').resolves()
+    })
+
+    afterEach(() => {
+      docker.killContainerAsync.restore()
+      docker.removeStoppedContainer.restore()
+    })
+
+    it('should  not fail if killContainerAsync failed', (done) => {
+      docker.killContainerAsync.rejects(new Error('Docker error'))
+      docker.removeContainer('container-id-1')
+      .then(() => {
+        sinon.assert.calledOnce(docker.killContainerAsync)
+        sinon.assert.calledWith(docker.killContainerAsync, 'container-id-1')
+        sinon.assert.calledOnce(docker.removeStoppedContainer)
+        sinon.assert.calledWith(docker.removeStoppedContainer, 'container-id-1')
+        done()
+      })
+      .catch(done)
+    })
+
+    it('should fail if removeStoppedContainer failed', (done) => {
+      docker.removeStoppedContainer.rejects(new Error('Docker error'))
+      docker.removeContainer('container-id-1')
+      .then(() => {
+        throw new Error('Should never happen')
+      })
+      .catch((err) => {
+        assert.equal(err.message, 'Docker error')
+        done()
+      })
+    })
+
+    it('should call killContainerAsync and removeStoppedContainer', () => {
+      return assert.isFulfilled(docker.removeContainer('container-id-1'))
+        .then(() => {
+          sinon.assert.calledOnce(docker.killContainerAsync)
+          sinon.assert.calledWith(docker.killContainerAsync, 'container-id-1')
+          sinon.assert.calledOnce(docker.removeStoppedContainer)
+          sinon.assert.calledWith(docker.removeStoppedContainer, 'container-id-1')
+        })
+    })
+  })
 })
