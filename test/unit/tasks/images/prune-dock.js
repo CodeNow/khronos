@@ -24,7 +24,7 @@ require('sinon-as-promised')(Promise)
 describe('images prune dock task', function () {
   beforeEach(function () {
     sinon.stub(Bunyan.prototype, 'warn').returns()
-    sinon.stub(Docker.prototype, 'getImages').yieldsAsync(null, [], [])
+    sinon.stub(Docker.prototype, 'getImages').resolves([[], []])
     sinon.stub(Swarm.prototype, 'checkHostExists').returns(Promise.resolve(true))
     sinon.stub(rabbitmq.prototype, 'close').yieldsAsync()
     sinon.stub(rabbitmq.prototype, 'connect').yieldsAsync()
@@ -66,7 +66,7 @@ describe('images prune dock task', function () {
 
     describe('if docker throws an error', function () {
       beforeEach(function () {
-        Docker.prototype.getImages.yieldsAsync(new Error('foobar'))
+        Docker.prototype.getImages.rejects(new Error('foobar'))
       })
 
       it('should throw the error', function () {
@@ -107,8 +107,7 @@ describe('images prune dock task', function () {
           sinon.assert.calledOnce(Docker.prototype.getImages)
           sinon.assert.calledWithExactly(
             Docker.prototype.getImages,
-            parseInt(process.env.KHRONOS_MIN_IMAGE_AGE, 10),
-            sinon.match.func
+            parseInt(process.env.KHRONOS_MIN_IMAGE_AGE, 10)
           )
           sinon.assert.notCalled(rabbitmq.prototype.publish)
           assert.deepEqual(result, {
@@ -123,7 +122,7 @@ describe('images prune dock task', function () {
   describe('with a single tagged image on a host', function () {
     beforeEach(function () {
       var taggedImages = ['foo/bar']
-      Docker.prototype.getImages.yieldsAsync(null, taggedImages, [])
+      Docker.prototype.getImages.resolves([taggedImages, []])
     })
 
     it('should enqueue a job to investigate the tagged image', function () {
@@ -152,7 +151,7 @@ describe('images prune dock task', function () {
       var taglessImages = [{
         Id: 4
       }]
-      Docker.prototype.getImages.yieldsAsync(null, [], taglessImages)
+      Docker.prototype.getImages.resolves([[], taglessImages])
     })
 
     it('should enqueue a job to remove the tagged image', function () {
@@ -187,7 +186,7 @@ describe('images prune dock task', function () {
       }, {
         Id: 5
       }]
-      Docker.prototype.getImages.yieldsAsync(null, taggedImages, taglessImages)
+      Docker.prototype.getImages.resolves([ taggedImages, taglessImages ])
     })
 
     it('should enqueue all the right jobs', function () {

@@ -26,7 +26,7 @@ describe('Remove Image Task', function () {
   }
 
   beforeEach(function () {
-    sinon.stub(Docker.prototype, 'removeImage').yieldsAsync()
+    sinon.stub(Docker.prototype, 'removeImage').resolves()
     sinon.stub(Swarm.prototype, 'checkHostExists').resolves(true)
   })
   afterEach(function () {
@@ -73,7 +73,7 @@ describe('Remove Image Task', function () {
 
     describe('Docker Errors', function () {
       it('should thrown the error', function () {
-        Docker.prototype.removeImage.yieldsAsync(new Error('foobar'))
+        Docker.prototype.removeImage.rejects(new Error('foobar'))
         return assert.isRejected(
           removeImage(testJob),
           Error,
@@ -84,7 +84,7 @@ describe('Remove Image Task', function () {
       it('should throw TaskFatalError if image is in use', function () {
         var error = new Error('foobar')
         error.statusCode = 409
-        Docker.prototype.removeImage.yieldsAsync(error)
+        Docker.prototype.removeImage.rejects(error)
         return assert.isRejected(
           removeImage(testJob),
           TaskFatalError,
@@ -95,7 +95,7 @@ describe('Remove Image Task', function () {
       it('should throw TaskFatalError if image not found', function () {
         var error = new Error('foobar')
         error.statusCode = 404
-        Docker.prototype.removeImage.yieldsAsync(error)
+        Docker.prototype.removeImage.rejects(error)
         return assert.isRejected(
           removeImage(testJob),
           TaskFatalError,
@@ -111,8 +111,7 @@ describe('Remove Image Task', function () {
         sinon.assert.calledOnce(Docker.prototype.removeImage)
         sinon.assert.calledWithExactly(
           Docker.prototype.removeImage,
-          4,
-          sinon.match.func
+          4
         )
         assert.deepEqual(result, {
           dockerHost: 'http://example.com',

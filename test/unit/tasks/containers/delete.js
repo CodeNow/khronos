@@ -27,7 +27,7 @@ describe('Delete Container Task', function () {
 
   beforeEach(function () {
     sinon.stub(Bunyan.prototype, 'error').returns()
-    sinon.stub(Docker.prototype, 'removeStoppedContainer').yieldsAsync()
+    sinon.stub(Docker.prototype, 'removeStoppedContainer').resolves()
     sinon.stub(Swarm.prototype, 'checkHostExists').resolves(true)
   })
   afterEach(function () {
@@ -54,7 +54,7 @@ describe('Delete Container Task', function () {
 
     describe('Docker Error', function () {
       beforeEach(function () {
-        Docker.prototype.removeStoppedContainer.yieldsAsync(new Error('foobar'))
+        Docker.prototype.removeStoppedContainer.rejects(new Error('foobar'))
       })
 
       it('should thrown the error', function () {
@@ -91,7 +91,7 @@ describe('Delete Container Task', function () {
     beforeEach(function () {
       error = new Error('foobar')
       error.statusCode = 404
-      Docker.prototype.removeStoppedContainer.yieldsAsync(error)
+      Docker.prototype.removeStoppedContainer.rejects(error)
     })
 
     it('should simply conclude', function () {
@@ -100,8 +100,7 @@ describe('Delete Container Task', function () {
           sinon.assert.calledOnce(Docker.prototype.removeStoppedContainer)
           sinon.assert.calledWithExactly(
             Docker.prototype.removeStoppedContainer,
-            4,
-            sinon.match.func
+            4
           )
           assert.deepEqual(result, {
             dockerHost: 'http://example.com',
@@ -117,8 +116,7 @@ describe('Delete Container Task', function () {
         sinon.assert.calledOnce(Docker.prototype.removeStoppedContainer)
         sinon.assert.calledWithExactly(
           Docker.prototype.removeStoppedContainer,
-          4,
-          sinon.match.func
+          4
         )
         assert.deepEqual(result, {
           dockerHost: 'http://example.com',
