@@ -6,8 +6,9 @@ const chai = require('chai')
 const assert = chai.assert
 
 // external
-const Dockerode = require('dockerode')
 const sinon = require('sinon')
+const Promise = require('bluebird')
+require('sinon-as-promised')(Promise)
 const url = require('url')
 
 // internal (being tested)
@@ -34,11 +35,23 @@ describe('Docker Model', function () {
       Image: 'ubuntu'
     }]
     beforeEach(function () {
-      sinon.stub(Dockerode.prototype, 'listContainers')
-        .yieldsAsync(null, mockContainers)
+      sinon.stub(Docker.prototype, 'listContainersAsync')
+        .resolves(mockContainers)
     })
     afterEach(function () {
-      Dockerode.prototype.listContainers.restore()
+      Docker.prototype.listContainersAsync.restore()
+    })
+
+    it('should fail if listContainersAsync failed', function (done) {
+      Docker.prototype.listContainersAsync.rejects(new Error('Docker error'))
+      docker.getContainers()
+      .then(() => {
+        throw new Error('Should never happen')
+      })
+      .catch((err) => {
+        assert.equal(err.message, 'Docker error')
+        done()
+      })
     })
 
     it('should return containers', function (done) {
@@ -47,10 +60,11 @@ describe('Docker Model', function () {
           if (err) { return done(err) }
           assert.lengthOf(containers, 4)
           assert.deepEqual(containers, mockContainers)
-          assert.ok(Dockerode.prototype.listContainers.calledOnce)
+          assert.ok(Docker.prototype.listContainersAsync.calledOnce)
           done()
         })
     })
+
     it('should filter containers', function (done) {
       var filters = [/centos/]
       docker.getContainers({}, filters)
@@ -58,17 +72,18 @@ describe('Docker Model', function () {
           if (err) { return done(err) }
           assert.lengthOf(containers, 1)
           assert.deepEqual(containers, [mockContainers[1]])
-          assert.ok(Dockerode.prototype.listContainers.calledOnce)
+          assert.ok(Docker.prototype.listContainersAsync.calledOnce)
           done()
         })
     })
+
     it('should filter out the container ids from containerIdsToFilterOut', function (done) {
       docker.getContainers({}, [/ubuntu/], ['1', '3'])
         .asCallback(function (err, containers) {
           if (err) { return done(err) }
           assert.lengthOf(containers, 1)
           assert.deepEqual(containers, [mockContainers[3]])
-          assert.ok(Dockerode.prototype.listContainers.calledOnce)
+          assert.ok(Docker.prototype.listContainersAsync.calledOnce)
           done()
         })
     })
@@ -90,11 +105,22 @@ describe('Docker Model', function () {
         Created: Date.now(),
         RepoTags: ['redis:foot']
       }]
-      sinon.stub(Dockerode.prototype, 'listImages')
-        .yieldsAsync(null, mockImages)
+      sinon.stub(Docker.prototype, 'listImagesAsync').resolves(mockImages)
     })
     afterEach(function () {
-      Dockerode.prototype.listImages.restore()
+      Docker.prototype.listImagesAsync.restore()
+    })
+
+    it('should fail if listImagesAsync failed', function (done) {
+      Docker.prototype.listImagesAsync.rejects(new Error('Docker error'))
+      docker.getImages()
+      .then(() => {
+        throw new Error('Should never happen')
+      })
+      .catch((err) => {
+        assert.equal(err.message, 'Docker error')
+        done()
+      })
     })
 
     it('should return tagged and untagged images', function (done) {
@@ -104,7 +130,7 @@ describe('Docker Model', function () {
         assert.lengthOf(taglessImages, 1)
         assert.deepEqual(images, [mockImages[0].RepoTags[0]])
         assert.deepEqual(taglessImages, [mockImages[1]])
-        assert.ok(Dockerode.prototype.listImages.calledOnce)
+        assert.ok(Docker.prototype.listImagesAsync.calledOnce)
         done()
       })
       .catch(done)
@@ -123,6 +149,30 @@ describe('Docker Model', function () {
     afterEach(() => {
       docker.pullAsync.restore()
       docker.client.modem.followProgress.restore()
+    })
+
+    it('should fail if pullAsync failed', (done) => {
+      docker.pullAsync.rejects(new Error('Docker pull error'))
+      docker.pull(imageName)
+      .then(() => {
+        throw new Error('Should never happen')
+      })
+      .catch((err) => {
+        assert.equal(err.message, 'Docker pull error')
+        done()
+      })
+    })
+
+    it('should fail if followProgress failed', (done) => {
+      docker.client.modem.followProgress.yieldsAsync(new Error('Docker pull stream error'))
+      docker.pull(imageName)
+      .then(() => {
+        throw new Error('Should never happen')
+      })
+      .catch((err) => {
+        assert.equal(err.message, 'Docker pull stream error')
+        done()
+      })
     })
 
     it('should call pullAsync', () => {
