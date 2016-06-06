@@ -98,8 +98,8 @@ describe('Docker Model', function () {
     })
 
     it('should return tagged and untagged images', function (done) {
-      docker.getImages(function (err, images, taglessImages) {
-        if (err) { return done(err) }
+      docker.getImages()
+      .spread(function (images, taglessImages) {
         assert.lengthOf(images, 1)
         assert.lengthOf(taglessImages, 1)
         assert.deepEqual(images, [mockImages[0].RepoTags[0]])
@@ -107,6 +107,7 @@ describe('Docker Model', function () {
         assert.ok(Dockerode.prototype.listImages.calledOnce)
         done()
       })
+      .catch(done)
     })
   })
 
