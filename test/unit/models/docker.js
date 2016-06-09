@@ -44,7 +44,7 @@ describe('Docker Model', function () {
 
     it('should fail if listContainersAsync failed', function (done) {
       Docker.prototype.listContainersAsync.rejects(new Error('Docker error'))
-        docker.getContainers()
+      docker.getContainers()
         .then(() => {
           throw new Error('Should never happen')
         })
