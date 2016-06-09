@@ -44,14 +44,14 @@ describe('Docker Model', function () {
 
     it('should fail if listContainersAsync failed', function (done) {
       Docker.prototype.listContainersAsync.rejects(new Error('Docker error'))
-      docker.getContainers()
-      .then(() => {
-        throw new Error('Should never happen')
-      })
-      .catch((err) => {
-        assert.equal(err.message, 'Docker error')
-        done()
-      })
+        docker.getContainers()
+        .then(() => {
+          throw new Error('Should never happen')
+        })
+        .catch((err) => {
+          assert.equal(err.message, 'Docker error')
+          done()
+        })
     })
 
     it('should return containers', function (done) {
@@ -61,6 +61,20 @@ describe('Docker Model', function () {
           assert.lengthOf(containers, 4)
           assert.deepEqual(containers, mockContainers)
           assert.ok(Docker.prototype.listContainersAsync.calledOnce)
+          done()
+        })
+    })
+
+    it('should pass any query opts to docker', (done) => {
+      var opts = { options: true }
+      docker.getContainers(opts)
+        .asCallback((err) => {
+          if (err) { return done(err) }
+          sinon.assert.calledOnce(Docker.prototype.listContainersAsync)
+          sinon.assert.calledWithExactly(
+            Docker.prototype.listContainersAsync,
+            opts
+          )
           done()
         })
     })
