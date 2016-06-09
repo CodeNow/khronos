@@ -245,13 +245,13 @@ describe('Docker Model', function () {
     it('should fail if removeContainerAsync failed', (done) => {
       docker.removeContainerAsync.rejects(new Error('Docker error'))
       docker.removeStoppedContainer('container-id-1')
-      .then(() => {
-        throw new Error('Should never happen')
-      })
-      .catch((err) => {
-        assert.equal(err.message, 'Docker error')
-        done()
-      })
+        .then(() => {
+          throw new Error('Should never happen')
+        })
+        .catch((err) => {
+          assert.equal(err.message, 'Docker error')
+          done()
+        })
     })
 
     it('should call removeContainerAsync', () => {
@@ -274,29 +274,43 @@ describe('Docker Model', function () {
       docker.removeStoppedContainer.restore()
     })
 
-    it('should  not fail if killContainerAsync failed', (done) => {
-      docker.killContainerAsync.rejects(new Error('Docker error'))
+    it('should not fail if killContainerAsync failed w/ not running', (done) => {
+      docker.killContainerAsync.rejects(new Error('container asdf is not running'))
       docker.removeContainer('container-id-1')
-      .then(() => {
-        sinon.assert.calledOnce(docker.killContainerAsync)
-        sinon.assert.calledWith(docker.killContainerAsync, 'container-id-1')
-        sinon.assert.calledOnce(docker.removeStoppedContainer)
-        sinon.assert.calledWith(docker.removeStoppedContainer, 'container-id-1')
-        done()
-      })
-      .catch(done)
+        .then(() => {
+          sinon.assert.calledOnce(docker.killContainerAsync)
+          sinon.assert.calledWith(docker.killContainerAsync, 'container-id-1')
+          sinon.assert.calledOnce(docker.removeStoppedContainer)
+          sinon.assert.calledWith(docker.removeStoppedContainer, 'container-id-1')
+        })
+        .asCallback(done)
+    })
+
+    it('should fail if killContainerAsync failed w/ other errors', (done) => {
+      docker.killContainerAsync.rejects(new Error('Docker ERROR'))
+      docker.removeContainer('container-id-1')
+        .then(() => { throw new Error('Test should have thrown.') })
+        .catch((err) => {
+          assert.equal(err.message, 'Docker ERROR')
+        })
+        .then(() => {
+          sinon.assert.calledOnce(docker.killContainerAsync)
+          sinon.assert.calledWith(docker.killContainerAsync, 'container-id-1')
+          sinon.assert.notCalled(docker.removeStoppedContainer)
+        })
+        .asCallback(done)
     })
 
     it('should fail if removeStoppedContainer failed', (done) => {
       docker.removeStoppedContainer.rejects(new Error('Docker error'))
       docker.removeContainer('container-id-1')
-      .then(() => {
-        throw new Error('Should never happen')
-      })
-      .catch((err) => {
-        assert.equal(err.message, 'Docker error')
-        done()
-      })
+        .then(() => {
+          throw new Error('Should never happen')
+        })
+        .catch((err) => {
+          assert.equal(err.message, 'Docker error')
+          done()
+        })
     })
 
     it('should call killContainerAsync and removeStoppedContainer', () => {
