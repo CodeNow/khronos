@@ -70,6 +70,7 @@ describe('User Whitelisted Task', function () {
     })
   })
   describe('testing the delay', function () {
+    process.env.CHECK_ASG_CREATED_DELAY_IN_SEC = 100
     it('should throw TaskError when not enough time has passed ', function () {
       return assert.isRejected(UserWhitelisted({
         createdAt: Math.floor(new Date().getTime() / 1000) + 100,
@@ -77,6 +78,7 @@ describe('User Whitelisted Task', function () {
       }))
         .then(function (err) {
           assert.instanceOf(err, TaskError)
+          assert.include(err.message, 'still needs to wait')
         })
     })
   })
