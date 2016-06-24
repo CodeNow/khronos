@@ -87,8 +87,11 @@ describe('User Whitelisted Task', function () {
   describe('Successful runs', function () {
     process.env.CHECK_ASG_CREATED_DELAY_IN_SEC = 100
     var orgWithDock = 13801594
-    var orgWithoutDock = 13801594
-    var rawDock = require('../../../mocks/swarm/docks.json')
+    var orgWithoutDock = 21312321
+    var rawDock = [{
+      host: 'http://localhost:5454',
+      org: orgWithDock.toString()
+    }]
     beforeEach(function () {
       Swarm.prototype.getHostsWithOrgs.resolves(rawDock)
     })
