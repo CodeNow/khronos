@@ -74,7 +74,8 @@ describe('User Whitelisted Task', function () {
     it('should throw TaskError when not enough time has passed ', function () {
       return assert.isRejected(UserWhitelisted({
         createdAt: Math.floor(new Date().getTime() / 1000) + 100,
-        githubId: 1232132
+        githubId: 1232132,
+        orgName: 'asdasdasd'
       }))
         .then(function (err) {
           assert.instanceOf(err, TaskError)
