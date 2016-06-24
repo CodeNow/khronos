@@ -7,7 +7,8 @@ var ponos = require('ponos')
 var rabbitmq = require('models/rabbitmq')
 
 var subscribedEvents = [
-  'context-version.deleted'
+  'context-version.deleted',
+  'user-whitelisted'
 ]
 var queues = {
   'khronos:canary:build': require('tasks/canary/build'),
@@ -36,7 +37,8 @@ var queues = {
   'khronos:metrics:container-status': require('tasks/metrics/container-status'),
   'khronos:metrics:report-org-container-status': require('tasks/metrics/report-org-container-status'),
   'khronos:weave:prune': require('tasks/weave/prune'),
-  'khronos:weave:prune-dock': require('tasks/weave/prune-dock')
+  'khronos:weave:prune-dock': require('tasks/weave/prune-dock'),
+  'user.whitelisted': require('tasks/docks/user-whitelisted')
 }
 var hermes = rabbitmq(Object.keys(queues), subscribedEvents)
 var server = new ponos.Server({
