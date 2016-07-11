@@ -15,7 +15,7 @@ const assert = chai.assert
 chai.use(require('chai-as-promised'))
 require('sinon-as-promised')(require('bluebird'))
 
-describe.only('User Whitelisted Task', function () {
+describe('User Whitelisted Task', function () {
   describe('Joi validation', function () {
     it('should fail if empty', function () {
       return assert.isRejected(UserWhitelisted())
