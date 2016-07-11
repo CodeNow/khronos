@@ -13,13 +13,13 @@ const TaskError = require('ponos').TaskError
 const TaskFatalError = require('ponos').TaskFatalError
 
 // internal (being tested)
-const OrganizationCreated = require('tasks/organization/created')
+const CheckASGWasCreated = require('tasks/asg/check-created')
 
 const assert = chai.assert
 chai.use(require('chai-as-promised'))
 require('sinon-as-promised')(require('bluebird'))
 
-describe('Organization Created Task', function () {
+describe('ASG Check Created Task', function () {
   beforeEach(function () {
     sinon.stub(Swarm.prototype, 'getHostsWithOrgs')
     sinon.stub(monitor, 'event')
@@ -31,14 +31,14 @@ describe('Organization Created Task', function () {
 
   describe('Joi validation', function () {
     it('should fail if empty', function () {
-      return assert.isRejected(OrganizationCreated())
+      return assert.isRejected(CheckASGWasCreated())
         .then(function (err) {
           assert.instanceOf(err, TaskFatalError)
           assert.include(err.message, 'Invalid Job')
         })
     })
     it('should fail missing createdAt', function () {
-      return assert.isRejected(OrganizationCreated({
+      return assert.isRejected(CheckASGWasCreated({
         githubId: 123213,
         orgName: 'asdasdasd'
       }))
@@ -48,7 +48,7 @@ describe('Organization Created Task', function () {
         })
     })
     it('should fail missing githubId', function () {
-      return assert.isRejected(OrganizationCreated({
+      return assert.isRejected(CheckASGWasCreated({
         createdAt: Math.floor(new Date().getTime() / 1000),
         orgName: 'asdasdasd'
       }))
@@ -58,7 +58,7 @@ describe('Organization Created Task', function () {
         })
     })
     it('should fail missing orgName', function () {
-      return assert.isRejected(OrganizationCreated({
+      return assert.isRejected(CheckASGWasCreated({
         createdAt: Math.floor(new Date().getTime() / 1000),
         githubId: 123213
       }))
@@ -71,7 +71,7 @@ describe('Organization Created Task', function () {
   describe('testing the delay', function () {
     process.env.CHECK_ASG_CREATED_DELAY_IN_SEC = 100
     it('should throw TaskError when not enough time has passed ', function () {
-      return assert.isRejected(OrganizationCreated({
+      return assert.isRejected(CheckASGWasCreated({
         createdAt: Math.floor(new Date().getTime() / 1000) + 100,
         githubId: 1232132,
         orgName: 'asdasdasd'
@@ -96,14 +96,14 @@ describe('Organization Created Task', function () {
     })
 
     it('should resolve successfully', function () {
-      return OrganizationCreated({
+      return CheckASGWasCreated({
         createdAt: Math.floor(new Date().getTime() / 1000) - 101,
         githubId: orgWithDock,
         orgName: 'asdasdasd'
       })
     })
     it('should fire off a datadog when the org doesn\'t have a dock!', function () {
-      return assert.isRejected(OrganizationCreated({
+      return assert.isRejected(CheckASGWasCreated({
         createdAt: Math.floor(new Date().getTime() / 1000) - 101,
         githubId: orgWithoutDock,
         orgName: 'asdasdasd'
