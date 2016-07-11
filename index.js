@@ -11,6 +11,7 @@ var subscribedEvents = [
   'user.whitelisted'
 ]
 var queues = {
+  'khronos:asg:check-created': require('tasks/asg/check-created'),
   'khronos:canary:build': require('tasks/canary/build'),
   'khronos:canary:failover': require('tasks/canary/failover'),
   'khronos:canary:github-branch': require('tasks/canary/github-branch'),
@@ -38,7 +39,7 @@ var queues = {
   'khronos:metrics:report-org-container-status': require('tasks/metrics/report-org-container-status'),
   'khronos:weave:prune': require('tasks/weave/prune'),
   'khronos:weave:prune-dock': require('tasks/weave/prune-dock'),
-  'user.whitelisted': require('tasks/organization/created')
+  'user.whitelisted': require('tasks/user/whitelisted')
 }
 var hermes = rabbitmq(Object.keys(queues), subscribedEvents)
 var server = new ponos.Server({
