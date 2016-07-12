@@ -7,9 +7,11 @@ var ponos = require('ponos')
 var rabbitmq = require('models/rabbitmq')
 
 var subscribedEvents = [
-  'context-version.deleted'
+  'context-version.deleted',
+  'user.whitelisted'
 ]
 var queues = {
+  'khronos:asg:check-created': require('tasks/asg/check-created'),
   'khronos:canary:build': require('tasks/canary/build'),
   'khronos:canary:failover': require('tasks/canary/failover'),
   'khronos:canary:github-branch': require('tasks/canary/github-branch'),
@@ -23,7 +25,6 @@ var queues = {
   'khronos:containers:orphan:prune': require('tasks/containers/prune-orphans'),
   'khronos:containers:orphan:prune-dock': require('tasks/containers/prune-orphans-dock'),
   'khronos:containers:remove': require('tasks/containers/remove'),
-  'khronos.context-version.deleted': require('tasks/context-versions/deleted'),
   'context-version.deleted': require('tasks/context-versions/deleted'),
   'khronos:context-versions:check-recent-usage': require('tasks/context-versions/check-recent-usage'),
   'khronos:context-versions:prune-expired': require('tasks/context-versions/prune-expired'),
@@ -36,7 +37,8 @@ var queues = {
   'khronos:metrics:container-status': require('tasks/metrics/container-status'),
   'khronos:metrics:report-org-container-status': require('tasks/metrics/report-org-container-status'),
   'khronos:weave:prune': require('tasks/weave/prune'),
-  'khronos:weave:prune-dock': require('tasks/weave/prune-dock')
+  'khronos:weave:prune-dock': require('tasks/weave/prune-dock'),
+  'user.whitelisted': require('tasks/user/whitelisted')
 }
 var hermes = rabbitmq(Object.keys(queues), subscribedEvents)
 var server = new ponos.Server({
