@@ -25,7 +25,6 @@ var queues = {
   'khronos:containers:orphan:prune': require('tasks/containers/prune-orphans'),
   'khronos:containers:orphan:prune-dock': require('tasks/containers/prune-orphans-dock'),
   'khronos:containers:remove': require('tasks/containers/remove'),
-  'khronos.context-version.deleted': require('tasks/context-versions/deleted'),
   'context-version.deleted': require('tasks/context-versions/deleted'),
   'khronos:context-versions:check-recent-usage': require('tasks/context-versions/check-recent-usage'),
   'khronos:context-versions:prune-expired': require('tasks/context-versions/prune-expired'),
