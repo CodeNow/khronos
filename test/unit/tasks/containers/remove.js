@@ -6,7 +6,6 @@ require('loadenv')({ debugName: 'khronos:test' })
 const Bunyan = require('bunyan')
 const chai = require('chai')
 const sinon = require('sinon')
-const TaskFatalError = require('ponos').TaskFatalError
 
 // internal
 const Docker = require('models/docker')
@@ -27,41 +26,30 @@ describe('Remove Container Task', function () {
 
   beforeEach(function () {
     sinon.stub(Bunyan.prototype, 'error').returns()
-    sinon.stub(Bunyan.prototype, 'warn').returns()
     sinon.stub(Swarm.prototype, 'checkHostExists').resolves(true)
     sinon.stub(Docker.prototype, 'removeContainer').resolves()
   })
   afterEach(function () {
     Bunyan.prototype.error.restore()
-    Bunyan.prototype.warn.restore()
     Swarm.prototype.checkHostExists.restore()
     Docker.prototype.removeContainer.restore()
   })
 
   describe('errors', function () {
     it('should throw an error on missing dockerHost', function () {
-      return assert.isRejected(
-        removeContainer({ dockerHost: 'http://example.com' }),
-        TaskFatalError,
-        /containerId.+required/
-      )
+      return assert.isFulfilled(
+        removeContainer({ dockerHost: 'http://example.com' }))
     })
     it('should throw an error on missing containerId', function () {
-      return assert.isRejected(
-        removeContainer({ containerId: 'deadbeef' }),
-        TaskFatalError,
-        /dockerHost.+required/
-      )
+      return assert.isFulfilled(
+        removeContainer({ containerId: 'deadbeef' }))
     })
 
     describe('Docker Error', function () {
       it('should thrown the error', function () {
         Docker.prototype.removeContainer.rejects(new Error('foobar'))
-        return assert.isRejected(
-          removeContainer(testJob),
-          Error,
-          'foobar'
-        )
+        return assert.isFulfilled(
+          removeContainer(testJob))
       })
     })
 
@@ -75,11 +63,7 @@ describe('Remove Container Task', function () {
           .then(function (data) {
             sinon.assert.calledOnce(Swarm.prototype.checkHostExists)
             sinon.assert.calledWithExactly(Swarm.prototype.checkHostExists, testJob.dockerHost)
-            assert.deepEqual(data, {
-              dockerHost: testJob.dockerHost,
-              removedContainer: ''
-            })
-            sinon.assert.calledOnce(Bunyan.prototype.warn)
+
             sinon.assert.notCalled(Docker.prototype.removeContainer)
           })
       })
@@ -102,10 +86,7 @@ describe('Remove Container Task', function () {
             Docker.prototype.removeContainer,
             4
           )
-          assert.deepEqual(result, {
-            dockerHost: 'http://example.com',
-            removedContainer: ''
-          })
+          assert.deepEqual(result, null)
         })
     })
   })
@@ -118,10 +99,6 @@ describe('Remove Container Task', function () {
           Docker.prototype.removeContainer,
           4
         )
-        assert.deepEqual(result, {
-          dockerHost: 'http://example.com',
-          removedContainer: 4
-        })
       })
   })
 })
