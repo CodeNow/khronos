@@ -49,7 +49,7 @@
   "dependencies": {
     "101": "^1.5.0",
     "@runnable/api-client": "^7.5.0",
-    "@runnable/loki": "^1.1.8",
+    "@runnable/loki": "^3.0.0",
     "async": "^1.4.2",
     "bluebird": "^3.0.5",
     "bunyan": "^1.4.0",
@@ -82,6 +82,6 @@
     "sinon-as-promised": "^4.0.0",
     "snazzy": "^3.0.0",
     "standard": "^6.0.7",
-    "swarmerode": "2.1.0"
+    "swarmerode": "^3.0.0"
   }
 }
