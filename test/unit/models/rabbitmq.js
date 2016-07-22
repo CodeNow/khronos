@@ -36,7 +36,7 @@ describe('RabbitMQ Factory', function () {
         port: 5672,
         username: 'guest',
         password: 'guest',
-        prefetch: 3,
+        prefetch: process.env.KHRONOS_PREFETCH,
         queues: queues,
         subscribedEvents: subscribedEvents
       }
@@ -68,7 +68,7 @@ describe('RabbitMQ Factory', function () {
         port: 42,
         username: 'luke',
         password: 'skywalker',
-        prefetch: 3,
+        prefetch: process.env.KHRONOS_PREFETCH,
         queues: queues,
         subscribedEvents: subscribedEvents
       }
