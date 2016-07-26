@@ -2,21 +2,21 @@
 
 require('loadenv')({ debugName: 'khronos:test' })
 
-var chai = require('chai')
-var assert = chai.assert
+const chai = require('chai')
+const assert = chai.assert
 chai.use(require('chai-as-promised'))
 
 // external
-var ObjectID = require('mongodb').ObjectID
-var rabbitmq = require('runnable-hermes')
-var sinon = require('sinon')
-var TaskFatalError = require('ponos').TaskFatalError
+const ObjectID = require('mongodb').ObjectID
+const rabbitmq = require('runnable-hermes')
+const sinon = require('sinon')
+const TaskFatalError = require('ponos').TaskFatalError
 
 // internal
-var MongoDB = require('models/mongodb')
+const MongoDB = require('models/mongodb')
 
 // internal (being tested)
-var contextVersionsCheckRecentUsage = require('tasks/context-versions/check-recent-usage')
+const contextVersionsCheckRecentUsage = require('tasks/context-versions/check-recent-usage')
 
 describe('context versions check recent usage task', function () {
   var sampleJob
