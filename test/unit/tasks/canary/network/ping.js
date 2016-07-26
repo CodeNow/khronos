@@ -240,6 +240,38 @@ describe('Network Ping Canary', () => {
       })
     })
 
+    it('should run image for one ip since one dock was removed', () => {
+      Dockerode.prototype.run.yieldsAsync(null, {
+        StatusCode: 0
+      })
+      const cvs = [
+        {
+          _id: testTartgetCvs[0],
+          dockRemoved: false
+        },
+        {
+          _id: testTartgetCvs[1],
+          dockRemoved: true
+        }
+      ]
+      MongoDB.prototype.fetchContextVersions.yieldsAsync(null, cvs)
+      return pingCanary(mock.job).then(() => {
+        const ips = testTartgetIps[0]
+        const cmd = [
+          'bash',
+          '-c',
+          process.env.RUNNABLE_WAIT_FOR_WEAVE + 'node index.js ' + ips
+        ]
+        sinon.assert.calledOnce(Dockerode.prototype.run)
+        sinon.assert.calledWith(
+          Dockerode.prototype.run,
+          process.env.NETWORK_PING_IMAGE,
+          cmd,
+          false
+        )
+      })
+    })
+
     it('should cleanup the test container', () => {
       return pingCanary(mock.job).then(() => {
         sinon.assert.calledOnce(Hermes.prototype.publish)
