@@ -2,6 +2,7 @@
 
 require('loadenv')('khronos:test')
 
+const ObjectID = require('mongodb').ObjectID
 const chai = require('chai')
 const assert = chai.assert
 chai.use(require('chai-as-promised'))
@@ -17,17 +18,21 @@ const Docker = require('models/docker')
 const Hermes = require('runnable-hermes')
 const Swarm = require('models/swarm')
 
+// internal
+const MongoDB = require('models/mongodb')
 // internal (being tested)
 const pingCanary = require('tasks/canary/network/ping')
 
 // TODO anand: flesh out the unit tests for this canary
 describe('Network Ping Canary', () => {
   const testTartgetIps = ['10.0.0.1', '10.0.0.2']
+  const testTartgetCvs = ['5694d7935fa8721e00d5617e', '569be29c85890c1e00d7386a']
   const mock = {
     job: {
       targetDockerUrl: 'http://1.2.3.4:4242',
       targetIps: testTartgetIps,
-      targetOrg: 123123
+      targetOrg: 123123,
+      targetCvs: testTartgetCvs
     },
     runData: {
       StatusCode: 0
@@ -46,6 +51,12 @@ describe('Network Ping Canary', () => {
   })
 
   beforeEach(() => {
+    sinon.stub(MongoDB.prototype, 'close').yieldsAsync()
+    sinon.stub(MongoDB.prototype, 'connect').yieldsAsync()
+    sinon.stub(MongoDB.prototype, 'fetchContextVersions')
+      .yieldsAsync(null, testTartgetCvs.map((cv) => {
+        return {_id: cv, dockRemoved: false}
+      }))
     sinon.stub(CanaryBase.prototype, 'handleCanaryError')
     sinon.stub(CanaryBase.prototype, 'handleGenericError')
     sinon.stub(CanaryBase.prototype, 'handleSuccess')
@@ -60,6 +71,9 @@ describe('Network Ping Canary', () => {
   })
 
   afterEach(() => {
+    MongoDB.prototype.close.restore()
+    MongoDB.prototype.connect.restore()
+    MongoDB.prototype.fetchContextVersions.restore()
     CanaryBase.prototype.handleCanaryError.restore()
     CanaryBase.prototype.handleGenericError.restore()
     CanaryBase.prototype.handleSuccess.restore()
@@ -143,6 +157,27 @@ describe('Network Ping Canary', () => {
         sinon.assert.calledOnce(CanaryBase.prototype.handleGenericError)
       })
     })
+
+    it('should throw TaskFatalError if cvs are not provided', () => {
+      return pingCanary({
+        targetDockerUrl: 'http://10.0.0.1:4242',
+        targetIps: ['10.0.0.1'],
+        targetOrg: 1
+      }).then(() => {
+        sinon.assert.calledOnce(CanaryBase.prototype.handleGenericError)
+      })
+    })
+
+    it('should throw TaskFatalError if cvs are not strings', () => {
+      return pingCanary({
+        targetDockerUrl: 'http://10.0.0.1:4242',
+        targetIps: ['10.0.0.1'],
+        targetCvs: [1],
+        targetOrg: 1
+      }).then(() => {
+        sinon.assert.calledOnce(CanaryBase.prototype.handleGenericError)
+      })
+    })
   }) // end invalid job
 
   describe('on success', () => {
@@ -171,12 +206,57 @@ describe('Network Ping Canary', () => {
       })
     })
 
+    it('should query db for cvs', () => {
+      return pingCanary(mock.job).then(() => {
+        sinon.assert.calledOnce(MongoDB.prototype.fetchContextVersions)
+        const cvs = testTartgetCvs.map((cv) => {
+          return new ObjectID(cv)
+        })
+        sinon.assert.calledWith(
+          MongoDB.prototype.fetchContextVersions,
+          { _id: { $in: cvs } }
+        )
+      })
+    })
+
     it('should run image', () => {
       Dockerode.prototype.run.yieldsAsync(null, {
         StatusCode: 0
       })
       return pingCanary(mock.job).then(() => {
         const ips = testTartgetIps.join(' ')
+        const cmd = [
+          'bash',
+          '-c',
+          process.env.RUNNABLE_WAIT_FOR_WEAVE + 'node index.js ' + ips
+        ]
+        sinon.assert.calledOnce(Dockerode.prototype.run)
+        sinon.assert.calledWith(
+          Dockerode.prototype.run,
+          process.env.NETWORK_PING_IMAGE,
+          cmd,
+          false
+        )
+      })
+    })
+
+    it('should run image for one ip since one dock was removed', () => {
+      Dockerode.prototype.run.yieldsAsync(null, {
+        StatusCode: 0
+      })
+      const cvs = [
+        {
+          _id: testTartgetCvs[0],
+          dockRemoved: false
+        },
+        {
+          _id: testTartgetCvs[1],
+          dockRemoved: true
+        }
+      ]
+      MongoDB.prototype.fetchContextVersions.yieldsAsync(null, cvs)
+      return pingCanary(mock.job).then(() => {
+        const ips = testTartgetIps[0]
         const cmd = [
           'bash',
           '-c',
@@ -238,6 +318,13 @@ describe('Network Ping Canary', () => {
     beforeEach(() => {
       Swarm.prototype.checkHostExists.resolves()
       Docker.prototype.pull.resolves()
+    })
+
+    it('should TaskFatal on db error', () => {
+      MongoDB.prototype.fetchContextVersions.yieldsAsync(new Error('Mongo error'))
+      return pingCanary(mock.job).then(() => {
+        sinon.assert.calledOnce(CanaryBase.prototype.handleGenericError)
+      })
     })
 
     it('should fail canary on error', () => {
