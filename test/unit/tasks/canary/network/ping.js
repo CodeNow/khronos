@@ -27,12 +27,16 @@ const pingCanary = require('tasks/canary/network/ping')
 describe('Network Ping Canary', () => {
   const testTartgetIps = ['10.0.0.1', '10.0.0.2']
   const testTartgetCvs = ['5694d7935fa8721e00d5617e', '569be29c85890c1e00d7386a']
+  const testTartgetHosts = ['10.8.0.124', '10.8.0.125']
+    const testTartgetContainers = ['bdd93ce23cce657a0066b442db5536e96137cca8715259e0c838ae83c8e03f66', '46554b8c8deae776929f4cd34d5c4256628d4f0bc0499b2a54f18d84cc719c7c']
   const mock = {
     job: {
       targetDockerUrl: 'http://1.2.3.4:4242',
       targetIps: testTartgetIps,
       targetOrg: 123123,
-      targetCvs: testTartgetCvs
+      targetCvs: testTartgetCvs,
+      targetHosts: testTartgetHosts,
+      targetContainers: testTartgetContainers,
     },
     runData: {
       StatusCode: 0
