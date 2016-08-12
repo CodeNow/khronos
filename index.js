@@ -38,11 +38,11 @@ var queues = {
   'khronos:weave:prune': require('tasks/weave/prune'),
   'khronos:weave:prune-dock': require('tasks/weave/prune-dock')
 }
-var publsihedEvents = [
+var publishedEvents = [
   'instance.container.health-check.failed'
 ]
 
-var hermes = rabbitmq(Object.keys(queues), subscribedEvents)
+var hermes = rabbitmq(Object.keys(queues), subscribedEvents, publishedEvents)
 var server = new ponos.Server({
   hermes: hermes,
   log: log.child({ module: 'ponos' })
