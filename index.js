@@ -2,14 +2,14 @@
 
 require('loadenv')({ debugName: 'khronos:test' })
 
-var log = require('logger')
-var ponos = require('ponos')
-var rabbitmq = require('models/rabbitmq')
+const log = require('logger')
+const ponos = require('ponos')
+const rabbitmq = require('models/rabbitmq')
 
-var subscribedEvents = [
+const subscribedEvents = [
   'context-version.deleted'
 ]
-var queues = {
+const queues = {
   'khronos:canary:build': require('tasks/canary/build'),
   'khronos:canary:failover': require('tasks/canary/failover'),
   'khronos:canary:github-branch': require('tasks/canary/github-branch'),
@@ -38,12 +38,12 @@ var queues = {
   'khronos:weave:prune': require('tasks/weave/prune'),
   'khronos:weave:prune-dock': require('tasks/weave/prune-dock')
 }
-var publishedEvents = [
+const publishedEvents = [
   'instance.container.health-check.failed'
 ]
 
-var hermes = rabbitmq(Object.keys(queues), subscribedEvents, publishedEvents)
-var server = new ponos.Server({
+const hermes = rabbitmq(Object.keys(queues), subscribedEvents, publishedEvents)
+const server = new ponos.Server({
   hermes: hermes,
   log: log.child({ module: 'ponos' })
 })
