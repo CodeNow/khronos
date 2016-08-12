@@ -22,9 +22,10 @@ describe('RabbitMQ Factory', function () {
   })
 
   it('should have default arguments', function () {
-    var queues = ['queue:one']
-    var subscribedEvents = ['eventName']
-    var r = rabbitmqFactory(queues, subscribedEvents)
+    const queues = ['queue:one']
+    const subscribedEvents = ['eventName']
+    const publishedEvents = ['eventName1']
+    const r = rabbitmqFactory(queues, subscribedEvents)
     assert.instanceOf(r, Hermes, 'returned a Hermes client')
     assert.deepEqual(r.getQueues(), queues.concat(subscribedEvents))
     sinon.assert.calledOnce(rabbitmqFactory._createClient)
@@ -38,7 +39,8 @@ describe('RabbitMQ Factory', function () {
         password: 'guest',
         prefetch: process.env.KHRONOS_PREFETCH,
         queues: queues,
-        subscribedEvents: subscribedEvents
+        subscribedEvents: subscribedEvents,
+        publishedEvents: publishedEvents
       }
     )
   })
