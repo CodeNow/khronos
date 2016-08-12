@@ -393,5 +393,41 @@ describe('Network Ping Canary', () => {
         )
       })
     })
+
+    it('should publish health-check.failed if ERR in logs', () => {
+      Dockerode.prototype.run.restore()
+      sinon.stub(Dockerode.prototype, 'run', function (a, b, c, callback) {
+        return {
+          on: (name, cb) => {
+            assert.equal(name, 'stream')
+            cb({
+              on: function (name, cb) {
+                assert.equal(name, 'data')
+                const pingLog = testTartgetIps.map((ip) => {
+                  return ip + ': ERR: bad happened\n'
+                }).join('\n')
+                cb(pingLog)
+                callback(null, { StatusCode: 0 }, mock.container)
+              }
+            })
+          }
+        }
+      })
+      return pingCanary(mock.job).then(() => {
+        sinon.assert.callCount(Hermes.prototype.publish, 3)
+        sinon.assert.calledWith(Hermes.prototype.publish.getCall(1),
+          'instance.container.health-check.failed',
+          {
+            id: testTartgetContainers[0],
+            host: testTartgetHosts[0]
+          })
+        sinon.assert.calledWith(Hermes.prototype.publish.getCall(2),
+          'instance.container.health-check.failed',
+          {
+            id: testTartgetContainers[1],
+            host: testTartgetHosts[1]
+          })
+      })
+    })
   }) // end run failures
 })
