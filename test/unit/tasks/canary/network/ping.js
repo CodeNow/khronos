@@ -375,7 +375,10 @@ describe('Network Ping Canary', () => {
             cb({
               on: function (name, cb) {
                 assert.equal(name, 'data')
-                cb('10.0.0.0: ERR: bad happened')
+                const pingLog = testTartgetIps.map((ip) => {
+                  return ip + ': ERR: bad happened\n'
+                }).join('\n')
+                cb(pingLog)
                 callback(null, { StatusCode: 0 }, mock.container)
               }
             })
