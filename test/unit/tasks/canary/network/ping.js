@@ -49,6 +49,28 @@ describe('Network Ping Canary', () => {
     }
   }
 
+  describe('parseErroredIpsFromLog', () => {
+    it ('should parse 2 errored ips', () => {
+      const log = '10.0.0.5 : ERR: some error\n10.0.0.5 :OK:\n10.0.0.6 : ERR:'
+      const ips = pingCanary.parseErroredIpsFromLog(log)
+      assert.lengthOf(ips, 2)
+      assert.equal(ips[0], '10.0.0.5')
+      assert.equal(ips[1], '10.0.0.6')
+    })
+
+    it ('should return [] if no ips errored', () => {
+      const log = '10.0.0.5 :OK:\n10.0.0.6 :OK:'
+      const ips = pingCanary.parseErroredIpsFromLog(log)
+      assert.lengthOf(ips, 0)
+    })
+    
+    it ('should return [] if logs is empty', () => {
+      const log = ''
+      const ips = pingCanary.parseErroredIpsFromLog(log)
+      assert.lengthOf(ips, 0)
+    })
+  })
+
   before(function () {
     process.env.RUNNABLE_WAIT_FOR_WEAVE = 'wait;for;weave;'
     process.env.NETWORK_PING_IMAGE = 'runnable/hemingdal'
