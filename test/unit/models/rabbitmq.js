@@ -27,7 +27,7 @@ describe('RabbitMQ Factory', function () {
     const publishedEvents = ['eventName1']
     const r = rabbitmqFactory(queues, subscribedEvents, publishedEvents)
     assert.instanceOf(r, Hermes, 'returned a Hermes client')
-    assert.deepEqual(r.getQueues(), queues.concat(subscribedEvents))
+    assert.deepEqual(r.getQueues(), queues.concat(subscribedEvents).concat(publishedEvents))
     sinon.assert.calledOnce(rabbitmqFactory._createClient)
     sinon.assert.calledWithExactly(
       rabbitmqFactory._createClient,
