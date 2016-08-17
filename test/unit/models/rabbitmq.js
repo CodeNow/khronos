@@ -25,7 +25,7 @@ describe('RabbitMQ Factory', function () {
     const queues = ['queue:one']
     const subscribedEvents = ['eventName']
     const publishedEvents = ['eventName1']
-    const r = rabbitmqFactory(queues, subscribedEvents)
+    const r = rabbitmqFactory(queues, subscribedEvents, publishedEvents)
     assert.instanceOf(r, Hermes, 'returned a Hermes client')
     assert.deepEqual(r.getQueues(), queues.concat(subscribedEvents))
     sinon.assert.calledOnce(rabbitmqFactory._createClient)
