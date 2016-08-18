@@ -22,11 +22,12 @@ describe('RabbitMQ Factory', function () {
   })
 
   it('should have default arguments', function () {
-    var queues = ['queue:one']
-    var subscribedEvents = ['eventName']
-    var r = rabbitmqFactory(queues, subscribedEvents)
+    const queues = ['queue:one']
+    const subscribedEvents = ['eventName']
+    const publishedEvents = ['eventName1']
+    const r = rabbitmqFactory(queues, subscribedEvents, publishedEvents)
     assert.instanceOf(r, Hermes, 'returned a Hermes client')
-    assert.deepEqual(r.getQueues(), queues.concat(subscribedEvents))
+    assert.deepEqual(r.getQueues(), queues.concat(publishedEvents).concat(subscribedEvents))
     sinon.assert.calledOnce(rabbitmqFactory._createClient)
     sinon.assert.calledWithExactly(
       rabbitmqFactory._createClient,
@@ -38,13 +39,14 @@ describe('RabbitMQ Factory', function () {
         password: 'guest',
         prefetch: process.env.KHRONOS_PREFETCH,
         queues: queues,
-        subscribedEvents: subscribedEvents
+        subscribedEvents: subscribedEvents,
+        publishedEvents: publishedEvents
       }
     )
   })
 
   it('should respect environment variables', function () {
-    var envs = {
+    const envs = {
       HOSTNAME: 'foobar',
       PORT: 42,
       USERNAME: 'luke',
@@ -55,10 +57,11 @@ describe('RabbitMQ Factory', function () {
       process.env['RABBITMQ_' + k] = envs[k]
       envs[k] = oldVal
     })
-    var queues = ['queue:one']
-    var subscribedEvents = ['eventName']
-    var r = rabbitmqFactory(queues, subscribedEvents)
-    assert.deepEqual(r.getQueues(), queues.concat(subscribedEvents))
+    const queues = ['queue:one']
+    const subscribedEvents = ['eventName']
+    const publishedEvents = ['eventName1']
+    const r = rabbitmqFactory(queues, subscribedEvents, publishedEvents)
+    assert.deepEqual(r.getQueues(), queues.concat(publishedEvents).concat(subscribedEvents))
     sinon.assert.calledOnce(rabbitmqFactory._createClient)
     sinon.assert.calledWithExactly(
       rabbitmqFactory._createClient,
@@ -70,7 +73,8 @@ describe('RabbitMQ Factory', function () {
         password: 'skywalker',
         prefetch: process.env.KHRONOS_PREFETCH,
         queues: queues,
-        subscribedEvents: subscribedEvents
+        subscribedEvents: subscribedEvents,
+        publishedEvents: publishedEvents
       }
     )
     Object.keys(envs).forEach(function (k) {

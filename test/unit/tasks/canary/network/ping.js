@@ -27,12 +27,16 @@ const pingCanary = require('tasks/canary/network/ping')
 describe('Network Ping Canary', () => {
   const testTartgetIps = ['10.0.0.1', '10.0.0.2']
   const testTartgetCvs = ['5694d7935fa8721e00d5617e', '569be29c85890c1e00d7386a']
+  const testTartgetHosts = ['10.8.0.124', '10.8.0.125']
+  const testTartgetContainers = ['bdd93ce23cce657a0066b442db5536e96137cca8715259e0c838ae83c8e03f66', '46554b8c8deae776929f4cd34d5c4256628d4f0bc0499b2a54f18d84cc719c7c']
   const mock = {
     job: {
       targetDockerUrl: 'http://1.2.3.4:4242',
       targetIps: testTartgetIps,
       targetOrg: 123123,
-      targetCvs: testTartgetCvs
+      targetCvs: testTartgetCvs,
+      targetHosts: testTartgetHosts,
+      targetContainers: testTartgetContainers
     },
     runData: {
       StatusCode: 0
@@ -44,6 +48,28 @@ describe('Network Ping Canary', () => {
       id: 'some-container-id'
     }
   }
+
+  describe('parseErroredIpsFromLog', () => {
+    it('should parse 2 errored ips', () => {
+      const log = '10.0.0.5 : ERR: some error\n10.0.0.5 :OK:\n10.0.0.6 : ERR:'
+      const ips = pingCanary.parseErroredIpsFromLog(log)
+      assert.lengthOf(ips, 2)
+      assert.equal(ips[0], '10.0.0.5')
+      assert.equal(ips[1], '10.0.0.6')
+    })
+
+    it('should return [] if no ips errored', () => {
+      const log = '10.0.0.5 :OK:\n10.0.0.6 :OK:'
+      const ips = pingCanary.parseErroredIpsFromLog(log)
+      assert.lengthOf(ips, 0)
+    })
+
+    it('should return [] if logs is empty', () => {
+      const log = ''
+      const ips = pingCanary.parseErroredIpsFromLog(log)
+      assert.lengthOf(ips, 0)
+    })
+  })
 
   before(function () {
     process.env.RUNNABLE_WAIT_FOR_WEAVE = 'wait;for;weave;'
@@ -371,7 +397,10 @@ describe('Network Ping Canary', () => {
             cb({
               on: function (name, cb) {
                 assert.equal(name, 'data')
-                cb('10.0.0.0: ERR: bad happened')
+                const pingLog = testTartgetIps.map((ip) => {
+                  return ip + ': ERR: bad happened\n'
+                }).join('\n')
+                cb(pingLog)
                 callback(null, { StatusCode: 0 }, mock.container)
               }
             })
@@ -384,6 +413,42 @@ describe('Network Ping Canary', () => {
           CanaryBase.prototype.handleCanaryError.firstCall.args[0].message,
           /failed to ping a container/i
         )
+      })
+    })
+
+    it('should publish health-check.failed if ERR in logs', () => {
+      Dockerode.prototype.run.restore()
+      sinon.stub(Dockerode.prototype, 'run', function (a, b, c, callback) {
+        return {
+          on: (name, cb) => {
+            assert.equal(name, 'stream')
+            cb({
+              on: function (name, cb) {
+                assert.equal(name, 'data')
+                const pingLog = testTartgetIps.map((ip) => {
+                  return ip + ': ERR: bad happened\n'
+                }).join('\n')
+                cb(pingLog)
+                callback(null, { StatusCode: 0 }, mock.container)
+              }
+            })
+          }
+        }
+      })
+      return pingCanary(mock.job).then(() => {
+        sinon.assert.callCount(Hermes.prototype.publish, 3)
+        sinon.assert.calledWith(Hermes.prototype.publish.getCall(1),
+          'instance.container.health-check.failed',
+          {
+            id: testTartgetContainers[0],
+            host: testTartgetHosts[0]
+          })
+        sinon.assert.calledWith(Hermes.prototype.publish.getCall(2),
+          'instance.container.health-check.failed',
+          {
+            id: testTartgetContainers[1],
+            host: testTartgetHosts[1]
+          })
       })
     })
   }) // end run failures
