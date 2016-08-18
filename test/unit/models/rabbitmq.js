@@ -60,6 +60,7 @@ describe('RabbitMQ Factory', function () {
     const queues = ['queue:one']
     const subscribedEvents = ['eventName']
     const publishedEvents = ['eventName1']
+    const r = rabbitmqFactory(queues, subscribedEvents, publishedEvents)
     assert.deepEqual(r.getQueues(), queues.concat(publishedEvents).concat(subscribedEvents))
     sinon.assert.calledOnce(rabbitmqFactory._createClient)
     sinon.assert.calledWithExactly(
