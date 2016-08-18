@@ -28,7 +28,6 @@ const queues = {
   'khronos:context-versions:check-recent-usage': require('tasks/context-versions/check-recent-usage'),
   'khronos:context-versions:prune-expired': require('tasks/context-versions/prune-expired'),
   'khronos:context-versions:remove-and-protect-instances': require('tasks/context-versions/remove-and-protect-instances'),
-  'khronos:docks:obliterate-codenow': require('tasks/docks/obliterate-codenow'),
   'khronos:images:check-against-context-versions': require('tasks/images/check-against-context-versions'),
   'khronos:images:prune': require('tasks/images/prune'),
   'khronos:images:prune-dock': require('tasks/images/prune-dock'),
