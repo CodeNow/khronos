@@ -6,7 +6,7 @@ require('loadenv')({ debugName: 'khronos:test' })
 const chai = require('chai')
 const Hermes = require('runnable-hermes')
 const sinon = require('sinon')
-const TaskFatalError = require('ponos').TaskFatalError
+const WorkerStopError = require('error-cat/errors/worker-stop-error')
 
 // internal
 const Docker = require('models/docker')
@@ -46,7 +46,7 @@ describe('Enqueue Container Jobs Helper', function () {
     it('should enforce being passed one object argument', function () {
       return assert.isRejected(
         enqueueContainerJobsHelper(),
-        TaskFatalError,
+        WorkerStopError,
         /options must be an object/
       )
     })
@@ -55,7 +55,7 @@ describe('Enqueue Container Jobs Helper', function () {
       options.job = undefined
       return assert.isRejected(
         enqueueContainerJobsHelper(options),
-        TaskFatalError,
+        WorkerStopError,
         /job.+object/
       )
     })
@@ -64,7 +64,7 @@ describe('Enqueue Container Jobs Helper', function () {
       options.job = ''
       return assert.isRejected(
         enqueueContainerJobsHelper(options),
-        TaskFatalError,
+        WorkerStopError,
         /job.+object/
       )
     })
@@ -73,7 +73,7 @@ describe('Enqueue Container Jobs Helper', function () {
       options.targetQueue = undefined
       return assert.isRejected(
         enqueueContainerJobsHelper(options),
-        TaskFatalError,
+        WorkerStopError,
         /targetQueue.+string/
       )
     })
@@ -82,7 +82,7 @@ describe('Enqueue Container Jobs Helper', function () {
       options.imageBlacklist = undefined
       return assert.isRejected(
         enqueueContainerJobsHelper(options),
-        TaskFatalError,
+        WorkerStopError,
         /imageFilters.+array/
       )
     })
@@ -91,7 +91,7 @@ describe('Enqueue Container Jobs Helper', function () {
       options.imageBlacklist = {}
       return assert.isRejected(
         enqueueContainerJobsHelper(options),
-        TaskFatalError,
+        WorkerStopError,
         /imageFilters.+array/
       )
     })

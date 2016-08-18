@@ -10,7 +10,7 @@ chai.use(require('chai-as-promised'))
 var Hermes = require('runnable-hermes')
 var Promise = require('bluebird')
 var sinon = require('sinon')
-var TaskFatalError = require('ponos').TaskFatalError
+const WorkerStopError = require('error-cat/errors/worker-stop-error')
 
 // internal (being tested)
 var rabbitmqHelper = require('tasks/utils/rabbitmq')
@@ -41,7 +41,7 @@ describe('RabbitMQ Helper', function () {
       Promise.using(rabbitmqPromise, function () {
         throw new Error('task should have thrown an error')
       }),
-      TaskFatalError,
+      WorkerStopError,
       /string.+array/
     )
   })
@@ -52,7 +52,7 @@ describe('RabbitMQ Helper', function () {
       Promise.using(rabbitmqPromise, function () {
         throw new Error('task should have thrown an error')
       }),
-      TaskFatalError,
+      WorkerStopError,
       /string.+array/
     )
   })

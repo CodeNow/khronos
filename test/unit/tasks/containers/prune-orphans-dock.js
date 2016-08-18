@@ -7,7 +7,7 @@ const Bunyan = require('bunyan')
 const chai = require('chai')
 const rabbitmq = require('runnable-hermes')
 const sinon = require('sinon')
-const TaskFatalError = require('ponos').TaskFatalError
+const WorkerStopError = require('error-cat/errors/worker-stop-error')
 
 // internal
 const Docker = require('models/docker')
@@ -44,7 +44,7 @@ describe('Prune Orphans Dock Task', function () {
       it('throws an error when missing dockerHost', function () {
         return assert.isRejected(
           enqueueContainerVerificationTask({}),
-          TaskFatalError,
+          WorkerStopError,
           /dockerHost.+required/
         )
       })

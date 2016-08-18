@@ -8,7 +8,7 @@ var assert = chai.assert
 // external
 var Hermes = require('runnable-hermes')
 var sinon = require('sinon')
-var TaskFatalError = require('ponos').TaskFatalError
+const WorkerStopError = require('error-cat/errors/worker-stop-error')
 
 // internal (being tested)
 var rabbitmqFactory = require('models/rabbitmq')
@@ -85,7 +85,7 @@ describe('RabbitMQ Factory', function () {
   it('should throw without queues', function () {
     assert.throws(
       function () { rabbitmqFactory() },
-      TaskFatalError,
+      WorkerStopError,
       /string.+array/
     )
   })
@@ -93,7 +93,7 @@ describe('RabbitMQ Factory', function () {
   it('should throw with invalid queues', function () {
     assert.throws(
       function () { rabbitmqFactory([2]) },
-      TaskFatalError,
+      WorkerStopError,
       /string.+array/
     )
   })

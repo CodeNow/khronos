@@ -8,7 +8,7 @@ chai.use(require('chai-as-promised'))
 
 // external
 var sinon = require('sinon')
-var TaskFatalError = require('ponos').TaskFatalError
+const WorkerStopError = require('error-cat/errors/worker-stop-error')
 
 // internal
 var MongoDB = require('models/mongodb')
@@ -48,7 +48,7 @@ describe('context versions remove and protect instances', function () {
         delete sampleJob.contextVersionId
         return assert.isRejected(
           contextVersionRemoveAndProtectInstance(sampleJob),
-          TaskFatalError,
+          WorkerStopError,
           /contextVersionId.+required/
         )
       })
@@ -81,7 +81,7 @@ describe('context versions remove and protect instances', function () {
       MongoDB.prototype.fetchContextVersions.yieldsAsync(null, [])
       return assert.isRejected(
         contextVersionRemoveAndProtectInstance(sampleJob),
-        TaskFatalError,
+        WorkerStopError,
         /could not find context version/i
       )
     })

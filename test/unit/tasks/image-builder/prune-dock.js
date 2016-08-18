@@ -7,7 +7,7 @@ const Bunyan = require('bunyan')
 const chai = require('chai')
 const rabbitmq = require('runnable-hermes')
 const sinon = require('sinon')
-const TaskFatalError = require('ponos').TaskFatalError
+const WorkerStopError = require('error-cat/errors/worker-stop-error')
 
 // internal
 const Docker = require('models/docker')
@@ -43,7 +43,7 @@ describe('image-builder prune dock task', function () {
       it('throws an error when missing dockerHost', function () {
         return assert.isRejected(
           imageBuilderPruneDock({}),
-          TaskFatalError,
+          WorkerStopError,
           /dockerHost.+required/
         )
       })

@@ -10,7 +10,7 @@ chai.use(require('chai-as-promised'))
 var Bunyan = require('bunyan')
 var Hermes = require('runnable-hermes')
 var sinon = require('sinon')
-var TaskFatalError = require('ponos').TaskFatalError
+const WorkerStopError = require('error-cat/errors/worker-stop-error')
 
 // internal
 var MongoDB = require('models/mongodb')
@@ -48,7 +48,7 @@ describe('Check Container Against Mongo Task', function () {
       var job = { dockerHost: 'http://example.com' }
       return assert.isRejected(
         verifyContainer(job),
-        TaskFatalError,
+        WorkerStopError,
         /containerId.+required/
       )
     })
@@ -57,7 +57,7 @@ describe('Check Container Against Mongo Task', function () {
       var job = { containerId: 'deadbeef' }
       return assert.isRejected(
         verifyContainer(job),
-        TaskFatalError,
+        WorkerStopError,
         /dockerHost.+required/
       )
     })

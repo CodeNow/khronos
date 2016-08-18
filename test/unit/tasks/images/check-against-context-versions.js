@@ -9,7 +9,7 @@ chai.use(require('chai-as-promised'))
 // external
 var Hermes = require('runnable-hermes')
 var sinon = require('sinon')
-var TaskFatalError = require('ponos').TaskFatalError
+const WorkerStopError = require('error-cat/errors/worker-stop-error')
 
 // internal
 var MongoDB = require('models/mongodb')
@@ -46,7 +46,7 @@ describe('Image Check Against Context Version', function () {
     it('should throw an error on missing imageId', function () {
       return assert.isRejected(
         checkImageAgainstContextVersions({ dockerHost: 'http://example.com' }),
-        TaskFatalError,
+        WorkerStopError,
         /imageId.+required/
       )
     })
@@ -54,7 +54,7 @@ describe('Image Check Against Context Version', function () {
     it('should throw an error on missing dockerHost', function () {
       return assert.isRejected(
         checkImageAgainstContextVersions({ imageId: 'deadbeef' }),
-        TaskFatalError,
+        WorkerStopError,
         /dockerHost.+required/
       )
     })
@@ -66,7 +66,7 @@ describe('Image Check Against Context Version', function () {
           dockerHost: 'http://example.com',
           imageId: '/100/bar:507c7f79bcf86cd7994f6c0e'
         }),
-        TaskFatalError,
+        WorkerStopError,
         /imageId.+scheme/
       )
         .then(function () {

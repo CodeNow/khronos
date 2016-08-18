@@ -118,13 +118,13 @@ describe('Network Ping Canary', () => {
   })
 
   describe('invalid job', () => {
-    it('should throw TaskFatalError', () => {
+    it('should throw WorkerStopError', () => {
       return pingCanary({}).then(() => {
         sinon.assert.calledOnce(CanaryBase.prototype.handleGenericError)
       })
     })
 
-    it('should throw TaskFatalError if url missing http', () => {
+    it('should throw WorkerStopError if url missing http', () => {
       return pingCanary({
         targetDockerUrl: '10.0.0.1:4242',
         targetIps: ['10.0.0.1'],
@@ -134,7 +134,7 @@ describe('Network Ping Canary', () => {
       })
     })
 
-    it('should throw TaskFatalError if url empty string', () => {
+    it('should throw WorkerStopError if url empty string', () => {
       return pingCanary({
         targetDockerUrl: '',
         targetIps: ['10.0.0.1'],
@@ -144,7 +144,7 @@ describe('Network Ping Canary', () => {
       })
     })
 
-    it('should throw TaskFatalError if ips are not strings', () => {
+    it('should throw WorkerStopError if ips are not strings', () => {
       return pingCanary({
         targetDockerUrl: 'http://10.0.0.1:4242',
         targetIps: [1, 2],
@@ -154,7 +154,7 @@ describe('Network Ping Canary', () => {
       })
     })
 
-    it('should throw TaskFatalError if ips are invalid', () => {
+    it('should throw WorkerStopError if ips are invalid', () => {
       return pingCanary({
         targetDockerUrl: 'http://10.0.0.1:4242',
         targetIps: ['a', 'b'],
@@ -164,7 +164,7 @@ describe('Network Ping Canary', () => {
       })
     })
 
-    it('should throw TaskFatalError if ips are not all strings', () => {
+    it('should throw WorkerStopError if ips are not all strings', () => {
       return pingCanary({
         targetDockerUrl: 'http://10.0.0.1:4242',
         targetIps: ['10.0.0.1', [1]],
@@ -174,7 +174,7 @@ describe('Network Ping Canary', () => {
       })
     })
 
-    it('should throw TaskFatalError if org is not a number', () => {
+    it('should throw WorkerStopError if org is not a number', () => {
       return pingCanary({
         targetDockerUrl: 'http://10.0.0.1:4242',
         targetIps: ['10.0.0.1'],
@@ -184,7 +184,7 @@ describe('Network Ping Canary', () => {
       })
     })
 
-    it('should throw TaskFatalError if cvs are not provided', () => {
+    it('should throw WorkerStopError if cvs are not provided', () => {
       return pingCanary({
         targetDockerUrl: 'http://10.0.0.1:4242',
         targetIps: ['10.0.0.1'],
@@ -194,7 +194,7 @@ describe('Network Ping Canary', () => {
       })
     })
 
-    it('should throw TaskFatalError if cvs are not strings', () => {
+    it('should throw WorkerStopError if cvs are not strings', () => {
       return pingCanary({
         targetDockerUrl: 'http://10.0.0.1:4242',
         targetIps: ['10.0.0.1'],

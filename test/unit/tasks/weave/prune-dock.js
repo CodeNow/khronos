@@ -7,7 +7,7 @@ var Bunyan = require('bunyan')
 var chai = require('chai')
 var rabbitmq = require('runnable-hermes')
 var sinon = require('sinon')
-var TaskFatalError = require('ponos').TaskFatalError
+const WorkerStopError = require('error-cat/errors/worker-stop-error')
 
 // internal
 var Docker = require('models/docker')
@@ -43,7 +43,7 @@ describe('Delete Weave Container Dock Task', function () {
       it('throws an error when missing dockerHost', function () {
         return assert.isRejected(
           weavePruneDock({}),
-          TaskFatalError,
+          WorkerStopError,
           /dockerHost.+required/
         )
       })

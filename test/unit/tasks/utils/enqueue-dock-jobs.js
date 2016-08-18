@@ -6,7 +6,7 @@ require('loadenv')({ debugName: 'khronos:test' })
 const chai = require('chai')
 const Hermes = require('runnable-hermes')
 const sinon = require('sinon')
-const TaskFatalError = require('ponos').TaskFatalError
+const WorkerStopError = require('error-cat/errors/worker-stop-error')
 
 // internal
 const Swarm = require('models/swarm')
@@ -33,14 +33,14 @@ describe('Enqueue Dock Jobs Helper', function () {
   it('should enforce a target queue', function () {
     return assert.isRejected(
       enqueueDockJobsHelper(),
-      TaskFatalError
+      WorkerStopError
     )
   })
 
   it('should enforce a string target queue', function () {
     return assert.isRejected(
       enqueueDockJobsHelper(4),
-      TaskFatalError
+      WorkerStopError
     )
   })
 

@@ -10,7 +10,7 @@ chai.use(require('chai-as-promised'))
 const ObjectID = require('mongodb').ObjectID
 const rabbitmq = require('runnable-hermes')
 const sinon = require('sinon')
-const TaskFatalError = require('ponos').TaskFatalError
+const WorkerStopError = require('error-cat/errors/worker-stop-error')
 
 // internal
 const MongoDB = require('models/mongodb')
@@ -51,7 +51,7 @@ describe('context versions check recent usage task', function () {
         delete sampleJob.contextVersionId
         return assert.isRejected(
           contextVersionsCheckRecentUsage(sampleJob),
-          TaskFatalError,
+          WorkerStopError,
           /contextVersionId.+required/
         )
       })
@@ -60,7 +60,7 @@ describe('context versions check recent usage task', function () {
         delete sampleJob.twoWeeksAgo
         return assert.isRejected(
           contextVersionsCheckRecentUsage(sampleJob),
-          TaskFatalError,
+          WorkerStopError,
           /twoWeeksAgo.+required/
         )
       })

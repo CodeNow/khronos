@@ -9,7 +9,7 @@ chai.use(require('chai-as-promised'))
 // external
 var rabbitmq = require('runnable-hermes')
 var sinon = require('sinon')
-var TaskFatalError = require('ponos').TaskFatalError
+const WorkerStopError = require('error-cat/errors/worker-stop-error')
 
 // internal (being tested)
 var ContextVersionDeleted = require('tasks/context-versions/deleted')
@@ -49,7 +49,7 @@ describe('context-version.deleted', function () {
         sampleJob.something = true
         return assert.isRejected(
           ContextVersionDeleted(sampleJob),
-          TaskFatalError,
+          WorkerStopError,
           /something.+not.+allowed/
         )
       })
@@ -58,7 +58,7 @@ describe('context-version.deleted', function () {
         delete sampleJob.contextVersion.build.dockerContainer
         return assert.isRejected(
           ContextVersionDeleted(sampleJob),
-          TaskFatalError,
+          WorkerStopError,
           /contextVersionId.+required/
         )
       })
@@ -67,7 +67,7 @@ describe('context-version.deleted', function () {
         delete sampleJob.contextVersion.dockerHost
         return assert.isRejected(
           ContextVersionDeleted(sampleJob),
-          TaskFatalError,
+          WorkerStopError,
           /dockerHost.+required/
         )
       })
