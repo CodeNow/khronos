@@ -25,9 +25,9 @@ describe('Delete Weave Container Dock Task', function () {
     sinon.stub(Bunyan.prototype, 'error').returns()
     sinon.stub(Docker.prototype, 'getContainers').resolves([])
     sinon.stub(Swarm.prototype, 'checkHostExists').returns(true)
-    sinon.stub(rabbitmq.prototype, 'close').yieldsAsync()
-    sinon.stub(rabbitmq.prototype, 'connect').yieldsAsync()
-    sinon.stub(rabbitmq.prototype, 'publish').returns()
+    sinon.stub(rabbitmq, 'connect').yieldsAsync()
+    sinon.stub(rabbitmq, 'disconnect').yieldsAsync()
+    sinon.stub(rabbitmq, 'publishTask').returns()
   })
   afterEach(function () {
     Bunyan.prototype.error.restore()

@@ -6,10 +6,11 @@ const log = require('logger')
 const ponos = require('ponos')
 const rabbitmq = require('models/rabbitmq')
 
-const subscribedEvents = [
+const events = [
   'context-version.deleted'
 ]
-const queues = {
+
+const tasks = {
   'khronos:canary:build': require('tasks/canary/build'),
   'khronos:canary:failover': require('tasks/canary/failover'),
   'khronos:canary:github-branch': require('tasks/canary/github-branch'),
@@ -37,21 +38,25 @@ const queues = {
   'khronos:weave:prune': require('tasks/weave/prune'),
   'khronos:weave:prune-dock': require('tasks/weave/prune-dock')
 }
-const publishedEvents = [
-  'instance.container.health-check.failed'
-]
 
-const hermes = rabbitmq(Object.keys(queues), subscribedEvents, publishedEvents)
 const server = new ponos.Server({
-  hermes: hermes,
-  log: log.child({ module: 'ponos' })
+  log: log.child({ module: 'ponos' }),
+  tasks: tasks,
+  events: events,
+  channel: {
+	   prefetch: process.env.KHRONOS_PREFETCH || 3
+  }
 })
 
 server.setAllTasks(queues)
 log.info('Server start')
-server.start()
-  .then(function () { log.info('Worker Server has started') })
-  .catch(function (err) {
-    log.fatal({ err: err }, 'Error starting Server')
-    throw err
+rabbitmq.connect()
+  .tap(function () { log.info('RabbitMQ Client connected') })
+  .then(() => {
+    server.start()
+      .tap(function () { log.info('Worker Server has started') })
+      .catch(function (err) {
+        log.fatal({ err: err }, 'Error starting Server')
+        throw err
+      })
   })
