@@ -8,7 +8,7 @@ const chai = require('chai')
 const Container = require('dockerode/lib/container')
 const Docker = require('dockerode')
 const dockerMock = require('docker-mock')
-const rabbitMQ = require('models/rabbitmq')
+const rabbitmq = require('models/rabbitmq')
 const nock = require('nock')
 const ponos = require('ponos')
 const sinon = require('sinon')
@@ -61,10 +61,10 @@ describe('Prune Exited Weave Containers', function () {
       log: require('logger').child({ module: 'ponos' }),
       tasks: tasks
     })
-    return assert.isFulfilled(Promise.all([rabbitMQ.connect(), workerServer.start()]))
+    return assert.isFulfilled(Promise.all([rabbitmq.connect(), workerServer.start()]))
   })
   afterEach(function () {
-    return assert.isFulfilled(Promise.all([rabbitMQ.disconnect(), workerServer.stop()]))
+    return assert.isFulfilled(Promise.all([rabbitmq.disconnect(), workerServer.stop()]))
   })
   afterEach(function (done) {
     Container.prototype.remove.restore()
@@ -81,7 +81,7 @@ describe('Prune Exited Weave Containers', function () {
 
   describe('unpopulated dock', function () {
     it('should run successfully', function (done) {
-      rabbitMQ.publishTask('khronos:weave:prune', {})
+      rabbitmq.publishTask('khronos:weave:prune', {})
       async.doUntil(
         function (cb) { setTimeout(cb, 100) },
         function () {
@@ -99,7 +99,7 @@ describe('Prune Exited Weave Containers', function () {
     beforeEach(dockerFactory.createRandomContainers.bind(null, docker, 5))
 
     it('should run successfully with no weave containers', function (done) {
-      rabbitMQ.publishTask('khronos:weave:prune', {})
+      rabbitmq.publishTask('khronos:weave:prune', {})
       async.doUntil(
         function (cb) { setTimeout(cb, 100) },
         function () {
@@ -139,7 +139,7 @@ describe('Prune Exited Weave Containers', function () {
           ])
       })
       it('should run successfully', function (done) {
-        rabbitMQ.publishTask('khronos:weave:prune', {})
+        rabbitmq.publishTask('khronos:weave:prune', {})
         async.doUntil(
           function (cb) { setTimeout(cb, 100) },
           function () {
@@ -163,7 +163,7 @@ describe('Prune Exited Weave Containers', function () {
       beforeEach(dockerFactory.createWeaveContainers.bind(null, docker, 2))
 
       it('should only remove dead weave containers', function (done) {
-        rabbitMQ.publishTask('khronos:weave:prune', {})
+        rabbitmq.publishTask('khronos:weave:prune', {})
         async.doUntil(
           function (cb) { setTimeout(cb, 100) },
           function () { return Container.prototype.remove.callCount === 2 },

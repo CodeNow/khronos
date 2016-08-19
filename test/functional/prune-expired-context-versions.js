@@ -40,10 +40,10 @@ describe('Prune Expired Context Versions', function () {
       tasks: tasks
     }
     workerServer = new ponos.Server(opts)
-    return assert.isFulfilled(workerServer.start())
+    return assert.isFulfilled(Promise.all([rabbitmq.connect(), workerServer.start()]))
   })
   afterEach(function () {
-    return assert.isFulfilled(workerServer.stop())
+    return assert.isFulfilled(Promise.all([rabbitmq.disconnect(), workerServer.stop()]))
   })
   afterEach(function () {
     tasks['khronos:context-versions:prune-expired'].restore()

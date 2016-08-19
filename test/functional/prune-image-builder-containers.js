@@ -9,7 +9,7 @@ const async = require('async')
 const Container = require('dockerode/lib/container')
 const Docker = require('dockerode')
 const dockerMock = require('docker-mock')
-const Hermes = require('runnable-hermes')
+const rabbitmq = require('models/rabbitmq')
 const ponos = require('ponos')
 const sinon = require('sinon')
 const swarmInfoMock = require('swarmerode/test/fixtures/swarm-info')
@@ -33,14 +33,6 @@ describe('Prune Exited Image-Builder Containers', function () {
     'khronos:containers:image-builder:prune': require('../../lib/tasks/image-builder/prune'),
     'khronos:containers:image-builder:prune-dock': require('../../lib/tasks/image-builder/prune-dock')
   }
-  var hermes = new Hermes({
-    name: 'khronos',
-    hostname: process.env.RABBITMQ_HOSTNAME,
-    port: process.env.RABBITMQ_PORT,
-    username: process.env.RABBITMQ_USERNAME || 'guest',
-    password: process.env.RABBITMQ_PASSWORD || 'guest',
-    queues: Object.keys(tasks)
-  })
   var dockerMockServer
   var workerServer
 
@@ -66,12 +58,19 @@ describe('Prune Exited Image-Builder Containers', function () {
     sinon.spy(Container.prototype, 'remove')
     sinon.spy(tasks, 'khronos:containers:image-builder:prune-dock')
     sinon.spy(tasks, 'khronos:containers:delete')
-    workerServer = new ponos.Server({ hermes: hermes })
-    workerServer.setAllTasks(tasks)
-    return assert.isFulfilled(workerServer.start())
+    const opts = {
+      name: 'khronos',
+      hostname: process.env.RABBITMQ_HOSTNAME,
+      port: process.env.RABBITMQ_PORT,
+      username: process.env.RABBITMQ_USERNAME || 'guest',
+      password: process.env.RABBITMQ_PASSWORD || 'guest',
+      tasks: tasks
+    }
+    workerServer = new ponos.Server(opts)
+    return assert.isFulfilled(Promise.all([rabbitmq.connect(), workerServer.start()]))
   })
   afterEach(function () {
-    return assert.isFulfilled(workerServer.stop())
+    return assert.isFulfilled(Promise.all([rabbitmq.disconnect(), workerServer.stop()]))
   })
   afterEach(function (done) {
     Container.prototype.remove.restore()
@@ -95,7 +94,7 @@ describe('Prune Exited Image-Builder Containers', function () {
 
   describe('unpopulated dock', function () {
     it('should run successfully', function (done) {
-      workerServer.hermes.publish('khronos:containers:image-builder:prune', {})
+      rabbitmq.publishTask('khronos:containers:image-builder:prune', {})
       async.until(
         function () {
           var pruneDockTaskCallCount =
@@ -117,7 +116,7 @@ describe('Prune Exited Image-Builder Containers', function () {
     })
 
     it('should run with no iamge-builder containers', function (done) {
-      workerServer.hermes.publish('khronos:containers:image-builder:prune', {})
+      rabbitmq.publishTask('khronos:containers:image-builder:prune', {})
       async.doUntil(
         function (cb) { setTimeout(cb, 100) },
         function () {
@@ -160,7 +159,7 @@ describe('Prune Exited Image-Builder Containers', function () {
           ])
       })
       it('should run successfully', function (done) {
-        workerServer.hermes.publish('khronos:containers:image-builder:prune', {})
+        rabbitmq.publishTask('khronos:containers:image-builder:prune', {})
         async.doUntil(
           function (cb) { setTimeout(cb, 100) },
           function () {
@@ -219,7 +218,7 @@ describe('Prune Exited Image-Builder Containers', function () {
       })
 
       it('should only remove dead image-builder containers', function (done) {
-        workerServer.hermes.publish(
+        rabbitmq.publishTask(
           'khronos:containers:image-builder:prune',
           {})
         async.doUntil(
