@@ -433,7 +433,7 @@ describe('Network Ping Canary', () => {
         }
       })
       return pingCanary(mock.job).then(() => {
-        sinon.assert.calledTwice(rabbitmq.publishEvent, 2)
+        sinon.assert.calledTwice(rabbitmq.publishEvent)
         sinon.assert.calledWith(rabbitmq.publishEvent.getCall(0),
           'instance.container.health-check.failed',
           {
