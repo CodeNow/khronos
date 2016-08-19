@@ -2,15 +2,17 @@
 
 require('loadenv')({ debugName: 'khronos:test' })
 
+const Promise = require('bluebird')
 var chai = require('chai')
 var assert = chai.assert
 chai.use(require('chai-as-promised'))
 
 // external
 var Bunyan = require('bunyan')
-var Hermes = require('runnable-hermes')
+var rabbitmq = require('models/rabbitmq')
 var sinon = require('sinon')
-var TaskFatalError = require('ponos').TaskFatalError
+require('sinon-as-promised')(Promise)
+const WorkerStopError = require('error-cat/errors/worker-stop-error')
 
 // internal
 var MongoDB = require('models/mongodb')
@@ -26,18 +28,14 @@ describe('Check Container Against Mongo Task', function () {
 
   beforeEach(function () {
     sinon.stub(Bunyan.prototype, 'error').returns()
-    sinon.stub(Hermes.prototype, 'close').yieldsAsync()
-    sinon.stub(Hermes.prototype, 'connect').yieldsAsync()
-    sinon.stub(Hermes.prototype, 'publish').returns()
+    sinon.stub(rabbitmq, 'publishTask').resolves()
     sinon.stub(MongoDB.prototype, 'close').yieldsAsync()
     sinon.stub(MongoDB.prototype, 'connect').yieldsAsync()
     sinon.stub(MongoDB.prototype, 'fetchInstances').yieldsAsync()
   })
   afterEach(function () {
     Bunyan.prototype.error.restore()
-    Hermes.prototype.close.restore()
-    Hermes.prototype.connect.restore()
-    Hermes.prototype.publish.restore()
+    rabbitmq.publishTask.restore()
     MongoDB.prototype.close.restore()
     MongoDB.prototype.connect.restore()
     MongoDB.prototype.fetchInstances.restore()
@@ -48,7 +46,7 @@ describe('Check Container Against Mongo Task', function () {
       var job = { dockerHost: 'http://example.com' }
       return assert.isRejected(
         verifyContainer(job),
-        TaskFatalError,
+        WorkerStopError,
         /containerId.+required/
       )
     })
@@ -57,7 +55,7 @@ describe('Check Container Against Mongo Task', function () {
       var job = { containerId: 'deadbeef' }
       return assert.isRejected(
         verifyContainer(job),
-        TaskFatalError,
+        WorkerStopError,
         /dockerHost.+required/
       )
     })
@@ -75,24 +73,7 @@ describe('Check Container Against Mongo Task', function () {
         'foobar'
       )
         .then(function () {
-          sinon.assert.notCalled(Hermes.prototype.publish)
-        })
-    })
-  })
-
-  describe('Rabbitmq Error', function () {
-    beforeEach(function () {
-      Hermes.prototype.connect.yieldsAsync(new Error('foobar'))
-    })
-
-    it('should thrown the error', function () {
-      return assert.isRejected(
-        verifyContainer(testJob),
-        Error,
-        'foobar'
-      )
-        .then(function () {
-          sinon.assert.notCalled(Hermes.prototype.publish)
+          sinon.assert.notCalled(rabbitmq.publishTask)
         })
     })
   })
@@ -101,7 +82,7 @@ describe('Check Container Against Mongo Task', function () {
     MongoDB.prototype.fetchInstances.yieldsAsync(null, [{ _id: 7 }])
     return assert.isFulfilled(verifyContainer(testJob))
       .then(function (result) {
-        sinon.assert.notCalled(Hermes.prototype.publish)
+        sinon.assert.notCalled(rabbitmq.publishTask)
         assert.deepEqual(result, {
           dockerHost: 'http://example.com',
           containerId: 4,
@@ -115,9 +96,9 @@ describe('Check Container Against Mongo Task', function () {
     MongoDB.prototype.fetchInstances.yieldsAsync(null, [])
     return assert.isFulfilled(verifyContainer(testJob))
       .then(function (result) {
-        sinon.assert.calledOnce(Hermes.prototype.publish)
+        sinon.assert.calledOnce(rabbitmq.publishTask)
         sinon.assert.calledWithExactly(
-          Hermes.prototype.publish,
+          rabbitmq.publishTask,
           'khronos:containers:remove',
           testJob
         )

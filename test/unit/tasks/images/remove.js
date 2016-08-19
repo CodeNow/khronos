@@ -6,7 +6,7 @@ require('loadenv')({ debugName: 'khronos:test' })
 const chai = require('chai')
 const Promise = require('bluebird')
 const sinon = require('sinon')
-const TaskFatalError = require('ponos').TaskFatalError
+const WorkerStopError = require('error-cat/errors/worker-stop-error')
 
 // internal
 const Docker = require('models/docker')
@@ -38,14 +38,14 @@ describe('Remove Image Task', function () {
     it('should throw an error on missing imageId', function () {
       return assert.isRejected(
         removeImage({ dockerHost: 'http://example.com' }),
-        TaskFatalError,
+        WorkerStopError,
         /imageId.+required/
       )
     })
     it('should throw an error on missing dockerHost', function () {
       return assert.isRejected(
         removeImage({ imageId: 'deadbeef' }),
-        TaskFatalError,
+        WorkerStopError,
         /dockerHost.+required/
       )
     })
@@ -81,24 +81,24 @@ describe('Remove Image Task', function () {
         )
       })
 
-      it('should throw TaskFatalError if image is in use', function () {
+      it('should throw WorkerStopError if image is in use', function () {
         var error = new Error('foobar')
         error.statusCode = 409
         Docker.prototype.removeImage.rejects(error)
         return assert.isRejected(
           removeImage(testJob),
-          TaskFatalError,
+          WorkerStopError,
           /409 conflict/i
         )
       })
 
-      it('should throw TaskFatalError if image not found', function () {
+      it('should throw WorkerStopError if image not found', function () {
         var error = new Error('foobar')
         error.statusCode = 404
         Docker.prototype.removeImage.rejects(error)
         return assert.isRejected(
           removeImage(testJob),
-          TaskFatalError,
+          WorkerStopError,
           /404 not found/i
         )
       })

@@ -9,7 +9,7 @@ chai.use(require('chai-as-promised'))
 // external
 var noop = require('101/noop')
 var sinon = require('sinon')
-var TaskFatalError = require('ponos').TaskFatalError
+const WorkerStopError = require('error-cat/errors/worker-stop-error')
 
 // internal
 var api = require('models/api')
@@ -197,7 +197,7 @@ describe('Rebuild Canary', function () {
       mock.client.fetchInstanceAsync = function () {
         throw new Error('unexpected')
       }
-      return assert.isRejected(buildCanary({}), TaskFatalError)
+      return assert.isRejected(buildCanary({}), WorkerStopError)
         .then(function () {
           sinon.assert.calledWith(monitor.gauge, 'canary.build', 0)
           assert.deepEqual(monitor.event.firstCall.args[0], {
