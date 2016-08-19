@@ -4,7 +4,7 @@ require('loadenv')({ debugName: 'khronos:test' })
 
 // external
 const chai = require('chai')
-const Hermes = require('runnable-hermes')
+const rabbitmq = require('models/rabbitmq')
 const sinon = require('sinon')
 const WorkerStopError = require('error-cat/errors/worker-stop-error')
 
@@ -22,14 +22,12 @@ require('sinon-as-promised')(require('bluebird'))
 describe('Enqueue Container Jobs Helper', function () {
   beforeEach(function () {
     sinon.stub(Docker.prototype, 'getContainers').resolves([])
-    sinon.stub(Hermes.prototype, 'connect').yieldsAsync()
-    sinon.stub(Hermes.prototype, 'publish').returns()
+    sinon.stub(rabbitmq, 'publishTask').resolves()
     sinon.stub(Swarm.prototype, 'checkHostExists').resolves(true)
   })
   afterEach(function () {
     Docker.prototype.getContainers.restore()
-    Hermes.prototype.connect.restore()
-    Hermes.prototype.publish.restore()
+    rabbitmq.publishTask.restore()
     Swarm.prototype.checkHostExists.restore()
   })
 
@@ -104,20 +102,7 @@ describe('Enqueue Container Jobs Helper', function () {
         'foobar'
       )
         .then(function () {
-          sinon.assert.notCalled(Hermes.prototype.publish)
-        })
-    })
-
-    it('should throw if rabbitmq errors', function () {
-      Hermes.prototype.connect.throws(new Error('foobar'))
-      return assert.isRejected(
-        enqueueContainerJobsHelper(options),
-        Error,
-        'foobar'
-      )
-        .then(function () {
-          sinon.assert.notCalled(Docker.prototype.getContainers)
-          sinon.assert.notCalled(Hermes.prototype.publish)
+          sinon.assert.notCalled(rabbitmq.publishTask)
         })
     })
   })
@@ -129,7 +114,7 @@ describe('Enqueue Container Jobs Helper', function () {
         .then(function (result) {
           assert.equal(result, 0, 'no jobs enqueued')
           sinon.assert.calledOnce(Docker.prototype.getContainers)
-          sinon.assert.notCalled(Hermes.prototype.publish)
+          sinon.assert.notCalled(rabbitmq.publishTask)
         })
     })
 
@@ -140,7 +125,7 @@ describe('Enqueue Container Jobs Helper', function () {
         .then(function (result) {
           assert.equal(result, 0, 'no jobs queued')
           sinon.assert.notCalled(Docker.prototype.getContainers)
-          sinon.assert.notCalled(Hermes.prototype.publish)
+          sinon.assert.notCalled(rabbitmq.publishTask)
         })
     })
 
@@ -155,9 +140,9 @@ describe('Enqueue Container Jobs Helper', function () {
             ['philter'],
             undefined
           )
-          sinon.assert.calledOnce(Hermes.prototype.publish)
+          sinon.assert.calledOnce(rabbitmq.publishTask)
           sinon.assert.calledWithExactly(
-            Hermes.prototype.publish,
+            rabbitmq.publishTask,
             'queue:one',
             {
               dockerHost: 'http://example.com',

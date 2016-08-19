@@ -5,7 +5,7 @@ require('loadenv')({ debugName: 'khronos:test' })
 // external
 var Bunyan = require('bunyan')
 var chai = require('chai')
-var rabbitmq = require('runnable-hermes')
+var rabbitmq = require('models/rabbitmq')
 var sinon = require('sinon')
 const WorkerStopError = require('error-cat/errors/worker-stop-error')
 
@@ -25,17 +25,13 @@ describe('Delete Weave Container Dock Task', function () {
     sinon.stub(Bunyan.prototype, 'error').returns()
     sinon.stub(Docker.prototype, 'getContainers').resolves([])
     sinon.stub(Swarm.prototype, 'checkHostExists').returns(true)
-    sinon.stub(rabbitmq, 'connect').yieldsAsync()
-    sinon.stub(rabbitmq, 'disconnect').yieldsAsync()
     sinon.stub(rabbitmq, 'publishTask').returns()
   })
   afterEach(function () {
     Bunyan.prototype.error.restore()
     Docker.prototype.getContainers.restore()
     Swarm.prototype.checkHostExists.restore()
-    rabbitmq.prototype.close.restore()
-    rabbitmq.prototype.connect.restore()
-    rabbitmq.prototype.publish.restore()
+    rabbitmq.publishTask.restore()
   })
 
   describe('errors', function () {
@@ -45,20 +41,6 @@ describe('Delete Weave Container Dock Task', function () {
           weavePruneDock({}),
           WorkerStopError,
           /dockerHost.+required/
-        )
-      })
-    })
-
-    describe('if rabbitmq throws an error', function () {
-      beforeEach(function () {
-        rabbitmq.prototype.connect.yieldsAsync(new Error('foobar'))
-      })
-
-      it('should throw the error', function () {
-        return assert.isRejected(
-          weavePruneDock({ dockerHost: 'http://example.com' }),
-          Error,
-          'foobar'
         )
       })
     })
@@ -112,7 +94,7 @@ describe('Delete Weave Container Dock Task', function () {
             sinon.match.array,
             undefined
           )
-          sinon.assert.calledOnce(rabbitmq.prototype.publish)
+          sinon.assert.calledOnce(rabbitmq.publishTask)
           assert.equal(result, 1, 'result is 0')
         })
     })
@@ -138,7 +120,7 @@ describe('Delete Weave Container Dock Task', function () {
             sinon.match.array,
             undefined
           )
-          sinon.assert.calledTwice(rabbitmq.prototype.publish)
+          sinon.assert.calledTwice(rabbitmq.publishTask)
           assert.equal(result, 2, 'result is 0')
         })
     })
