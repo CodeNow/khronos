@@ -6,7 +6,7 @@ require('loadenv')({ debugName: 'khronos:test' })
 const Bunyan = require('bunyan')
 const chai = require('chai')
 const Promise = require('bluebird')
-const rabbitmq = require('runnable-hermes')
+const rabbitmq = require('models/rabbitmq')
 const sinon = require('sinon')
 const WorkerStopError = require('error-cat/errors/worker-stop-error')
 
@@ -26,17 +26,13 @@ describe('images prune dock task', function () {
     sinon.stub(Bunyan.prototype, 'warn').returns()
     sinon.stub(Docker.prototype, 'getImages').resolves([[], []])
     sinon.stub(Swarm.prototype, 'checkHostExists').returns(Promise.resolve(true))
-    sinon.stub(rabbitmq.prototype, 'close').yieldsAsync()
-    sinon.stub(rabbitmq.prototype, 'connect').yieldsAsync()
-    sinon.stub(rabbitmq.prototype, 'publish').returns()
+    sinon.stub(rabbitmq, 'publishTask').resolves()
   })
   afterEach(function () {
     Bunyan.prototype.warn.restore()
     Docker.prototype.getImages.restore()
     Swarm.prototype.checkHostExists.restore()
-    rabbitmq.prototype.close.restore()
-    rabbitmq.prototype.connect.restore()
-    rabbitmq.prototype.publish.restore()
+    rabbitmq.publishTask.restore()
   })
 
   describe('errors', function () {
@@ -46,20 +42,6 @@ describe('images prune dock task', function () {
           imagesPruneDock({}),
           WorkerStopError,
           /dockerHost.+required/
-        )
-      })
-    })
-
-    describe('if rabbitmq throws an error', function () {
-      beforeEach(function () {
-        rabbitmq.prototype.connect.yieldsAsync(new Error('foobar'))
-      })
-
-      it('should throw the error', function () {
-        return assert.isRejected(
-          imagesPruneDock({ dockerHost: 'http://example.com' }),
-          Error,
-          'foobar'
         )
       })
     })
@@ -94,7 +76,7 @@ describe('images prune dock task', function () {
               taggedJobsEnqueued: -1
             })
             sinon.assert.calledOnce(Bunyan.prototype.warn)
-            sinon.assert.notCalled(rabbitmq.prototype.publish)
+            sinon.assert.notCalled(rabbitmq.publishTask)
           })
       })
     })
@@ -109,7 +91,7 @@ describe('images prune dock task', function () {
             Docker.prototype.getImages,
             parseInt(process.env.KHRONOS_MIN_IMAGE_AGE, 10)
           )
-          sinon.assert.notCalled(rabbitmq.prototype.publish)
+          sinon.assert.notCalled(rabbitmq.publishTask)
           assert.deepEqual(result, {
             dockerHost: 'http://example.com',
             taggedJobsEnqueued: 0,
@@ -128,9 +110,9 @@ describe('images prune dock task', function () {
     it('should enqueue a job to investigate the tagged image', function () {
       return assert.isFulfilled(imagesPruneDock({ dockerHost: 'http://example.com' }))
         .then(function (result) {
-          sinon.assert.calledOnce(rabbitmq.prototype.publish)
+          sinon.assert.calledOnce(rabbitmq.publishTask)
           sinon.assert.calledWithExactly(
-            rabbitmq.prototype.publish,
+            rabbitmq.publishTask,
             'khronos:images:check-against-context-versions',
             {
               dockerHost: 'http://example.com',
@@ -157,9 +139,9 @@ describe('images prune dock task', function () {
     it('should enqueue a job to remove the tagged image', function () {
       return assert.isFulfilled(imagesPruneDock({ dockerHost: 'http://example.com' }))
         .then(function (result) {
-          sinon.assert.calledOnce(rabbitmq.prototype.publish)
+          sinon.assert.calledOnce(rabbitmq.publishTask)
           sinon.assert.calledWithExactly(
-            rabbitmq.prototype.publish,
+            rabbitmq.publishTask,
             'khronos:images:remove',
             {
               dockerHost: 'http://example.com',
@@ -192,9 +174,9 @@ describe('images prune dock task', function () {
     it('should enqueue all the right jobs', function () {
       return assert.isFulfilled(imagesPruneDock({ dockerHost: 'http://example.com' }))
         .then(function (result) {
-          sinon.assert.callCount(rabbitmq.prototype.publish, 4)
+          sinon.assert.callCount(rabbitmq.publishTask, 4)
           sinon.assert.calledWithExactly(
-            rabbitmq.prototype.publish,
+            rabbitmq.publishTask,
             'khronos:images:remove',
             {
               dockerHost: 'http://example.com',
@@ -202,7 +184,7 @@ describe('images prune dock task', function () {
             }
           )
           sinon.assert.calledWithExactly(
-            rabbitmq.prototype.publish,
+            rabbitmq.publishTask,
             'khronos:images:remove',
             {
               dockerHost: 'http://example.com',
@@ -210,7 +192,7 @@ describe('images prune dock task', function () {
             }
           )
           sinon.assert.calledWithExactly(
-            rabbitmq.prototype.publish,
+            rabbitmq.publishTask,
             'khronos:images:check-against-context-versions',
             {
               dockerHost: 'http://example.com',
@@ -218,7 +200,7 @@ describe('images prune dock task', function () {
             }
           )
           sinon.assert.calledWithExactly(
-            rabbitmq.prototype.publish,
+            rabbitmq.publishTask,
             'khronos:images:check-against-context-versions',
             {
               dockerHost: 'http://example.com',

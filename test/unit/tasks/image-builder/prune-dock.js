@@ -5,7 +5,7 @@ require('loadenv')({ debugName: 'khronos:test' })
 // external
 const Bunyan = require('bunyan')
 const chai = require('chai')
-const rabbitmq = require('runnable-hermes')
+const rabbitmq = require('models/rabbitmq')
 const sinon = require('sinon')
 const WorkerStopError = require('error-cat/errors/worker-stop-error')
 
@@ -24,44 +24,21 @@ require('sinon-as-promised')(require('bluebird'))
 describe('image-builder prune dock task', function () {
   var sampleJob = { dockerHost: 'http://example.com' }
   beforeEach(function () {
+    sinon.stub(MongoDB.prototype, 'close').yieldsAsync()
+    sinon.stub(MongoDB.prototype, 'connect').yieldsAsync()
     sinon.stub(Bunyan.prototype, 'error').returns()
     sinon.stub(Swarm.prototype, 'checkHostExists').resolves(true)
-    sinon.stub(rabbitmq.prototype, 'close').yieldsAsync()
-    sinon.stub(rabbitmq.prototype, 'connect').yieldsAsync()
-    sinon.stub(rabbitmq.prototype, 'publish').returns()
+    sinon.stub(rabbitmq, 'publishTask').resolves()
   })
   afterEach(function () {
+    MongoDB.prototype.close.restore()
+    MongoDB.prototype.connect.restore()
     Bunyan.prototype.error.restore()
     Swarm.prototype.checkHostExists.restore()
-    rabbitmq.prototype.connect.restore()
-    rabbitmq.prototype.publish.restore()
-    rabbitmq.prototype.close.restore()
+    rabbitmq.publishTask.restore()
   })
 
   describe('errors', function () {
-    describe('invalid arguments', function () {
-      it('throws an error when missing dockerHost', function () {
-        return assert.isRejected(
-          imageBuilderPruneDock({}),
-          WorkerStopError,
-          /dockerHost.+required/
-        )
-      })
-    })
-
-    describe('if rabbitmq throws an error', function () {
-      beforeEach(function () {
-        rabbitmq.prototype.connect.yieldsAsync(new Error('foobar'))
-      })
-
-      it('should throw the error', function () {
-        return assert.isRejected(
-          imageBuilderPruneDock(sampleJob),
-          Error,
-          'foobar'
-        )
-      })
-    })
 
     describe('if docker throws an error', function () {
       beforeEach(function () {
@@ -102,7 +79,7 @@ describe('image-builder prune dock task', function () {
             sinon.match.array,
             []
           )
-          sinon.assert.notCalled(rabbitmq.prototype.publish)
+          sinon.assert.notCalled(rabbitmq.publishTask)
           assert.equal(result, 0, 'result is 0')
         })
     })
@@ -133,9 +110,9 @@ describe('image-builder prune dock task', function () {
             sinon.match.array,
             []
           )
-          sinon.assert.calledOnce(rabbitmq.prototype.publish)
+          sinon.assert.calledOnce(rabbitmq.publishTask)
           sinon.assert.calledWithExactly(
-            rabbitmq.prototype.publish,
+            rabbitmq.publishTask,
             'khronos:containers:delete',
             {
               dockerHost: 'http://example.com',
@@ -175,9 +152,9 @@ describe('image-builder prune dock task', function () {
               sinon.match.array,
               []
             )
-            sinon.assert.calledTwice(rabbitmq.prototype.publish)
+            sinon.assert.calledTwice(rabbitmq.publishTask)
             sinon.assert.calledWithExactly(
-              rabbitmq.prototype.publish,
+              rabbitmq.publishTask,
               'khronos:containers:delete',
               {
                 dockerHost: 'http://example.com',
@@ -185,7 +162,7 @@ describe('image-builder prune dock task', function () {
               }
             )
             sinon.assert.calledWithExactly(
-              rabbitmq.prototype.publish,
+              rabbitmq.publishTask,
               'khronos:containers:delete',
               {
                 dockerHost: 'http://example.com',
@@ -228,9 +205,9 @@ describe('image-builder prune dock task', function () {
               [/runnable\/image-builder/],
               ['4']
             )
-            sinon.assert.calledOnce(rabbitmq.prototype.publish)
+            sinon.assert.calledOnce(rabbitmq.publishTask)
             sinon.assert.calledWithExactly(
-              rabbitmq.prototype.publish,
+              rabbitmq.publishTask,
               'khronos:containers:delete',
               {
                 dockerHost: 'http://example.com',

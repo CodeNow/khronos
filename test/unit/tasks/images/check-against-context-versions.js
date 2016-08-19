@@ -7,7 +7,7 @@ var assert = chai.assert
 chai.use(require('chai-as-promised'))
 
 // external
-var Hermes = require('runnable-hermes')
+const rabbitmq = require('models/rabbitmq')
 var sinon = require('sinon')
 const WorkerStopError = require('error-cat/errors/worker-stop-error')
 
@@ -24,18 +24,14 @@ describe('Image Check Against Context Version', function () {
   }
 
   beforeEach(function () {
-    sinon.stub(Hermes.prototype, 'close').yieldsAsync()
-    sinon.stub(Hermes.prototype, 'connect').yieldsAsync()
-    sinon.stub(Hermes.prototype, 'publish').returns()
+    sinon.stub(rabbitmq, 'publishTask').resolves()
     sinon.stub(MongoDB.prototype, 'close').yieldsAsync()
     sinon.stub(MongoDB.prototype, 'connect').yieldsAsync()
     sinon.stub(MongoDB.prototype, 'countContextVersions').yieldsAsync()
     sinon.stub(MongoDB.prototype, 'newObjectID').returnsArg(0)
   })
   afterEach(function () {
-    Hermes.prototype.close.restore()
-    Hermes.prototype.connect.restore()
-    Hermes.prototype.publish.restore()
+    rabbitmq.publishTask.restore()
     MongoDB.prototype.close.restore()
     MongoDB.prototype.connect.restore()
     MongoDB.prototype.countContextVersions.restore()
@@ -70,7 +66,7 @@ describe('Image Check Against Context Version', function () {
         /imageId.+scheme/
       )
         .then(function () {
-          sinon.assert.notCalled(Hermes.prototype.publish)
+          sinon.assert.notCalled(rabbitmq.publishTask)
         })
     })
   })
@@ -87,29 +83,11 @@ describe('Image Check Against Context Version', function () {
         'foobar'
       )
         .then(function () {
-          sinon.assert.notCalled(Hermes.prototype.publish)
+          sinon.assert.notCalled(rabbitmq.publishTask)
         })
     })
   })
-
-  describe('Rabbitmq Error', function () {
-    beforeEach(function () {
-      MongoDB.prototype.countContextVersions.yields(null, 0)
-      Hermes.prototype.connect.yieldsAsync(new Error('foobar'))
-    })
-
-    it('should thrown the error', function () {
-      return assert.isRejected(
-        checkImageAgainstContextVersions(testJob),
-        Error,
-        'foobar'
-      )
-        .then(function () {
-          sinon.assert.notCalled(Hermes.prototype.publish)
-        })
-    })
-  })
-
+  
   it('should fetch context versions for the exact id', function () {
     MongoDB.prototype.countContextVersions.yields(null, 1)
     return assert.isFulfilled(checkImageAgainstContextVersions(testJob))
@@ -128,7 +106,7 @@ describe('Image Check Against Context Version', function () {
     MongoDB.prototype.countContextVersions.yields(null, 1)
     return assert.isFulfilled(checkImageAgainstContextVersions(testJob))
       .then(function (result) {
-        sinon.assert.notCalled(Hermes.prototype.publish)
+        sinon.assert.notCalled(rabbitmq.publishTask)
         assert.deepEqual(result, {
           dockerHost: 'http://example.com',
           imageId: process.env.KHRONOS_DOCKER_REGISTRY + '/100/bar:507c7f79bcf86cd7994f6c0e',
@@ -144,7 +122,7 @@ describe('Image Check Against Context Version', function () {
       imageId: process.env.KHRONOS_DOCKER_REGISTRY + '/100/bar:baz'
     }))
       .then(function (result) {
-        sinon.assert.calledOnce(Hermes.prototype.publish)
+        sinon.assert.calledOnce(rabbitmq.publishTask)
         assert.deepEqual(result, {
           dockerHost: 'http://example.com',
           imageId: process.env.KHRONOS_DOCKER_REGISTRY + '/100/bar:baz',
@@ -157,9 +135,9 @@ describe('Image Check Against Context Version', function () {
     MongoDB.prototype.countContextVersions.yields(null, 0)
     return assert.isFulfilled(checkImageAgainstContextVersions(testJob))
       .then(function (result) {
-        sinon.assert.calledOnce(Hermes.prototype.publish)
+        sinon.assert.calledOnce(rabbitmq.publishTask)
         sinon.assert.calledWithExactly(
-          Hermes.prototype.publish,
+          rabbitmq.publishTask,
           'khronos:images:remove',
           testJob
         )

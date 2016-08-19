@@ -111,7 +111,7 @@ describe('context versions prune expired task', function () {
           var targetDate = new Date()
           targetDate.setDate(targetDate.getDate() - 5)
           assert.closeTo(
-            rabbitmq.publishTask.getCall(0).args[1].twoWeeksAgoTask,
+            rabbitmq.publishTask.getCall(0).args[1].twoWeeksAgo,
             targetDate.getTime(),
             500
           )
