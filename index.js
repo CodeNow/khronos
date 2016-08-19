@@ -41,8 +41,10 @@ const server = new ponos.Server({
   log: log.child({ module: 'ponos' }),
   tasks: tasks,
   events: events,
-  channel: {
-    prefetch: process.env.KHRONOS_PREFETCH || 3
+  rabbitmq: {
+    channel: {
+      prefetch: process.env.KHRONOS_PREFETCH || 3
+    }
   }
 })
 
