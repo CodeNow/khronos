@@ -7,7 +7,6 @@ const Bunyan = require('bunyan')
 const chai = require('chai')
 const rabbitmq = require('models/rabbitmq')
 const sinon = require('sinon')
-const WorkerStopError = require('error-cat/errors/worker-stop-error')
 
 // internal
 const Docker = require('models/docker')
@@ -39,7 +38,6 @@ describe('image-builder prune dock task', function () {
   })
 
   describe('errors', function () {
-
     describe('if docker throws an error', function () {
       beforeEach(function () {
         sinon.stub(Docker.prototype, 'getContainers').rejects(new Error('foobar'))

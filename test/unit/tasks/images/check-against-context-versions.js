@@ -87,7 +87,7 @@ describe('Image Check Against Context Version', function () {
         })
     })
   })
-  
+
   it('should fetch context versions for the exact id', function () {
     MongoDB.prototype.countContextVersions.yields(null, 1)
     return assert.isFulfilled(checkImageAgainstContextVersions(testJob))

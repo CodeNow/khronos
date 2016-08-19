@@ -32,7 +32,6 @@ describe('context versions prune expired task', function () {
   })
 
   describe('errors', function () {
-
     describe('if mongodb errors', function () {
       beforeEach(function () {
         MongoDB.prototype.fetchContextVersions.yieldsAsync(new Error('foobar'))
