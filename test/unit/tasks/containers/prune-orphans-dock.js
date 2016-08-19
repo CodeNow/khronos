@@ -5,7 +5,7 @@ require('loadenv')({ debugName: 'khronos:test' })
 // external
 const Bunyan = require('bunyan')
 const chai = require('chai')
-const rabbitmq = require('runnable-hermes')
+const rabbitmq = require('models/rabbitmq')
 const sinon = require('sinon')
 const WorkerStopError = require('error-cat/errors/worker-stop-error')
 
@@ -26,17 +26,13 @@ describe('Prune Orphans Dock Task', function () {
     sinon.stub(Bunyan.prototype, 'error').returns()
     sinon.stub(Docker.prototype, 'getContainers').resolves()
     sinon.stub(Swarm.prototype, 'checkHostExists').resolves(true)
-    sinon.stub(rabbitmq.prototype, 'close').yieldsAsync()
-    sinon.stub(rabbitmq.prototype, 'connect').yieldsAsync()
-    sinon.stub(rabbitmq.prototype, 'publish').returns()
+    sinon.stub(rabbitmq, 'publishTask').resolves()
   })
   afterEach(function () {
     Bunyan.prototype.error.restore()
     Docker.prototype.getContainers.restore()
     Swarm.prototype.checkHostExists.restore()
-    rabbitmq.prototype.connect.restore()
-    rabbitmq.prototype.publish.restore()
-    rabbitmq.prototype.close.restore()
+    rabbitmq.publishTask.restore()
   })
 
   describe('errors', function () {
@@ -46,20 +42,6 @@ describe('Prune Orphans Dock Task', function () {
           enqueueContainerVerificationTask({}),
           WorkerStopError,
           /dockerHost.+required/
-        )
-      })
-    })
-
-    describe('if rabbitmq throws an error', function () {
-      beforeEach(function () {
-        rabbitmq.prototype.connect.yieldsAsync(new Error('foobar'))
-      })
-
-      it('should throw the error', function () {
-        return assert.isRejected(
-          enqueueContainerVerificationTask({ dockerHost: 'http://example.com' }),
-          Error,
-          'foobar'
         )
       })
     })
@@ -96,7 +78,7 @@ describe('Prune Orphans Dock Task', function () {
             sinon.match.array,
             undefined
           )
-          sinon.assert.notCalled(rabbitmq.prototype.publish)
+          sinon.assert.notCalled(rabbitmq.publishTask)
           assert.equal(result, 0, 'result is 0')
         })
     })
@@ -123,9 +105,9 @@ describe('Prune Orphans Dock Task', function () {
             sinon.match.array,
             undefined
           )
-          sinon.assert.calledOnce(rabbitmq.prototype.publish)
+          sinon.assert.calledOnce(rabbitmq.publishTask)
           sinon.assert.calledWithExactly(
-            rabbitmq.prototype.publish,
+            rabbitmq.publishTask,
             'khronos:containers:orphan:check-against-mongo',
             {
               dockerHost: 'http://example.com',
@@ -160,9 +142,9 @@ describe('Prune Orphans Dock Task', function () {
             sinon.match.array,
             undefined
           )
-          sinon.assert.calledTwice(rabbitmq.prototype.publish)
+          sinon.assert.calledTwice(rabbitmq.publishTask)
           sinon.assert.calledWithExactly(
-            rabbitmq.prototype.publish,
+            rabbitmq.publishTask,
             'khronos:containers:orphan:check-against-mongo',
             {
               dockerHost: 'http://example.com',
@@ -170,7 +152,7 @@ describe('Prune Orphans Dock Task', function () {
             }
           )
           sinon.assert.calledWithExactly(
-            rabbitmq.prototype.publish,
+            rabbitmq.publishTask,
             'khronos:containers:orphan:check-against-mongo',
             {
               dockerHost: 'http://example.com',

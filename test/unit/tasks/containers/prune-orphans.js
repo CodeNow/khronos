@@ -6,7 +6,7 @@ require('loadenv')({ debugName: 'khronos:test' })
 const Bunyan = require('bunyan')
 const chai = require('chai')
 const sinon = require('sinon')
-const rabbitmq = require('runnable-hermes')
+const rabbitmq = require('models/rabbitmq')
 
 // internal
 const Swarm = require('models/swarm')
@@ -23,16 +23,12 @@ describe('Prune Orphans Task', function () {
     beforeEach(function () {
       sinon.stub(Bunyan.prototype, 'error').returns()
       sinon.stub(Swarm.prototype, 'getSwarmHosts').resolves(['http://example.com'])
-      sinon.stub(rabbitmq.prototype, 'close').yieldsAsync()
-      sinon.stub(rabbitmq.prototype, 'connect').yieldsAsync()
-      sinon.stub(rabbitmq.prototype, 'publish').returns()
+      sinon.stub(rabbitmq, 'publishTask').resolves()
     })
     afterEach(function () {
       Bunyan.prototype.error.restore()
       Swarm.prototype.getSwarmHosts.restore()
-      rabbitmq.prototype.connect.restore()
-      rabbitmq.prototype.publish.restore()
-      rabbitmq.prototype.close.restore()
+      rabbitmq.publishTask.restore()
     })
 
     describe('success', function () {
@@ -45,9 +41,7 @@ describe('Prune Orphans Task', function () {
           return assert.isFulfilled(pruneOrphanContainersTask())
             .then(function (result) {
               assert.equal(result, 0, 'should have published 0 tasks')
-              sinon.assert.notCalled(rabbitmq.prototype.publish)
-              sinon.assert.calledOnce(rabbitmq.prototype.connect)
-              sinon.assert.calledOnce(rabbitmq.prototype.close)
+              sinon.assert.notCalled(rabbitmq.publishTask)
             })
         })
       })
@@ -57,9 +51,9 @@ describe('Prune Orphans Task', function () {
           return assert.isFulfilled(pruneOrphanContainersTask())
             .then(function (result) {
               assert.equal(result, 1, 'should have published 1 task')
-              sinon.assert.calledOnce(rabbitmq.prototype.publish)
+              sinon.assert.calledOnce(rabbitmq.publishTask)
               sinon.assert.calledWithExactly(
-                rabbitmq.prototype.publish,
+                rabbitmq.publishTask,
                 'khronos:containers:orphan:prune-dock',
                 { dockerHost: 'http://example.com' }
               )
@@ -79,61 +73,17 @@ describe('Prune Orphans Task', function () {
           return assert.isFulfilled(pruneOrphanContainersTask())
             .then(function (result) {
               assert.equal(result, 2, 'should have published 1 task')
-              sinon.assert.calledTwice(rabbitmq.prototype.publish)
+              sinon.assert.calledTwice(rabbitmq.publishTask)
               sinon.assert.calledWithExactly(
-                rabbitmq.prototype.publish,
+                rabbitmq.publishTask,
                 'khronos:containers:orphan:prune-dock',
                 { dockerHost: 'http://example1.com' }
               )
               sinon.assert.calledWithExactly(
-                rabbitmq.prototype.publish,
+                rabbitmq.publishTask,
                 'khronos:containers:orphan:prune-dock',
                 { dockerHost: 'http://example2.com' }
               )
-            })
-        })
-      })
-    })
-
-    describe('failure', function () {
-      describe('of mavis', function () {
-        beforeEach(function () {
-          Swarm.prototype.getSwarmHosts.throws(new Error('foobar'))
-        })
-
-        it('should throw an error', function () {
-          return assert.isRejected(
-            pruneOrphanContainersTask(),
-            Error,
-            'foobar'
-          )
-            .then(function () {
-              sinon.assert.notCalled(rabbitmq.prototype.publish)
-              sinon.assert.called(rabbitmq.prototype.close)
-            })
-        })
-      })
-
-      /*
-       * Only need one rabbit test - comprehensive "rabbit failure" tests for
-       * connecting and disconnecting are defined
-       * in test/unit/tasks/utils/rabbitmq.js.
-       */
-      describe('of rabbit publishing', function () {
-        beforeEach(function () {
-          rabbitmq.prototype.publish.throws(new Error('foobar'))
-        })
-
-        it('should throw an error', function () {
-          return assert.isRejected(
-            pruneOrphanContainersTask(),
-            Error,
-            'foobar'
-          )
-            .then(function () {
-              sinon.assert.called(rabbitmq.prototype.connect)
-              sinon.assert.called(Swarm.prototype.getSwarmHosts)
-              sinon.assert.called(rabbitmq.prototype.close)
             })
         })
       })

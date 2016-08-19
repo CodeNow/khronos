@@ -2,6 +2,7 @@
 
 require('loadenv')('khronos:test')
 
+const Promise = require('bluebird')
 const ObjectID = require('mongodb').ObjectID
 const chai = require('chai')
 const assert = chai.assert
@@ -11,11 +12,12 @@ chai.use(require('chai-as-promised'))
 const Dockerode = require('dockerode')
 const noop = require('101/noop')
 const sinon = require('sinon')
+require('sinon-as-promised')(Promise)
 
 // internal
 const CanaryBase = require('tasks/canary/canary-base')
 const Docker = require('models/docker')
-const Hermes = require('runnable-hermes')
+const rabbitmq = require('models/rabbitmq')
 const Swarm = require('models/swarm')
 
 // internal
@@ -90,9 +92,8 @@ describe('Network Ping Canary', () => {
     sinon.stub(Dockerode.prototype, 'run')
       .returns(mock.runEventEmitter)
       .yieldsAsync(null, mock.runData, mock.container)
-    sinon.stub(Hermes.prototype, 'close').yieldsAsync()
-    sinon.stub(Hermes.prototype, 'connect').yieldsAsync()
-    sinon.stub(Hermes.prototype, 'publish')
+    sinon.stub(rabbitmq, 'publishTask').resolves()
+    sinon.stub(rabbitmq, 'publishEvent').resolves()
     sinon.stub(Swarm.prototype, 'checkHostExists')
   })
 
@@ -105,9 +106,8 @@ describe('Network Ping Canary', () => {
     CanaryBase.prototype.handleSuccess.restore()
     Docker.prototype.pull.restore()
     Dockerode.prototype.run.restore()
-    Hermes.prototype.close.restore()
-    Hermes.prototype.connect.restore()
-    Hermes.prototype.publish.restore()
+    rabbitmq.publishTask.restore()
+    rabbitmq.publishEvent.restore()
     Swarm.prototype.checkHostExists.restore()
   })
 
@@ -300,13 +300,10 @@ describe('Network Ping Canary', () => {
 
     it('should cleanup the test container', () => {
       return pingCanary(mock.job).then(() => {
-        sinon.assert.calledOnce(Hermes.prototype.publish)
+        sinon.assert.calledOnce(rabbitmq.publishTask)
         sinon.assert.calledWith(
-          Hermes.prototype.publish,
-          'khronos:containers:delete'
-        )
-        assert.deepEqual(
-          Hermes.prototype.publish.firstCall.args[1],
+          rabbitmq.publishTask,
+          'khronos:containers:delete',
           {
             dockerHost: mock.job.targetDockerUrl,
             containerId: mock.container.id
@@ -322,7 +319,7 @@ describe('Network Ping Canary', () => {
 
       it('should not cleanup the test container', () => {
         return pingCanary(mock.job).then(() => {
-          assert.equal(Hermes.prototype.publish.callCount, 0)
+          sinon.assert.notCalled(rabbitmq.publishTask)
         })
       })
     })
@@ -334,7 +331,7 @@ describe('Network Ping Canary', () => {
 
       it('should not cleanup the test container', () => {
         return pingCanary(mock.job).then(() => {
-          assert.equal(Hermes.prototype.publish.callCount, 0)
+          sinon.assert.notCalled(rabbitmq.publishTask)
         })
       })
     })
@@ -436,14 +433,14 @@ describe('Network Ping Canary', () => {
         }
       })
       return pingCanary(mock.job).then(() => {
-        sinon.assert.callCount(Hermes.prototype.publish, 3)
-        sinon.assert.calledWith(Hermes.prototype.publish.getCall(1),
+        sinon.assert.calledTwice(rabbitmq.publishEvent, 2)
+        sinon.assert.calledWith(rabbitmq.publishEvent.getCall(0),
           'instance.container.health-check.failed',
           {
             id: testTartgetContainers[0],
             host: testTartgetHosts[0]
           })
-        sinon.assert.calledWith(Hermes.prototype.publish.getCall(2),
+        sinon.assert.calledWith(rabbitmq.publishEvent.getCall(1),
           'instance.container.health-check.failed',
           {
             id: testTartgetContainers[1],

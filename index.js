@@ -44,11 +44,10 @@ const server = new ponos.Server({
   tasks: tasks,
   events: events,
   channel: {
-	   prefetch: process.env.KHRONOS_PREFETCH || 3
+    prefetch: process.env.KHRONOS_PREFETCH || 3
   }
 })
 
-server.setAllTasks(queues)
 log.info('Server start')
 rabbitmq.connect()
   .tap(function () { log.info('RabbitMQ Client connected') })
