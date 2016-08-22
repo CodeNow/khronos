@@ -39,6 +39,7 @@ const tasks = {
 
 const server = new ponos.Server({
   log: log.child({ module: 'ponos' }),
+  name: process.env.APP_NAME,
   tasks: tasks,
   events: events,
   rabbitmq: {
