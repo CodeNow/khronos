@@ -10,6 +10,8 @@ var subscribedEvents = [
   'context-version.deleted'
 ]
 var queues = {
+  'context-version.deleted': require('tasks/context-versions/deleted'),
+  'khronos.context-version.deleted': require('tasks/context-versions/deleted'),
   'khronos:canary:build': require('tasks/canary/build'),
   'khronos:canary:failover': require('tasks/canary/failover'),
   'khronos:canary:github-branch': require('tasks/canary/github-branch'),
@@ -23,8 +25,6 @@ var queues = {
   'khronos:containers:orphan:prune': require('tasks/containers/prune-orphans'),
   'khronos:containers:orphan:prune-dock': require('tasks/containers/prune-orphans-dock'),
   'khronos:containers:remove': require('tasks/containers/remove'),
-  'khronos.context-version.deleted': require('tasks/context-versions/deleted'),
-  'context-version.deleted': require('tasks/context-versions/deleted'),
   'khronos:context-versions:check-recent-usage': require('tasks/context-versions/check-recent-usage'),
   'khronos:context-versions:prune-expired': require('tasks/context-versions/prune-expired'),
   'khronos:context-versions:remove-and-protect-instances': require('tasks/context-versions/remove-and-protect-instances'),
@@ -33,6 +33,7 @@ var queues = {
   'khronos:images:prune': require('tasks/images/prune'),
   'khronos:images:prune-dock': require('tasks/images/prune-dock'),
   'khronos:images:remove': require('tasks/images/remove'),
+  'khronos:instances:cleanup': require('tasks/instances/cleanup'),
   'khronos:metrics:container-status': require('tasks/metrics/container-status'),
   'khronos:metrics:report-org-container-status': require('tasks/metrics/report-org-container-status'),
   'khronos:weave:prune': require('tasks/weave/prune'),
