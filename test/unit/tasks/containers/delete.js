@@ -6,7 +6,6 @@ require('loadenv')({ debugName: 'khronos:test' })
 const Bunyan = require('bunyan')
 const chai = require('chai')
 const sinon = require('sinon')
-const TaskFatalError = require('ponos').TaskFatalError
 
 // internal
 const Docker = require('models/docker')
@@ -37,19 +36,13 @@ describe('Delete Container Task', function () {
   })
 
   describe('errors', function () {
-    it('should throw an error on missing dockerHost', function () {
-      return assert.isRejected(
-        deleteContainer({ dockerHost: 'http://example.com' }),
-        TaskFatalError,
-        /containerId.+required/
-      )
+    it('should ignore an error on missing dockerHost', function () {
+      return assert.isFulfilled(
+        deleteContainer({ dockerHost: 'http://example.com' }))
     })
-    it('should throw an error on missing containerId', function () {
-      return assert.isRejected(
-        deleteContainer({ containerId: 'deadbeef' }),
-        TaskFatalError,
-        /dockerHost.+required/
-      )
+    it('should ignore an error on missing containerId', function () {
+      return assert.isFulfilled(
+        deleteContainer({ containerId: 'deadbeef' }))
     })
 
     describe('Docker Error', function () {
@@ -57,29 +50,22 @@ describe('Delete Container Task', function () {
         Docker.prototype.removeStoppedContainer.rejects(new Error('foobar'))
       })
 
-      it('should thrown the error', function () {
-        return assert.isRejected(
-          deleteContainer(testJob),
-          Error,
-          'foobar'
-        )
+      it('should ignore the error', function () {
+        return assert.isFulfilled(
+          deleteContainer(testJob))
       })
     })
 
-    describe('Mavis Error', function () {
+    describe('Swarm Error', function () {
       beforeEach(function () {
         Swarm.prototype.checkHostExists.throws(new Swarm.InvalidHostError())
       })
 
-      it('should return an empty data if dock not in mavis', function () {
+      it('should ignore the error', function () {
         return assert.isFulfilled(deleteContainer(testJob))
           .then(function (data) {
             sinon.assert.calledOnce(Swarm.prototype.checkHostExists)
             sinon.assert.calledWithExactly(Swarm.prototype.checkHostExists, testJob.dockerHost)
-            assert.deepEqual(data, {
-              dockerHost: testJob.dockerHost,
-              removedContainer: ''
-            })
             sinon.assert.notCalled(Docker.prototype.removeStoppedContainer)
           })
       })
@@ -102,10 +88,7 @@ describe('Delete Container Task', function () {
             Docker.prototype.removeStoppedContainer,
             4
           )
-          assert.deepEqual(result, {
-            dockerHost: 'http://example.com',
-            removedContainer: ''
-          })
+          assert.deepEqual(result, null)
         })
     })
   })
@@ -118,10 +101,6 @@ describe('Delete Container Task', function () {
           Docker.prototype.removeStoppedContainer,
           4
         )
-        assert.deepEqual(result, {
-          dockerHost: 'http://example.com',
-          removedContainer: 4
-        })
       })
   })
 })

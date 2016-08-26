@@ -1,6 +1,6 @@
 {
   "name": "khronos",
-  "version": "4.4.1",
+  "version": "5.4.4",
   "description": "Task Runner for various Runnable operations",
   "main": "index.js",
   "bin": "./bin/cli.js",
@@ -49,21 +49,24 @@
   "dependencies": {
     "101": "^1.5.0",
     "@runnable/api-client": "^7.5.0",
-    "@runnable/loki": "^1.1.8",
+    "@runnable/loki": "^3.0.0",
     "async": "^1.4.2",
     "bluebird": "^3.0.5",
     "bunyan": "^1.4.0",
     "commander": "^2.8.1",
+    "continuation-local-storage": "^3.1.7",
     "docker-stream-cleanser": "^0.3.0",
+    "error-cat": "^3.0.0",
     "error-subclass": "^1.0.2",
     "github": "^0.2.4",
     "intercom-client": "^2.8.0",
     "joi": "^8.0.5",
     "keypather": "^1.10.1",
     "loadenv": "^2.2.0",
-    "mongodb": "^2.1.7",
+    "lodash": "^4.14.0",
+    "mongodb": "2.1.7",
     "monitor-dog": "^1.5.0",
-    "ponos": "^2.0.0",
+    "ponos": "^4.6.0",
     "request": "^2.69.0",
     "runnable-hermes": "6.6.0",
     "uuid": "^2.0.1",
@@ -82,6 +85,6 @@
     "sinon-as-promised": "^4.0.0",
     "snazzy": "^3.0.0",
     "standard": "^6.0.7",
-    "swarmerode": "2.1.0"
+    "swarmerode": "^3.0.0"
   }
 }

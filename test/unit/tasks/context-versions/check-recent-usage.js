@@ -2,21 +2,21 @@
 
 require('loadenv')({ debugName: 'khronos:test' })
 
-var chai = require('chai')
-var assert = chai.assert
+const chai = require('chai')
+const assert = chai.assert
 chai.use(require('chai-as-promised'))
 
 // external
-var ObjectID = require('mongodb').ObjectID
-var rabbitmq = require('runnable-hermes')
-var sinon = require('sinon')
-var TaskFatalError = require('ponos').TaskFatalError
+const ObjectID = require('mongodb').ObjectID
+const rabbitmq = require('models/rabbitmq')
+const sinon = require('sinon')
+const WorkerStopError = require('error-cat/errors/worker-stop-error')
 
 // internal
-var MongoDB = require('models/mongodb')
+const MongoDB = require('models/mongodb')
 
 // internal (being tested)
-var contextVersionsCheckRecentUsage = require('tasks/context-versions/check-recent-usage')
+const contextVersionsCheckRecentUsage = require('tasks/context-versions/check-recent-usage')
 
 describe('context versions check recent usage task', function () {
   var sampleJob
@@ -25,9 +25,7 @@ describe('context versions check recent usage task', function () {
     sinon.stub(MongoDB.prototype, 'connect').yieldsAsync()
     sinon.stub(MongoDB.prototype, 'countBuilds').yieldsAsync()
     sinon.stub(MongoDB.prototype, 'countInstances').yieldsAsync()
-    sinon.stub(rabbitmq.prototype, 'close').yieldsAsync()
-    sinon.stub(rabbitmq.prototype, 'connect').yieldsAsync()
-    sinon.stub(rabbitmq.prototype, 'publish').returns()
+    sinon.stub(rabbitmq, 'publishTask').resolves()
     var targetDate = new Date()
     targetDate.setDate(targetDate.getDate() - 5)
     sampleJob = {
@@ -40,9 +38,7 @@ describe('context versions check recent usage task', function () {
     MongoDB.prototype.connect.restore()
     MongoDB.prototype.countBuilds.restore()
     MongoDB.prototype.countInstances.restore()
-    rabbitmq.prototype.close.restore()
-    rabbitmq.prototype.connect.restore()
-    rabbitmq.prototype.publish.restore()
+    rabbitmq.publishTask.restore()
   })
 
   describe('errors', function () {
@@ -51,7 +47,7 @@ describe('context versions check recent usage task', function () {
         delete sampleJob.contextVersionId
         return assert.isRejected(
           contextVersionsCheckRecentUsage(sampleJob),
-          TaskFatalError,
+          WorkerStopError,
           /contextVersionId.+required/
         )
       })
@@ -60,24 +56,8 @@ describe('context versions check recent usage task', function () {
         delete sampleJob.twoWeeksAgo
         return assert.isRejected(
           contextVersionsCheckRecentUsage(sampleJob),
-          TaskFatalError,
+          WorkerStopError,
           /twoWeeksAgo.+required/
-        )
-      })
-    })
-
-    describe('if rabbitmq throws an error', function () {
-      beforeEach(function () {
-        MongoDB.prototype.countBuilds.yieldsAsync(null, 0)
-        MongoDB.prototype.countInstances.yieldsAsync(null, 0)
-        rabbitmq.prototype.connect.yieldsAsync(new Error('foobar'))
-      })
-
-      it('should throw the error', function () {
-        return assert.isRejected(
-          contextVersionsCheckRecentUsage(sampleJob),
-          Error,
-          'foobar'
         )
       })
     })
@@ -148,7 +128,7 @@ describe('context versions check recent usage task', function () {
     it('should not enqueue a new task', function () {
       return assert.isFulfilled(contextVersionsCheckRecentUsage(sampleJob))
         .then(function () {
-          sinon.assert.notCalled(rabbitmq.prototype.publish)
+          sinon.assert.notCalled(rabbitmq.publishTask)
         })
     })
   })
@@ -162,7 +142,7 @@ describe('context versions check recent usage task', function () {
     it('should not enqueue a new task', function () {
       return assert.isFulfilled(contextVersionsCheckRecentUsage(sampleJob))
         .then(function () {
-          sinon.assert.notCalled(rabbitmq.prototype.publish)
+          sinon.assert.notCalled(rabbitmq.publishTask)
         })
     })
   })
@@ -176,9 +156,9 @@ describe('context versions check recent usage task', function () {
     it('should enqueue a new task', function () {
       return assert.isFulfilled(contextVersionsCheckRecentUsage(sampleJob))
         .then(function () {
-          sinon.assert.calledOnce(rabbitmq.prototype.publish)
+          sinon.assert.calledOnce(rabbitmq.publishTask)
           sinon.assert.calledWithExactly(
-            rabbitmq.prototype.publish,
+            rabbitmq.publishTask,
             'khronos:context-versions:remove-and-protect-instances',
             { contextVersionId: 'deadbeefdeadbeefdeadbeef' }
           )
