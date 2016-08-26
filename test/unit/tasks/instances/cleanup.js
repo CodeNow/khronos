@@ -19,18 +19,19 @@ var CleanupInstances = require('tasks/instances/cleanup')
 
 describe('khronos:instances:cleanup', function () {
   var mockInstances
+
   beforeEach(function () {
     mockInstances = [
       {
-        id: '1234'
+        _id: '1234'
       },
       {
-        id: '5678'
+        _id: '5678'
       }
     ]
     sinon.stub(MongoDB.prototype, 'close').yieldsAsync()
     sinon.stub(MongoDB.prototype, 'connect').yieldsAsync()
-    sinon.stub(MongoDB.prototype, 'fetchInstances').yieldsAsync()
+    sinon.stub(MongoDB.prototype, 'fetchInstances').yieldsAsync(null, mockInstances)
     sinon.stub(rabbitmq, 'publishTask').resolves()
   })
 
@@ -42,22 +43,37 @@ describe('khronos:instances:cleanup', function () {
   })
 
   describe('when there are instances to cleanup', function () {
-    beforeEach(function () {
-      MongoDB.prototype.fetchInstances.yieldsAsync(null, mockInstances)
+    it('should fetch instances with the propery query parameters', function (done) {
+      return assert.isFulfilled(CleanupInstances({}))
+        .then(function () {
+          sinon.assert.calledOnce(MongoDB.prototype.fetchInstances)
+          sinon.assert.calledWith(
+            MongoDB.prototype.fetchInstances,
+            {
+              masterPod: false,
+              'contextVersion.created': { $lt: sinon.match.date },
+              $or: [
+                { isolated: { $exists: false } },
+                { isIsolationGroupMaster: true }
+              ]
+            }
+          )
+        })
+        .asCallback(done)
     })
 
     it('should cleanup the old instances', function (done) {
       return assert.isFulfilled(CleanupInstances({}))
         .then(function () {
           sinon.assert.calledTwice(rabbitmq.publishTask)
-          sinon.assert.calledWithExactly(
+          sinon.assert.calledWith(
             rabbitmq.publishTask,
             'instance.delete',
             {
               instanceId: '1234'
             }
           )
-          sinon.assert.calledWithExactly(
+          sinon.assert.calledWith(
             rabbitmq.publishTask,
             'instance.delete',
             {
