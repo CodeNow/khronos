@@ -32,14 +32,14 @@ describe('khronos:instances:cleanup', function () {
     sinon.stub(MongoDB.prototype, 'close').yieldsAsync()
     sinon.stub(MongoDB.prototype, 'connect').yieldsAsync()
     sinon.stub(MongoDB.prototype, 'fetchInstances').yieldsAsync(null, mockInstances)
-    sinon.stub(rabbitmq, 'publishTask').resolves()
+    sinon.stub(rabbitmq, 'publishEvent').resolves()
   })
 
   afterEach(function () {
     MongoDB.prototype.close.restore()
     MongoDB.prototype.connect.restore()
     MongoDB.prototype.fetchInstances.restore()
-    rabbitmq.publishTask.restore()
+    rabbitmq.publishEvent.restore()
   })
 
   describe('when there are instances to cleanup', function () {
@@ -65,16 +65,16 @@ describe('khronos:instances:cleanup', function () {
     it('should cleanup the old instances', function (done) {
       return assert.isFulfilled(CleanupInstances({}))
         .then(function () {
-          sinon.assert.calledTwice(rabbitmq.publishTask)
+          sinon.assert.calledTwice(rabbitmq.publishEvent)
           sinon.assert.calledWith(
-            rabbitmq.publishTask,
+            rabbitmq.publishEvent,
             'instance.delete',
             {
               instanceId: '1234'
             }
           )
           sinon.assert.calledWith(
-            rabbitmq.publishTask,
+            rabbitmq.publishEvent,
             'instance.delete',
             {
               instanceId: '5678'
