@@ -68,14 +68,14 @@ describe('khronos:instances:cleanup', function () {
           sinon.assert.calledTwice(rabbitmq.publishEvent)
           sinon.assert.calledWith(
             rabbitmq.publishEvent,
-            'instance.delete',
+            'instance.expired',
             {
               instanceId: '1234'
             }
           )
           sinon.assert.calledWith(
             rabbitmq.publishEvent,
-            'instance.delete',
+            'instance.expired',
             {
               instanceId: '5678'
             }
