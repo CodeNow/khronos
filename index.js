@@ -31,6 +31,7 @@ const tasks = {
   'khronos:images:prune': require('tasks/images/prune'),
   'khronos:images:prune-dock': require('tasks/images/prune-dock'),
   'khronos:images:remove': require('tasks/images/remove'),
+  'khronos:instances:cleanup': require('tasks/instances/cleanup'),
   'khronos:metrics:container-status': require('tasks/metrics/container-status'),
   'khronos:metrics:report-org-container-status': require('tasks/metrics/report-org-container-status'),
   'khronos:weave:prune': require('tasks/weave/prune'),
