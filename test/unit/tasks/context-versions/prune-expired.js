@@ -7,8 +7,9 @@ var assert = chai.assert
 chai.use(require('chai-as-promised'))
 
 // external
-var rabbitmq = require('runnable-hermes')
+var rabbitmq = require('models/rabbitmq')
 var sinon = require('sinon')
+require('sinon-as-promised')(require('bluebird'))
 
 // internal
 var MongoDB = require('models/mongodb')
@@ -21,35 +22,16 @@ describe('context versions prune expired task', function () {
     sinon.stub(MongoDB.prototype, 'close').yieldsAsync()
     sinon.stub(MongoDB.prototype, 'connect').yieldsAsync()
     sinon.stub(MongoDB.prototype, 'fetchContextVersions').yieldsAsync()
-    sinon.stub(rabbitmq.prototype, 'close').yieldsAsync()
-    sinon.stub(rabbitmq.prototype, 'connect').yieldsAsync()
-    sinon.stub(rabbitmq.prototype, 'publish').returns()
+    sinon.stub(rabbitmq, 'publishTask').resolves()
   })
   afterEach(function () {
     MongoDB.prototype.close.restore()
     MongoDB.prototype.connect.restore()
     MongoDB.prototype.fetchContextVersions.restore()
-    rabbitmq.prototype.close.restore()
-    rabbitmq.prototype.connect.restore()
-    rabbitmq.prototype.publish.restore()
+    rabbitmq.publishTask.restore()
   })
 
   describe('errors', function () {
-    describe('if rabbitmq throws an error', function () {
-      beforeEach(function () {
-        MongoDB.prototype.fetchContextVersions.yieldsAsync(null, [{}])
-        rabbitmq.prototype.connect.yieldsAsync(new Error('foobar'))
-      })
-
-      it('should throw the error', function () {
-        return assert.isRejected(
-          contextVersionsPruneExpired(),
-          Error,
-          'foobar'
-        )
-      })
-    })
-
     describe('if mongodb errors', function () {
       beforeEach(function () {
         MongoDB.prototype.fetchContextVersions.yieldsAsync(new Error('foobar'))
@@ -62,7 +44,7 @@ describe('context versions prune expired task', function () {
           'foobar'
         )
           .then(function () {
-            sinon.assert.notCalled(rabbitmq.prototype.publish)
+            sinon.assert.notCalled(rabbitmq.publishTask)
           })
       })
     })
@@ -100,7 +82,7 @@ describe('context versions prune expired task', function () {
       return assert.isFulfilled(contextVersionsPruneExpired())
         .then(function (result) {
           assert.equal(result.numJobsEnqueued, 0)
-          sinon.assert.notCalled(rabbitmq.prototype.publish)
+          sinon.assert.notCalled(rabbitmq.publishTask)
         })
     })
   })
@@ -116,9 +98,9 @@ describe('context versions prune expired task', function () {
     it('should enqueue a to check the context version usage', function () {
       return assert.isFulfilled(contextVersionsPruneExpired())
         .then(function (result) {
-          sinon.assert.calledOnce(rabbitmq.prototype.publish)
+          sinon.assert.calledOnce(rabbitmq.publishTask)
           sinon.assert.calledWith(
-            rabbitmq.prototype.publish,
+            rabbitmq.publishTask,
             'khronos:context-versions:check-recent-usage',
             {
               contextVersionId: 'deadbeef',
@@ -128,7 +110,7 @@ describe('context versions prune expired task', function () {
           var targetDate = new Date()
           targetDate.setDate(targetDate.getDate() - 5)
           assert.closeTo(
-            rabbitmq.prototype.publish.firstCall.args[1].twoWeeksAgo,
+            rabbitmq.publishTask.getCall(0).args[1].twoWeeksAgo,
             targetDate.getTime(),
             500
           )
@@ -151,9 +133,9 @@ describe('context versions prune expired task', function () {
       var job = { dockerHost: 'http://example.com' }
       return assert.isFulfilled(contextVersionsPruneExpired(job))
         .then(function (result) {
-          sinon.assert.calledTwice(rabbitmq.prototype.publish)
+          sinon.assert.calledTwice(rabbitmq.publishTask)
           sinon.assert.calledWith(
-            rabbitmq.prototype.publish,
+            rabbitmq.publishTask,
             'khronos:context-versions:check-recent-usage',
             {
               contextVersionId: 'deadbeef',
@@ -161,7 +143,7 @@ describe('context versions prune expired task', function () {
             }
           )
           sinon.assert.calledWith(
-            rabbitmq.prototype.publish,
+            rabbitmq.publishTask,
             'khronos:context-versions:check-recent-usage',
             {
               contextVersionId: 'beefdead',
