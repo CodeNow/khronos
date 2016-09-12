@@ -33,7 +33,9 @@ const tasks = {
   'khronos:images:remove': require('tasks/images/remove'),
   'khronos:instances:cleanup': require('tasks/instances/cleanup'),
   'khronos:metrics:container-status': require('tasks/metrics/container-status'),
+  'khronos:metrics:org-status': require('tasks/metrics/org-status'),
   'khronos:metrics:report-org-container-status': require('tasks/metrics/report-org-container-status'),
+  'khronos:metrics:report-org-status': require('tasks/metrics/report-org-status'),
   'khronos:weave:prune': require('tasks/weave/prune'),
   'khronos:weave:prune-dock': require('tasks/weave/prune-dock')
 }
