@@ -235,7 +235,7 @@ describe('Prune Expired Context Versions', function () {
       })
 
       describe('with old context versions are put back on an instance after removed', function () {
-        var longTimeAgo
+        var longTimeAgo, savedContextVersion
         beforeEach(function (done) {
           longTimeAgo = new Date()
           longTimeAgo.setDate((new Date()).getDate() - 10)
@@ -246,7 +246,16 @@ describe('Prune Expired Context Versions', function () {
               dockerTag: '5678'
             }
           }]
-          mongodbFactory.createContextVersions(contextVersions, done)
+          async.series([
+            function (cb) { mongodbFactory.createContextVersions(contextVersions, cb) },
+            function (cb) {
+              mongodbFactory.getContextVersions(function (err, cvs) {
+                if (err) { return done(err) }
+                savedContextVersion = find(cvs, hasKeypaths({ 'build.dockerTag': '5678' }))
+                cb()
+              })
+            }
+          ], done)
         })
         beforeEach(function () {
           // on the second time we call countInstance, I am simply going to fake
@@ -254,7 +263,9 @@ describe('Prune Expired Context Versions', function () {
           // the functionality
           sinon.spy(mongodb.prototype, 'insertContextVersions')
           sinon.stub(mongodb.prototype, 'countInstances').yieldsAsync(null, 0)
-          mongodb.prototype.countInstances.onCall(3).yieldsAsync(null, 1)
+          mongodb.prototype.countInstances.withArgs({
+            'contextVersion._id': savedContextVersion._id
+          }).yieldsAsync(null, 1)
         })
         afterEach(function () {
           mongodb.prototype.countInstances.restore()
@@ -275,6 +286,7 @@ describe('Prune Expired Context Versions', function () {
               mongodbFactory.getContextVersions(function (err, cvs) {
                 if (err) { return done(err) }
                 assert.lengthOf(cvs, 2)
+                assert.include(cvs.map(pluck('_id.toString()')), '' + savedContextVersion._id)
                 sinon.assert.calledTwice(tasks['context-versions.check-recent-usage'])
                 sinon.assert.calledTwice(tasks['context-versions.remove-and-protect-instances'])
                 sinon.assert.calledOnce(mongodb.prototype.insertContextVersions)
