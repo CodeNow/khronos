@@ -85,7 +85,7 @@
     "sinon": "^1.12.1",
     "sinon-as-promised": "^4.0.0",
     "snazzy": "^3.0.0",
-    "standard": "^8.0.0",
+    "standard": "^6.0.7",
     "swarmerode": "^3.0.0"
   }
 }
