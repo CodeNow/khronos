@@ -56,7 +56,7 @@ describe('Prune Expired Context Versions', function () {
       mongodbFactory.removeAllBuilds
     ], done)
   })
-  
+
   describe('with no context version to prune', function () {
     it('should run successfully', function (done) {
       rabbitmq.publishTask('kcontext-versions.prune-expired', {})
