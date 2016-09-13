@@ -61,7 +61,7 @@ describe('Prune Exited Weave Containers', function () {
       log: require('logger').child({ module: 'ponos' }),
       tasks: tasks
     })
-    return assert.isFulfilled(Promise.all([rabbitmq.connect(), workerServer.start()]))
+    return rabbitmq.connect().then(workerServer.start.bind(workerServer))
   })
   afterEach(function () {
     return assert.isFulfilled(Promise.all([rabbitmq.disconnect(), workerServer.stop()]))

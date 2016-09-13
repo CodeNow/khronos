@@ -69,7 +69,7 @@ describe('Prune Orphan Images', function () {
       tasks: tasks
     }
     workerServer = new ponos.Server(opts)
-    return assert.isFulfilled(Promise.all([rabbitmq.connect(), workerServer.start()]))
+    return rabbitmq.connect().then(workerServer.start.bind(workerServer))
   })
   afterEach(function () {
     return assert.isFulfilled(Promise.all([rabbitmq.disconnect(), workerServer.stop()]))
