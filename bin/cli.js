@@ -2,6 +2,7 @@
 'use strict'
 
 var program = require('commander')
+var joi = require('joi')
 
 main()
 
@@ -30,29 +31,30 @@ function main () {
   }
   var username = program.username || 'guest'
   var password = program.password || 'guest'
-
-  var hermesClient = require('runnable-hermes')
-    .hermesSingletonFactory({
-      name: 'khronos',
-      hostname: hostname,
-      port: port,
-      username: username,
-      password: password,
-      queues: [program.queue]
+  var RabbitMQ = require('ponos/lib/rabbitmq')
+  var publisher = new RabbitMQ({
+    name: 'khronos',
+    hostname: hostname,
+    port: port,
+    username: username,
+    password: password,
+    tasks: [
+      {
+        name: program.queue,
+        jobSchema: joi.object({}).unknown()
+      }
+    ]
+  })
+  publisher.connect()
+    .tap(function () {
+      process.stdout.write('enqueueing job... ')
+      return publisher.publishTask(program.queue, program.job)
     })
-    .connect(enqueueTask)
-
-  function enqueueTask (err) {
-    if (err) { throw err }
-    process.stdout.write('enqueueing job... ')
-    hermesClient.on('publish', function () {
-      process.stdout.write('done.\r\n')
+    .then(function () {
       console.log('enqueued the following job to ' + program.queue)
       console.log(program.job)
-      hermesClient.close()
+      return publisher.disconnect()
     })
-    hermesClient.publish(program.queue, program.job)
-  }
 
   function parseJob (job) {
     if (job === '') { job = '{}' }
