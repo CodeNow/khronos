@@ -20,7 +20,7 @@ const tasks = {
   'containers.delete': require('tasks/containers/delete'),
   'containers.image-builder.prune': require('tasks/image-builder/prune'),
   'containers.image-builder.prune-dock': require('tasks/image-builder/prune-dock'),
-  'containers.orphan:check-against-mongo': require('tasks/containers/check-against-mongo'),
+  'containers.orphan.check-against-mongo': require('tasks/containers/check-against-mongo'),
   'containers.orphan.prune': require('tasks/containers/prune-orphans'),
   'containers.orphan.prune-dock': require('tasks/containers/prune-orphans-dock'),
   'containers.remove': require('tasks/containers/remove'),
