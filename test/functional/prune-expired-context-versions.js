@@ -11,7 +11,7 @@ const rabbitmq = require('models/rabbitmq')
 const pluck = require('101/pluck')
 const ponos = require('ponos')
 const sinon = require('sinon')
-
+const ObjectID = require('mongodb').ObjectID
 // internal
 const mongodb = require('models/mongodb')
 const mongodbFactory = require('../factories/mongodb')
@@ -264,7 +264,7 @@ describe('Prune Expired Context Versions', function () {
           sinon.spy(mongodb.prototype, 'insertContextVersions')
           sinon.stub(mongodb.prototype, 'countInstances').yieldsAsync(null, 0)
           mongodb.prototype.countInstances.withArgs({
-            'contextVersion._id': savedContextVersion._id
+            'contextVersion._id': new ObjectID('' + savedContextVersion._id)
           }).yieldsAsync(null, 1)
         })
         afterEach(function () {
