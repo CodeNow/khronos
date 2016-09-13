@@ -54,7 +54,7 @@ describe('prune exited weave containers', function () {
               sinon.assert.calledOnce(rabbitmq.publishTask)
               sinon.assert.calledWithExactly(
                 rabbitmq.publishTask,
-                'khronos:weave:prune-dock',
+                'weave.prune-dock',
                 { dockerHost: 'http://example.com' }
               )
             })
@@ -76,12 +76,12 @@ describe('prune exited weave containers', function () {
               sinon.assert.calledTwice(rabbitmq.publishTask)
               sinon.assert.calledWithExactly(
                 rabbitmq.publishTask,
-                'khronos:weave:prune-dock',
+                'weave.prune-dock',
                 { dockerHost: 'http://example1.com' }
               )
               sinon.assert.calledWithExactly(
                 rabbitmq.publishTask,
-                'khronos:weave:prune-dock',
+                'weave.prune-dock',
                 { dockerHost: 'http://example2.com' }
               )
             })
@@ -90,7 +90,7 @@ describe('prune exited weave containers', function () {
     })
 
     describe('failure', function () {
-      describe('of mavis', function () {
+      describe('of Swarm', function () {
         beforeEach(function () {
           Swarm.prototype.getSwarmHosts.throws(new Error('foobar'))
         })

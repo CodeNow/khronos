@@ -51,10 +51,10 @@
     "@runnable/api-client": "^7.5.0",
     "@runnable/loki": "^3.0.0",
     "async": "^1.4.2",
-    "bluebird": "^3.0.5",
+    "bluebird": "3.4.6",
     "bunyan": "^1.4.0",
     "commander": "^2.8.1",
-    "continuation-local-storage": "^3.1.7",
+    "continuation-local-storage": "3.2.0",
     "docker-stream-cleanser": "^0.3.0",
     "error-cat": "^3.0.0",
     "error-subclass": "^1.0.2",
@@ -67,7 +67,7 @@
     "moment": "^2.14.1",
     "mongodb": "2.1.7",
     "monitor-dog": "^1.5.0",
-    "ponos": "^4.6.0",
+    "ponos": "5.3.0",
     "request": "^2.69.0",
     "runnable-hermes": "6.6.0",
     "uuid": "^2.0.1",
@@ -85,7 +85,7 @@
     "sinon": "^1.12.1",
     "sinon-as-promised": "^4.0.0",
     "snazzy": "^3.0.0",
-    "standard": "^6.0.7",
+    "standard": "^8.0.0",
     "swarmerode": "^3.0.0"
   }
 }

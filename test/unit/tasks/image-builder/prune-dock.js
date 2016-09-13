@@ -111,7 +111,7 @@ describe('image-builder prune dock task', function () {
           sinon.assert.calledOnce(rabbitmq.publishTask)
           sinon.assert.calledWithExactly(
             rabbitmq.publishTask,
-            'khronos:containers:delete',
+            'containers.delete',
             {
               dockerHost: 'http://example.com',
               containerId: 4
@@ -153,7 +153,7 @@ describe('image-builder prune dock task', function () {
             sinon.assert.calledTwice(rabbitmq.publishTask)
             sinon.assert.calledWithExactly(
               rabbitmq.publishTask,
-              'khronos:containers:delete',
+              'containers.delete',
               {
                 dockerHost: 'http://example.com',
                 containerId: '4'
@@ -161,7 +161,7 @@ describe('image-builder prune dock task', function () {
             )
             sinon.assert.calledWithExactly(
               rabbitmq.publishTask,
-              'khronos:containers:delete',
+              'containers.delete',
               {
                 dockerHost: 'http://example.com',
                 containerId: '5'
@@ -206,7 +206,7 @@ describe('image-builder prune dock task', function () {
             sinon.assert.calledOnce(rabbitmq.publishTask)
             sinon.assert.calledWithExactly(
               rabbitmq.publishTask,
-              'khronos:containers:delete',
+              'containers.delete',
               {
                 dockerHost: 'http://example.com',
                 containerId: '5'

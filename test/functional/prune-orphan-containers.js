@@ -28,10 +28,10 @@ const docker = new Docker({
 
 describe('Prune Orphaned Containers', function () {
   var tasks = {
-    'khronos:containers:orphan:prune': require('../../lib/tasks/containers/prune-orphans'),
-    'khronos:containers:orphan:prune-dock': require('../../lib/tasks/containers/prune-orphans-dock'),
-    'khronos:containers:orphan:check-against-mongo': require('../../lib/tasks/containers/check-against-mongo'),
-    'khronos:containers:remove': require('../../lib/tasks/containers/remove')
+    'containers.orphan.prune': require('../../lib/tasks/containers/prune-orphans'),
+    'containers.orphan.prune-dock': require('../../lib/tasks/containers/prune-orphans-dock'),
+    'containers.orphan.check-against-mongo': require('../../lib/tasks/containers/check-against-mongo'),
+    'containers.remove': require('../../lib/tasks/containers/remove')
   }
   var dockerMockServer
   var workerServer
@@ -59,9 +59,9 @@ describe('Prune Orphaned Containers', function () {
   })
   beforeEach(function () {
     sinon.spy(Container.prototype, 'remove')
-    sinon.spy(tasks, 'khronos:containers:orphan:prune-dock')
-    sinon.spy(tasks, 'khronos:containers:orphan:check-against-mongo')
-    sinon.spy(tasks, 'khronos:containers:remove')
+    sinon.spy(tasks, 'containers.orphan.prune-dock')
+    sinon.spy(tasks, 'containers.orphan.check-against-mongo')
+    sinon.spy(tasks, 'containers.remove')
     const opts = {
       name: 'khronos',
       hostname: process.env.RABBITMQ_HOSTNAME,
@@ -78,9 +78,9 @@ describe('Prune Orphaned Containers', function () {
   })
   afterEach(function (done) {
     Container.prototype.remove.restore()
-    tasks['khronos:containers:orphan:prune-dock'].restore()
-    tasks['khronos:containers:orphan:check-against-mongo'].restore()
-    tasks['khronos:containers:remove'].restore()
+    tasks['containers.orphan.prune-dock'].restore()
+    tasks['containers.orphan.check-against-mongo'].restore()
+    tasks['containers.remove'].restore()
     async.parallel([
       dockerFactory.deleteAllImagesAndContainers.bind(dockerFactory, docker),
       mongodbFactory.removeAllInstances.bind(mongodbFactory)
@@ -96,11 +96,11 @@ describe('Prune Orphaned Containers', function () {
 
   describe('unpopulated dock', function () {
     it('should run successfully', function (done) {
-      rabbitmq.publishTask('khronos:containers:orphan:prune', {})
+      rabbitmq.publishTask('containers.orphan.prune', {})
       async.doUntil(
         function (cb) { setTimeout(cb, 100) },
         function () {
-          return tasks['khronos:containers:orphan:prune-dock'].callCount === 1
+          return tasks['containers.orphan.prune-dock'].callCount === 1
         },
         function (err) {
           if (err) { return done(err) }
@@ -124,18 +124,18 @@ describe('Prune Orphaned Containers', function () {
     })
 
     it('should run successfully with no orphans', function (done) {
-      rabbitmq.publishTask('khronos:containers:orphan:prune', {})
+      rabbitmq.publishTask('containers.orphan.prune', {})
       async.doUntil(
         function (cb) { setTimeout(cb, 100) },
         function () {
           var mongoCheckCount =
-          tasks['khronos:containers:orphan:check-against-mongo'].callCount
+          tasks['containers.orphan.check-against-mongo'].callCount
           return mongoCheckCount === 5
         },
         function (err) {
           if (err) { return done(err) }
           var pruneDockCount =
-          tasks['khronos:containers:orphan:prune-dock'].callCount
+          tasks['containers.orphan.prune-dock'].callCount
           expect(pruneDockCount).to.equal(1)
           expect(Container.prototype.remove.callCount).to.equal(0)
           dockerFactory.listContainersAndAssert(
@@ -154,15 +154,15 @@ describe('Prune Orphaned Containers', function () {
           mongodbFactory.removeInstaceByQuery(rmQuery, cb)
         },
         function (cb) {
-          rabbitmq.publishTask('khronos:containers:orphan:prune', {})
+          rabbitmq.publishTask('containers.orphan.prune', {})
           async.doUntil(
             function (cb) { setTimeout(cb, 100) },
             function () { return Container.prototype.remove.callCount === 1 },
             function (err) {
               if (err) { return cb(err) }
-              expect(tasks['khronos:containers:orphan:prune-dock'].calledOnce)
+              expect(tasks['containers.orphan.prune-dock'].calledOnce)
                 .to.equal(true)
-              expect(tasks['khronos:containers:remove'].callCount).to.equal(1)
+              expect(tasks['containers.remove'].callCount).to.equal(1)
               expect(Container.prototype.remove.callCount).to.equal(1)
               dockerFactory.listContainersAndAssert(
                 docker,

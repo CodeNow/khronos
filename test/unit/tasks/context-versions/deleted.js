@@ -78,7 +78,7 @@ describe('context-version.deleted', function () {
           sinon.assert.calledOnce(rabbitmq.publishTask)
           sinon.assert.calledWithExactly(
             rabbitmq.publishTask,
-            'khronos:containers:remove',
+            'containers.remove',
             {
               containerId: containerId,
               dockerHost: dockerHost

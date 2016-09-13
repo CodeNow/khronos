@@ -17,7 +17,7 @@ const MongoDB = require('models/mongodb')
 // internal (being tested)
 var CleanupInstances = require('tasks/instances/cleanup')
 
-describe('khronos:instances:cleanup', function () {
+describe('instances.cleanup', function () {
   var mockInstances
 
   beforeEach(function () {

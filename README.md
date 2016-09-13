@@ -7,20 +7,20 @@ Khronos is the Titan god of time and the ages, and is described as destructive a
 This is a listing of the "functional title" of a task group and which tasks are utilized to accomplish them:
 
 - prune exited weave containers
-  - `khronos:weave:prune`: Gets all the docks and enqueues a job for each.
-  - `khronos:weave:prune-dock`: Gets all the exited weave containers and enqueues a job for each to delete them.
-  - `khronos:containers:delete`: Deletes individual containers.
+  - `weave.prune`: Gets all the docks and enqueues a job for each.
+  - `weave.prune-dock`: Gets all the exited weave containers and enqueues a job for each to delete them.
+  - `containers.delete`: Deletes individual containers.
 - prune image-builder containers
-  - `khronos:containers:image-builder:prune`: Gets all the docks and enqueues a job for each.
-  - `khronos:containers:image-builder:prune-dock`: Gets all the exited image-builder containers and enqueues a job for each to delete them.
-  - `khronos:containers:delete`: Deletes individual containers.
+  - `containers.image-builder.prune`: Gets all the docks and enqueues a job for each.
+  - `containers.image-builder.prune-dock`: Gets all the exited image-builder containers and enqueues a job for each to delete them.
+  - `containers.delete`: Deletes individual containers.
 - prune orphan containers
-  - `khronos:containers:orphan:prune`: Gets all the docks and enqueues a job for each.
-  - `khronos:containers:orphan:prune-dock`: Gets every container on the dock and enqueues a job to check it against mongo.
-  - `khronos:containers:orphan:check-against-mongo`: Check container against mongo and if it doesn't exist, enqueue a job to delete it.
-  - `khronos:containers:remove`: Stops and deletes containers.
+  - `containers.orphan.prune`: Gets all the docks and enqueues a job for each.
+  - `containers.orphan.prune-dock`: Gets every container on the dock and enqueues a job to check it against mongo.
+  - `containers.orphan.check-against-mongo`: Check container against mongo and if it doesn't exist, enqueue a job to delete it.
+  - `containers.remove`: Stops and deletes containers.
 - canary tests
-  - `khronos:canary:build`: Rebuilds a specific canary container without cache and reports success/failure to datadog.
+  - `canary.build`: Rebuilds a specific canary container without cache and reports success/failure to datadog.
 
 ```
 NODE_ENV=production|staging npm start

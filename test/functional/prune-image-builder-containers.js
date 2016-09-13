@@ -29,9 +29,9 @@ const docker = new Docker({
 
 describe('Prune Exited Image-Builder Containers', function () {
   var tasks = {
-    'khronos:containers:delete': require('../../lib/tasks/containers/delete'),
-    'khronos:containers:image-builder:prune': require('../../lib/tasks/image-builder/prune'),
-    'khronos:containers:image-builder:prune-dock': require('../../lib/tasks/image-builder/prune-dock')
+    'containers.delete': require('../../lib/tasks/containers/delete'),
+    'containers.image-builder.prune': require('../../lib/tasks/image-builder/prune'),
+    'containers.image-builder.prune-dock': require('../../lib/tasks/image-builder/prune-dock')
   }
   var dockerMockServer
   var workerServer
@@ -56,8 +56,8 @@ describe('Prune Exited Image-Builder Containers', function () {
   })
   beforeEach(function () {
     sinon.spy(Container.prototype, 'remove')
-    sinon.spy(tasks, 'khronos:containers:image-builder:prune-dock')
-    sinon.spy(tasks, 'khronos:containers:delete')
+    sinon.spy(tasks, 'containers.image-builder.prune-dock')
+    sinon.spy(tasks, 'containers.delete')
     const opts = {
       name: 'khronos',
       hostname: process.env.RABBITMQ_HOSTNAME,
@@ -74,8 +74,8 @@ describe('Prune Exited Image-Builder Containers', function () {
   })
   afterEach(function (done) {
     Container.prototype.remove.restore()
-    tasks['khronos:containers:image-builder:prune-dock'].restore()
-    tasks['khronos:containers:delete'].restore()
+    tasks['containers.image-builder.prune-dock'].restore()
+    tasks['containers.delete'].restore()
     dockerFactory.deleteAllImagesAndContainers(docker, done)
   })
   afterEach(function () {
@@ -94,11 +94,11 @@ describe('Prune Exited Image-Builder Containers', function () {
 
   describe('unpopulated dock', function () {
     it('should run successfully', function (done) {
-      rabbitmq.publishTask('khronos:containers:image-builder:prune', {})
+      rabbitmq.publishTask('containers.image-builder.prune', {})
       async.until(
         function () {
           var pruneDockTaskCallCount =
-          tasks['khronos:containers:image-builder:prune-dock'].callCount
+          tasks['containers.image-builder.prune-dock'].callCount
           return pruneDockTaskCallCount === 1
         },
         function (cb) { setTimeout(cb, 100) },
@@ -116,12 +116,12 @@ describe('Prune Exited Image-Builder Containers', function () {
     })
 
     it('should run with no iamge-builder containers', function (done) {
-      rabbitmq.publishTask('khronos:containers:image-builder:prune', {})
+      rabbitmq.publishTask('containers.image-builder.prune', {})
       async.doUntil(
         function (cb) { setTimeout(cb, 100) },
         function () {
           var pruneDockTaskCallCount =
-          tasks['khronos:containers:image-builder:prune-dock'].callCount
+          tasks['containers.image-builder.prune-dock'].callCount
           return pruneDockTaskCallCount === 1
         },
         function (err) {
@@ -159,12 +159,12 @@ describe('Prune Exited Image-Builder Containers', function () {
           ])
       })
       it('should run successfully', function (done) {
-        rabbitmq.publishTask('khronos:containers:image-builder:prune', {})
+        rabbitmq.publishTask('containers.image-builder.prune', {})
         async.doUntil(
           function (cb) { setTimeout(cb, 100) },
           function () {
             var pruneDockTaskCallCount =
-              tasks['khronos:containers:image-builder:prune-dock'].callCount
+              tasks['containers.image-builder.prune-dock'].callCount
             return pruneDockTaskCallCount === 2
           },
           function (err) {
@@ -219,7 +219,7 @@ describe('Prune Exited Image-Builder Containers', function () {
 
       it('should only remove dead image-builder containers', function (done) {
         rabbitmq.publishTask(
-          'khronos:containers:image-builder:prune',
+          'containers.image-builder.prune',
           {})
         async.doUntil(
           function (cb) { setTimeout(cb, 100) },
@@ -229,9 +229,9 @@ describe('Prune Exited Image-Builder Containers', function () {
           function (err) {
             if (err) { return done(err) }
             var pruneDockTaskCallCount =
-              tasks['khronos:containers:image-builder:prune-dock'].callCount
+              tasks['containers.image-builder.prune-dock'].callCount
             expect(pruneDockTaskCallCount).to.equal(1)
-            expect(tasks['khronos:containers:delete'].callCount).to.equal(1)
+            expect(tasks['containers.delete'].callCount).to.equal(1)
             // 6 containers for: 5 user containers + 1 build container (1 was removed)
             dockerFactory.listContainersAndAssert(
               docker,

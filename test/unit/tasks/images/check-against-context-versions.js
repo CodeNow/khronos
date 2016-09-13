@@ -138,7 +138,7 @@ describe('Image Check Against Context Version', function () {
         sinon.assert.calledOnce(rabbitmq.publishTask)
         sinon.assert.calledWithExactly(
           rabbitmq.publishTask,
-          'khronos:images:remove',
+          'images.remove',
           testJob
         )
         assert.deepEqual(result, {
