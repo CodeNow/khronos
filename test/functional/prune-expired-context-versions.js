@@ -235,7 +235,7 @@ describe('Prune Expired Context Versions', function () {
       })
 
       describe('with old context versions are put back on an instance after removed', function () {
-        var longTimeAgo, savedContextVersion
+        var longTimeAgo
         beforeEach(function (done) {
           longTimeAgo = new Date()
           longTimeAgo.setDate((new Date()).getDate() - 10)
@@ -246,16 +246,7 @@ describe('Prune Expired Context Versions', function () {
               dockerTag: '5678'
             }
           }]
-          async.series([
-            function (cb) { mongodbFactory.createContextVersions(contextVersions, cb) },
-            function (cb) {
-              mongodbFactory.getContextVersions(function (err, cvs) {
-                if (err) { return done(err) }
-                savedContextVersion = find(cvs, hasKeypaths({ 'build.dockerTag': '5678' }))
-                cb()
-              })
-            }
-          ], done)
+          mongodbFactory.createContextVersions(contextVersions, done)
         })
         beforeEach(function () {
           // on the second time we call countInstance, I am simply going to fake
