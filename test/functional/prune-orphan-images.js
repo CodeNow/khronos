@@ -55,9 +55,6 @@ describe('Prune Orphan Images', function () {
           Value: 'localhost:5454' }
       ])
   })
-  beforeEach(function (done) {
-    rabbitmq.connect().asCallback(done)
-  })
   beforeEach(function () {
     sinon.spy(Image.prototype, 'remove')
     sinon.spy(Docker.prototype, 'listImages')
@@ -83,9 +80,6 @@ describe('Prune Orphan Images', function () {
     // restore all methods
     Object.keys(tasks).forEach(function (t) { tasks[t].restore() })
     dockerFactory.deleteAllImagesAndContainers(docker, done)
-  })
-  afterEach(function (done) {
-    rabbitmq.disconnect().asCallback(done)
   })
   afterEach(function (done) {
     mongodbFactory.removeAllContextVersions(done)

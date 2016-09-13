@@ -54,9 +54,7 @@ describe('Prune Exited Image-Builder Containers', function () {
           Value: 'localhost:5454' }
       ])
   })
-  beforeEach(function (done) {
-    rabbitmq.disconnect().asCallback(done)
-  })
+
   beforeEach(function () {
     sinon.spy(Container.prototype, 'remove')
     sinon.spy(tasks, 'containers.image-builder.prune-dock')
@@ -94,9 +92,7 @@ describe('Prune Exited Image-Builder Containers', function () {
       mongodbFactory.removeAllBuilds
     ], done)
   })
-  afterEach(function (done) {
-    rabbitmq.disconnect().asCallback(done)
-  })
+
   describe('unpopulated dock', function () {
     it('should run successfully', function (done) {
       rabbitmq.publishTask('containers.image-builder.prune', {})

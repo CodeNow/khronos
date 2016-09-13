@@ -26,9 +26,6 @@ describe('Prune Expired Context Versions', function () {
     'context-versions.remove-and-protect-instances': require('tasks/context-versions/remove-and-protect-instances')
   }
   var workerServer
-  beforeEach(function (done) {
-    rabbitmq.connect().asCallback(done)
-  })
   beforeEach(function () {
     sinon.spy(tasks, 'kcontext-versions.prune-expired')
     sinon.spy(tasks, 'context-versions.check-recent-usage')
@@ -59,10 +56,7 @@ describe('Prune Expired Context Versions', function () {
       mongodbFactory.removeAllBuilds
     ], done)
   })
-  afterEach(function (done) {
-    rabbitmq.disconnect().asCallback(done)
-  })
-
+  
   describe('with no context version to prune', function () {
     it('should run successfully', function (done) {
       rabbitmq.publishTask('kcontext-versions.prune-expired', {})

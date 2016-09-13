@@ -57,9 +57,6 @@ describe('Prune Orphaned Containers', function () {
           Value: 'localhost:5454' }
       ])
   })
-  beforeEach(function (done) {
-    rabbitmq.connect().asCallback(done)
-  })
   beforeEach(function () {
     sinon.spy(Container.prototype, 'remove')
     sinon.spy(tasks, 'containers.orphan.prune-dock')
@@ -88,9 +85,6 @@ describe('Prune Orphaned Containers', function () {
       dockerFactory.deleteAllImagesAndContainers.bind(dockerFactory, docker),
       mongodbFactory.removeAllInstances.bind(mongodbFactory)
     ], done)
-  })
-  afterEach(function (done) {
-    rabbitmq.disconnect().asCallback(done)
   })
   after(function () {
     nock.cleanAll()
