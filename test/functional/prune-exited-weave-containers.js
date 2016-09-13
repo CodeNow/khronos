@@ -58,6 +58,7 @@ describe('Prune Exited Weave Containers', function () {
     sinon.spy(tasks, 'weave.prune-dock')
     sinon.spy(tasks, 'containers.delete')
     workerServer = new ponos.Server({
+      name: process.env.APP_NAME,
       log: require('logger').child({ module: 'ponos' }),
       tasks: tasks
     })

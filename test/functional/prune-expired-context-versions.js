@@ -25,14 +25,14 @@ describe('Prune Expired Context Versions', function () {
     'context-versions.check-recent-usage': require('tasks/context-versions/check-recent-usage'),
     'context-versions.remove-and-protect-instances': require('tasks/context-versions/remove-and-protect-instances')
   }
-  var workerServer
+  var rver
 
   beforeEach(function () {
     sinon.spy(tasks, 'kcontext-versions.prune-expired')
     sinon.spy(tasks, 'context-versions.check-recent-usage')
     sinon.spy(tasks, 'context-versions.remove-and-protect-instances')
     const opts = {
-      name: 'khronos',
+      name: process.env.APP_NAME,
       hostname: process.env.RABBITMQ_HOSTNAME,
       port: process.env.RABBITMQ_PORT,
       username: process.env.RABBITMQ_USERNAME || 'guest',

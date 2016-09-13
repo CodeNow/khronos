@@ -54,7 +54,7 @@ describe('Prune Orphans Task', function () {
               sinon.assert.calledOnce(rabbitmq.publishTask)
               sinon.assert.calledWithExactly(
                 rabbitmq.publishTask,
-                'khronos:containers:orphan:prune-dock',
+                'containers.orphan.prune-dock',
                 { dockerHost: 'http://example.com' }
               )
             })
@@ -76,12 +76,12 @@ describe('Prune Orphans Task', function () {
               sinon.assert.calledTwice(rabbitmq.publishTask)
               sinon.assert.calledWithExactly(
                 rabbitmq.publishTask,
-                'khronos:containers:orphan:prune-dock',
+                'containers.orphan.prune-dock',
                 { dockerHost: 'http://example1.com' }
               )
               sinon.assert.calledWithExactly(
                 rabbitmq.publishTask,
-                'khronos:containers:orphan:prune-dock',
+                'containers.orphan.prune-dock',
                 { dockerHost: 'http://example2.com' }
               )
             })

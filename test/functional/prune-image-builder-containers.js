@@ -59,7 +59,7 @@ describe('Prune Exited Image-Builder Containers', function () {
     sinon.spy(tasks, 'containers.image-builder.prune-dock')
     sinon.spy(tasks, 'containers.delete')
     const opts = {
-      name: 'khronos',
+      name: process.env.APP_NAME,
       hostname: process.env.RABBITMQ_HOSTNAME,
       port: process.env.RABBITMQ_PORT,
       username: process.env.RABBITMQ_USERNAME || 'guest',

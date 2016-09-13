@@ -63,7 +63,7 @@ describe('Prune Orphaned Containers', function () {
     sinon.spy(tasks, 'containers.orphan.check-against-mongo')
     sinon.spy(tasks, 'containers.remove')
     const opts = {
-      name: 'khronos',
+      name: process.env.APP_NAME,
       hostname: process.env.RABBITMQ_HOSTNAME,
       port: process.env.RABBITMQ_PORT,
       username: process.env.RABBITMQ_USERNAME || 'guest',
