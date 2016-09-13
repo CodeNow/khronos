@@ -54,7 +54,7 @@ describe('image-builder prune task', function () {
               sinon.assert.calledOnce(rabbitmq.publishTask)
               sinon.assert.calledWithExactly(
                 rabbitmq.publishTask,
-                'khronos:containers:image-builder:prune-dock',
+                'containers.image-builder.prune-dock',
                 { dockerHost: 'http://example.com' }
               )
             })
@@ -76,17 +76,17 @@ describe('image-builder prune task', function () {
               sinon.assert.calledTwice(rabbitmq.publishTask)
               sinon.assert.calledWithExactly(
                 rabbitmq.publishTask,
-                'khronos:containers:image-builder:prune-dock',
+                'containers.image-builder.prune-dock',
                 { dockerHost: 'http://example1.com' }
               )
               sinon.assert.calledWithExactly(
                 rabbitmq.publishTask,
-                'khronos:containers:image-builder:prune-dock',
+                'containers.image-builder.prune-dock',
                 { dockerHost: 'http://example1.com' }
               )
               assert.equal(
                 rabbitmq.publishTask.secondCall.args[0],
-                'khronos:containers:image-builder:prune-dock',
+                'containers.image-builder.prune-dock',
                 { dockerHost: 'http://example2.com' }
               )
             })
@@ -95,7 +95,7 @@ describe('image-builder prune task', function () {
     })
 
     describe('failure', function () {
-      describe('of mavis', function () {
+      describe('of swarm', function () {
         beforeEach(function () {
           Swarm.prototype.getSwarmHosts.throws(new Error('foobar'))
         })

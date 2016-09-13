@@ -55,7 +55,7 @@ describe('Enqueue Dock Jobs Helper', function () {
       })
   })
 
-  it('should throw if mavis errors', function () {
+  it('should throw if swarm errors', function () {
     Swarm.prototype.getSwarmHosts.throws(new Error('foobar'))
     return assert.isRejected(
       enqueueDockJobsHelper('queue:one'),

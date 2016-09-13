@@ -60,12 +60,12 @@ describe('images prune dock task', function () {
       })
     })
 
-    describe('Mavis Error', function () {
+    describe('Swarm Error', function () {
       beforeEach(function () {
         Swarm.prototype.checkHostExists.throws(new Swarm.InvalidHostError())
       })
 
-      it('should return an empty data if dock not in mavis', function () {
+      it('should return an empty data if dock not in Swarm', function () {
         return assert.isFulfilled(imagesPruneDock({ dockerHost: 'http://example.com' }))
           .then(function (result) {
             sinon.assert.calledOnce(Swarm.prototype.checkHostExists)
@@ -113,7 +113,7 @@ describe('images prune dock task', function () {
           sinon.assert.calledOnce(rabbitmq.publishTask)
           sinon.assert.calledWithExactly(
             rabbitmq.publishTask,
-            'khronos:images:check-against-context-versions',
+            'images.check-against-context-versions',
             {
               dockerHost: 'http://example.com',
               imageId: 'foo/bar'
@@ -142,7 +142,7 @@ describe('images prune dock task', function () {
           sinon.assert.calledOnce(rabbitmq.publishTask)
           sinon.assert.calledWithExactly(
             rabbitmq.publishTask,
-            'khronos:images:remove',
+            'images.remove',
             {
               dockerHost: 'http://example.com',
               imageId: 4
@@ -177,7 +177,7 @@ describe('images prune dock task', function () {
           sinon.assert.callCount(rabbitmq.publishTask, 4)
           sinon.assert.calledWithExactly(
             rabbitmq.publishTask,
-            'khronos:images:remove',
+            'images.remove',
             {
               dockerHost: 'http://example.com',
               imageId: 4
@@ -185,7 +185,7 @@ describe('images prune dock task', function () {
           )
           sinon.assert.calledWithExactly(
             rabbitmq.publishTask,
-            'khronos:images:remove',
+            'images.remove',
             {
               dockerHost: 'http://example.com',
               imageId: 5
@@ -193,7 +193,7 @@ describe('images prune dock task', function () {
           )
           sinon.assert.calledWithExactly(
             rabbitmq.publishTask,
-            'khronos:images:check-against-context-versions',
+            'images.check-against-context-versions',
             {
               dockerHost: 'http://example.com',
               imageId: 'foo/bar'
@@ -201,7 +201,7 @@ describe('images prune dock task', function () {
           )
           sinon.assert.calledWithExactly(
             rabbitmq.publishTask,
-            'khronos:images:check-against-context-versions',
+            'images.check-against-context-versions',
             {
               dockerHost: 'http://example.com',
               imageId: 'bar/baz'

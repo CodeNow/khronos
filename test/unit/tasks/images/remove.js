@@ -50,12 +50,12 @@ describe('Remove Image Task', function () {
       )
     })
 
-    describe('Mavis Error', function () {
+    describe('Swarm Error', function () {
       beforeEach(function () {
         Swarm.prototype.checkHostExists.throws(new Swarm.InvalidHostError())
       })
 
-      it('should return an empty data if dock not in mavis', function () {
+      it('should return an empty data if dock not in Swarm', function () {
         return assert.isFulfilled(removeImage(testJob))
           .then(function (result) {
             sinon.assert.calledOnce(Swarm.prototype.checkHostExists)

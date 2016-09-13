@@ -99,7 +99,7 @@ describe('Check Container Against Mongo Task', function () {
         sinon.assert.calledOnce(rabbitmq.publishTask)
         sinon.assert.calledWithExactly(
           rabbitmq.publishTask,
-          'khronos:containers:remove',
+          'containers.remove',
           testJob
         )
         assert.deepEqual(result, {

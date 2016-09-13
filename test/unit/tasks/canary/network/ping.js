@@ -303,7 +303,7 @@ describe('Network Ping Canary', () => {
         sinon.assert.calledOnce(rabbitmq.publishTask)
         sinon.assert.calledWith(
           rabbitmq.publishTask,
-          'khronos:containers:delete',
+          'containers.delete',
           {
             dockerHost: mock.job.targetDockerUrl,
             containerId: mock.container.id

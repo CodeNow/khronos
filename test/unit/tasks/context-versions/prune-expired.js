@@ -101,7 +101,7 @@ describe('context versions prune expired task', function () {
           sinon.assert.calledOnce(rabbitmq.publishTask)
           sinon.assert.calledWith(
             rabbitmq.publishTask,
-            'khronos:context-versions:check-recent-usage',
+            'context-versions.check-recent-usage',
             {
               contextVersionId: 'deadbeef',
               twoWeeksAgo: sinon.match.number
@@ -136,7 +136,7 @@ describe('context versions prune expired task', function () {
           sinon.assert.calledTwice(rabbitmq.publishTask)
           sinon.assert.calledWith(
             rabbitmq.publishTask,
-            'khronos:context-versions:check-recent-usage',
+            'context-versions.check-recent-usage',
             {
               contextVersionId: 'deadbeef',
               twoWeeksAgo: sinon.match.number
@@ -144,7 +144,7 @@ describe('context versions prune expired task', function () {
           )
           sinon.assert.calledWith(
             rabbitmq.publishTask,
-            'khronos:context-versions:check-recent-usage',
+            'context-versions.check-recent-usage',
             {
               contextVersionId: 'beefdead',
               twoWeeksAgo: sinon.match.number

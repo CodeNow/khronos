@@ -21,18 +21,17 @@ const assert = chai.assert
 
 describe('Prune Expired Context Versions', function () {
   var tasks = {
-    'khronos:context-versions:prune-expired': require('tasks/context-versions/prune-expired'),
-    'khronos:context-versions:check-recent-usage': require('tasks/context-versions/check-recent-usage'),
-    'khronos:context-versions:remove-and-protect-instances': require('tasks/context-versions/remove-and-protect-instances')
+    'context-versions.prune-expired': require('tasks/context-versions/prune-expired'),
+    'context-versions.check-recent-usage': require('tasks/context-versions/check-recent-usage'),
+    'context-versions.remove-and-protect-instances': require('tasks/context-versions/remove-and-protect-instances')
   }
   var workerServer
-
   beforeEach(function () {
-    sinon.spy(tasks, 'khronos:context-versions:prune-expired')
-    sinon.spy(tasks, 'khronos:context-versions:check-recent-usage')
-    sinon.spy(tasks, 'khronos:context-versions:remove-and-protect-instances')
+    sinon.spy(tasks, 'context-versions.prune-expired')
+    sinon.spy(tasks, 'context-versions.check-recent-usage')
+    sinon.spy(tasks, 'context-versions.remove-and-protect-instances')
     const opts = {
-      name: 'khronos',
+      name: process.env.APP_NAME,
       hostname: process.env.RABBITMQ_HOSTNAME,
       port: process.env.RABBITMQ_PORT,
       username: process.env.RABBITMQ_USERNAME || 'guest',
@@ -40,15 +39,15 @@ describe('Prune Expired Context Versions', function () {
       tasks: tasks
     }
     workerServer = new ponos.Server(opts)
-    return assert.isFulfilled(Promise.all([rabbitmq.connect(), workerServer.start()]))
+    return rabbitmq.connect().then(workerServer.start.bind(workerServer))
   })
   afterEach(function () {
     return assert.isFulfilled(Promise.all([rabbitmq.disconnect(), workerServer.stop()]))
   })
   afterEach(function () {
-    tasks['khronos:context-versions:prune-expired'].restore()
-    tasks['khronos:context-versions:check-recent-usage'].restore()
-    tasks['khronos:context-versions:remove-and-protect-instances'].restore()
+    tasks['context-versions.prune-expired'].restore()
+    tasks['context-versions.check-recent-usage'].restore()
+    tasks['context-versions.remove-and-protect-instances'].restore()
   })
   afterEach(function (done) {
     async.parallel([
@@ -60,16 +59,16 @@ describe('Prune Expired Context Versions', function () {
 
   describe('with no context version to prune', function () {
     it('should run successfully', function (done) {
-      rabbitmq.publishTask('khronos:context-versions:prune-expired', {})
+      rabbitmq.publishTask('context-versions.prune-expired', {})
       async.until(
         function () {
-          return tasks['khronos:context-versions:prune-expired'].callCount === 1
+          return tasks['context-versions.prune-expired'].callCount === 1
         },
         function (cb) { setTimeout(cb, 100) },
         function (err) {
           if (err) { return done(err) }
-          sinon.assert.notCalled(tasks['khronos:context-versions:check-recent-usage'])
-          sinon.assert.notCalled(tasks['khronos:context-versions:remove-and-protect-instances'])
+          sinon.assert.notCalled(tasks['context-versions.check-recent-usage'])
+          sinon.assert.notCalled(tasks['context-versions.remove-and-protect-instances'])
           done()
         })
     })
@@ -90,15 +89,15 @@ describe('Prune Expired Context Versions', function () {
     })
 
     it('should not remove current context versions', function (done) {
-      rabbitmq.publishTask('khronos:context-versions:prune-expired', {})
+      rabbitmq.publishTask('context-versions.prune-expired', {})
       async.doUntil(
         function (cb) { setTimeout(cb, 100) },
         function () {
-          return tasks['khronos:context-versions:prune-expired'].callCount === 1
+          return tasks['context-versions.prune-expired'].callCount === 1
         },
         function (err) {
           if (err) { return done(err) }
-          sinon.assert.notCalled(tasks['khronos:context-versions:check-recent-usage'])
+          sinon.assert.notCalled(tasks['context-versions.check-recent-usage'])
           setTimeout(done, 100)
         })
     })
@@ -121,19 +120,19 @@ describe('Prune Expired Context Versions', function () {
       })
 
       it('should remove old context versions (not attached to anything)', function (done) {
-        rabbitmq.publishTask('khronos:context-versions:prune-expired', {})
+        rabbitmq.publishTask('context-versions.prune-expired', {})
         async.doUntil(
           function (cb) { setTimeout(cb, 100) },
           function () {
-            return tasks['khronos:context-versions:remove-and-protect-instances'].calledOnce
+            return tasks['context-versions.remove-and-protect-instances'].calledOnce
           },
           function (err) {
             if (err) { return done(err) }
             mongodbFactory.getContextVersions(function (err, cvs) {
               if (err) { return done(err) }
               assert.lengthOf(cvs, 1)
-              sinon.assert.calledOnce(tasks['khronos:context-versions:check-recent-usage'])
-              sinon.assert.calledOnce(tasks['khronos:context-versions:remove-and-protect-instances'])
+              sinon.assert.calledOnce(tasks['context-versions.check-recent-usage'])
+              sinon.assert.calledOnce(tasks['context-versions.remove-and-protect-instances'])
               setTimeout(done, 100)
             })
           })
@@ -166,11 +165,11 @@ describe('Prune Expired Context Versions', function () {
         })
 
         it('should not delete them', function (done) {
-          rabbitmq.publishTask('khronos:context-versions:prune-expired', {})
+          rabbitmq.publishTask('context-versions.prune-expired', {})
           async.doUntil(
             function (cb) { setTimeout(cb, 100) },
             function () {
-              return tasks['khronos:context-versions:remove-and-protect-instances'].calledOnce
+              return tasks['context-versions.remove-and-protect-instances'].calledOnce
             },
             function (err) {
               if (err) { return done(err) }
@@ -178,8 +177,8 @@ describe('Prune Expired Context Versions', function () {
                 if (err) { return done(err) }
                 assert.lengthOf(cvs, 2)
                 assert.include(cvs.map(pluck('_id.toString()')), '' + savedContextVersion._id)
-                sinon.assert.calledTwice(tasks['khronos:context-versions:check-recent-usage'])
-                sinon.assert.calledOnce(tasks['khronos:context-versions:remove-and-protect-instances'])
+                sinon.assert.calledTwice(tasks['context-versions.check-recent-usage'])
+                sinon.assert.calledOnce(tasks['context-versions.remove-and-protect-instances'])
                 setTimeout(done, 100)
               })
             })
@@ -215,11 +214,11 @@ describe('Prune Expired Context Versions', function () {
         })
 
         it('should not delete them', function (done) {
-          rabbitmq.publishTask('khronos:context-versions:prune-expired', {})
+          rabbitmq.publishTask('context-versions.prune-expired', {})
           async.doUntil(
             function (cb) { setTimeout(cb, 100) },
             function () {
-              return tasks['khronos:context-versions:remove-and-protect-instances'].calledOnce
+              return tasks['context-versions.remove-and-protect-instances'].calledOnce
             },
             function (err) {
               if (err) { return done(err) }
@@ -227,8 +226,8 @@ describe('Prune Expired Context Versions', function () {
                 if (err) { return done(err) }
                 assert.lengthOf(cvs, 2)
                 assert.include(cvs.map(pluck('_id.toString()')), '' + savedContextVersion._id)
-                sinon.assert.calledTwice(tasks['khronos:context-versions:check-recent-usage'])
-                sinon.assert.calledOnce(tasks['khronos:context-versions:remove-and-protect-instances'])
+                sinon.assert.calledTwice(tasks['context-versions.check-recent-usage'])
+                sinon.assert.calledOnce(tasks['context-versions.remove-and-protect-instances'])
                 setTimeout(done, 100)
               })
             })
@@ -272,11 +271,11 @@ describe('Prune Expired Context Versions', function () {
         })
 
         it('should not delete them', function (done) {
-          rabbitmq.publishTask('khronos:context-versions:prune-expired', {})
+          rabbitmq.publishTask('context-versions.prune-expired', {})
           async.doUntil(
             function (cb) { setTimeout(cb, 100) },
             function () {
-              return tasks['khronos:context-versions:remove-and-protect-instances'].calledTwice &&
+              return tasks['context-versions.remove-and-protect-instances'].calledTwice &&
                 mongodb.prototype.countInstances.callCount === 4 &&
                 mongodb.prototype.insertContextVersions.calledOnce
             },
@@ -286,8 +285,8 @@ describe('Prune Expired Context Versions', function () {
                 if (err) { return done(err) }
                 assert.lengthOf(cvs, 2)
                 assert.include(cvs.map(pluck('_id.toString()')), '' + savedContextVersion._id)
-                sinon.assert.calledTwice(tasks['khronos:context-versions:check-recent-usage'])
-                sinon.assert.calledTwice(tasks['khronos:context-versions:remove-and-protect-instances'])
+                sinon.assert.calledTwice(tasks['context-versions.check-recent-usage'])
+                sinon.assert.calledTwice(tasks['context-versions.remove-and-protect-instances'])
                 sinon.assert.calledOnce(mongodb.prototype.insertContextVersions)
                 setTimeout(done, 100)
               })

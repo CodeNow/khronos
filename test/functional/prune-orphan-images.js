@@ -28,10 +28,10 @@ const docker = new Docker({
 
 describe('Prune Orphan Images', function () {
   var tasks = {
-    'khronos:images:remove': require('../../lib/tasks/images/remove'),
-    'khronos:images:prune': require('../../lib/tasks/images/prune'),
-    'khronos:images:prune-dock': require('../../lib/tasks/images/prune-dock'),
-    'khronos:images:check-against-context-versions':
+    'images.remove': require('../../lib/tasks/images/remove'),
+    'images.prune': require('../../lib/tasks/images/prune'),
+    'images.prune-dock': require('../../lib/tasks/images/prune-dock'),
+    'images.check-against-context-versions':
       require('../../lib/tasks/images/check-against-context-versions')
   }
   var dockerMockServer
@@ -61,7 +61,7 @@ describe('Prune Orphan Images', function () {
     // spy on all tasks
     Object.keys(tasks).forEach(function (t) { sinon.spy(tasks, t) })
     const opts = {
-      name: 'khronos',
+      name: process.env.APP_NAME,
       hostname: process.env.RABBITMQ_HOSTNAME,
       port: process.env.RABBITMQ_PORT,
       username: process.env.RABBITMQ_USERNAME || 'guest',
@@ -69,7 +69,7 @@ describe('Prune Orphan Images', function () {
       tasks: tasks
     }
     workerServer = new ponos.Server(opts)
-    return assert.isFulfilled(Promise.all([rabbitmq.connect(), workerServer.start()]))
+    return rabbitmq.connect().then(workerServer.start.bind(workerServer))
   })
   afterEach(function () {
     return assert.isFulfilled(Promise.all([rabbitmq.disconnect(), workerServer.stop()]))
@@ -93,11 +93,11 @@ describe('Prune Orphan Images', function () {
 
   describe('unpopulated dock', function () {
     it('should run successfully', function (done) {
-      rabbitmq.publishTask('khronos:images:prune', {})
+      rabbitmq.publishTask('images.prune', {})
       async.doUntil(
         function (cb) { setTimeout(cb, 100) },
         function () {
-          return tasks['khronos:images:prune-dock'].calledOnce &&
+          return tasks['images.prune-dock'].calledOnce &&
             Docker.prototype.listImages.calledOnce
         },
         function (err) {
@@ -120,11 +120,11 @@ describe('Prune Orphan Images', function () {
     })
 
     it('should remove orphaned images', function (done) {
-      rabbitmq.publishTask('khronos:images:prune', {})
+      rabbitmq.publishTask('images.prune', {})
       async.doUntil(
         function (cb) { setTimeout(cb, 100) },
         function () {
-          return tasks['khronos:images:remove'].calledOnce &&
+          return tasks['images.remove'].calledOnce &&
             Image.prototype.remove.calledOnce
         },
         function (err) {
@@ -152,11 +152,11 @@ describe('Prune Orphan Images', function () {
       })
 
       it('should remove orphaned images, not new ones', function (done) {
-        rabbitmq.publishTask('khronos:images:prune', {})
+        rabbitmq.publishTask('images.prune', {})
         async.doUntil(
           function (cb) { setTimeout(cb, 100) },
           function () {
-            return tasks['khronos:images:remove'].calledOnce &&
+            return tasks['images.remove'].calledOnce &&
               Image.prototype.remove.calledOnce
           },
           function (err) {
@@ -188,11 +188,11 @@ describe('Prune Orphan Images', function () {
       })
 
       it('should not remove non-orphaned images', function (done) {
-        rabbitmq.publishTask('khronos:images:prune', {})
+        rabbitmq.publishTask('images.prune', {})
         async.doUntil(
           function (cb) { setTimeout(cb, 100) },
           function () {
-            return tasks['khronos:images:remove'].calledOnce &&
+            return tasks['images.remove'].calledOnce &&
               Image.prototype.remove.calledOnce
           },
           function (err) {

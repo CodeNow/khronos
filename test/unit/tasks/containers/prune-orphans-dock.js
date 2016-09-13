@@ -108,7 +108,7 @@ describe('Prune Orphans Dock Task', function () {
           sinon.assert.calledOnce(rabbitmq.publishTask)
           sinon.assert.calledWithExactly(
             rabbitmq.publishTask,
-            'khronos:containers:orphan:check-against-mongo',
+            'containers.orphan.check-against-mongo',
             {
               dockerHost: 'http://example.com',
               containerId: 4
@@ -145,7 +145,7 @@ describe('Prune Orphans Dock Task', function () {
           sinon.assert.calledTwice(rabbitmq.publishTask)
           sinon.assert.calledWithExactly(
             rabbitmq.publishTask,
-            'khronos:containers:orphan:check-against-mongo',
+            'containers.orphan.check-against-mongo',
             {
               dockerHost: 'http://example.com',
               containerId: 4
@@ -153,7 +153,7 @@ describe('Prune Orphans Dock Task', function () {
           )
           sinon.assert.calledWithExactly(
             rabbitmq.publishTask,
-            'khronos:containers:orphan:check-against-mongo',
+            'containers.orphan.check-against-mongo',
             {
               dockerHost: 'http://example.com',
               containerId: 5

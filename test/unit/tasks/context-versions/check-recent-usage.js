@@ -159,7 +159,7 @@ describe('context versions check recent usage task', function () {
           sinon.assert.calledOnce(rabbitmq.publishTask)
           sinon.assert.calledWithExactly(
             rabbitmq.publishTask,
-            'khronos:context-versions:remove-and-protect-instances',
+            'context-versions.remove-and-protect-instances',
             { contextVersionId: 'deadbeefdeadbeefdeadbeef' }
           )
         })
