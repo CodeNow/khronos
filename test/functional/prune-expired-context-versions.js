@@ -21,13 +21,13 @@ const assert = chai.assert
 
 describe('Prune Expired Context Versions', function () {
   var tasks = {
-    'kcontext-versions.prune-expired': require('tasks/context-versions/prune-expired'),
+    'context-versions.prune-expired': require('taskscontext-versions/prune-expired'),
     'context-versions.check-recent-usage': require('tasks/context-versions/check-recent-usage'),
     'context-versions.remove-and-protect-instances': require('tasks/context-versions/remove-and-protect-instances')
   }
   var workerServer
   beforeEach(function () {
-    sinon.spy(tasks, 'kcontext-versions.prune-expired')
+    sinon.spy(tasks, 'context-versions.prune-expired')
     sinon.spy(tasks, 'context-versions.check-recent-usage')
     sinon.spy(tasks, 'context-versions.remove-and-protect-instances')
     const opts = {
@@ -45,7 +45,7 @@ describe('Prune Expired Context Versions', function () {
     return assert.isFulfilled(Promise.all([rabbitmq.disconnect(), workerServer.stop()]))
   })
   afterEach(function () {
-    tasks['kcontext-versions.prune-expired'].restore()
+    tasks['context-versions.prune-expired'].restore()
     tasks['context-versions.check-recent-usage'].restore()
     tasks['context-versions.remove-and-protect-instances'].restore()
   })
@@ -59,10 +59,10 @@ describe('Prune Expired Context Versions', function () {
 
   describe('with no context version to prune', function () {
     it('should run successfully', function (done) {
-      rabbitmq.publishTask('kcontext-versions.prune-expired', {})
+      rabbitmq.publishTask('context-versions.prune-expired', {})
       async.until(
         function () {
-          return tasks['kcontext-versions.prune-expired'].callCount === 1
+          return tasks['context-versions.prune-expired'].callCount === 1
         },
         function (cb) { setTimeout(cb, 100) },
         function (err) {
@@ -89,11 +89,11 @@ describe('Prune Expired Context Versions', function () {
     })
 
     it('should not remove current context versions', function (done) {
-      rabbitmq.publishTask('kcontext-versions.prune-expired', {})
+      rabbitmq.publishTask('context-versions.prune-expired', {})
       async.doUntil(
         function (cb) { setTimeout(cb, 100) },
         function () {
-          return tasks['kcontext-versions.prune-expired'].callCount === 1
+          return tasks['context-versions.prune-expired'].callCount === 1
         },
         function (err) {
           if (err) { return done(err) }
@@ -120,7 +120,7 @@ describe('Prune Expired Context Versions', function () {
       })
 
       it('should remove old context versions (not attached to anything)', function (done) {
-        rabbitmq.publishTask('kcontext-versions.prune-expired', {})
+        rabbitmq.publishTask('context-versions.prune-expired', {})
         async.doUntil(
           function (cb) { setTimeout(cb, 100) },
           function () {
@@ -165,7 +165,7 @@ describe('Prune Expired Context Versions', function () {
         })
 
         it('should not delete them', function (done) {
-          rabbitmq.publishTask('kcontext-versions.prune-expired', {})
+          rabbitmq.publishTask('context-versions.prune-expired', {})
           async.doUntil(
             function (cb) { setTimeout(cb, 100) },
             function () {
@@ -214,7 +214,7 @@ describe('Prune Expired Context Versions', function () {
         })
 
         it('should not delete them', function (done) {
-          rabbitmq.publishTask('kcontext-versions.prune-expired', {})
+          rabbitmq.publishTask('context-versions.prune-expired', {})
           async.doUntil(
             function (cb) { setTimeout(cb, 100) },
             function () {
@@ -271,7 +271,7 @@ describe('Prune Expired Context Versions', function () {
         })
 
         it('should not delete them', function (done) {
-          rabbitmq.publishTask('kcontext-versions.prune-expired', {})
+          rabbitmq.publishTask('context-versions.prune-expired', {})
           async.doUntil(
             function (cb) { setTimeout(cb, 100) },
             function () {
