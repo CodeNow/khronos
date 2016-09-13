@@ -21,7 +21,7 @@ const assert = chai.assert
 
 describe('Prune Expired Context Versions', function () {
   var tasks = {
-    'context-versions.prune-expired': require('taskscontext-versions/prune-expired'),
+    'context-versions.prune-expired': require('tasks/context-versions/prune-expired'),
     'context-versions.check-recent-usage': require('tasks/context-versions/check-recent-usage'),
     'context-versions.remove-and-protect-instances': require('tasks/context-versions/remove-and-protect-instances')
   }
