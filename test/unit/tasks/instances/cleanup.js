@@ -51,6 +51,7 @@ describe('instances.cleanup', function () {
             MongoDB.prototype.fetchInstances,
             {
               masterPod: false,
+              disableAutoDeletion: { $ne: true },
               'contextVersion.created': { $lt: sinon.match.date },
               $or: [
                 { isolated: { $exists: false } },

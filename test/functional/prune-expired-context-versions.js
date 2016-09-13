@@ -284,6 +284,7 @@ describe('Prune Expired Context Versions', function () {
               mongodbFactory.getContextVersions(function (err, cvs) {
                 if (err) { return done(err) }
                 assert.lengthOf(cvs, 2)
+                console.log('aaaaaa', savedContextVersion._id)
                 assert.include(cvs.map(pluck('_id.toString()')), '' + savedContextVersion._id)
                 sinon.assert.calledTwice(tasks['context-versions.check-recent-usage'])
                 sinon.assert.calledTwice(tasks['context-versions.remove-and-protect-instances'])
