@@ -103,7 +103,6 @@ describe('prune exited weave containers', function () {
           )
             .then(function () {
               sinon.assert.notCalled(rabbitmq.publishTask)
-              sinon.assert.calledOnce(Bunyan.prototype.error)
             })
         })
       })
