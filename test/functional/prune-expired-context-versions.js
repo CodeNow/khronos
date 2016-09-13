@@ -25,7 +25,7 @@ describe('Prune Expired Context Versions', function () {
     'context-versions.check-recent-usage': require('tasks/context-versions/check-recent-usage'),
     'context-versions.remove-and-protect-instances': require('tasks/context-versions/remove-and-protect-instances')
   }
-  var rver
+  var workerServer
 
   beforeEach(function () {
     sinon.spy(tasks, 'kcontext-versions.prune-expired')
