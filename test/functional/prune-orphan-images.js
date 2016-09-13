@@ -55,13 +55,16 @@ describe('Prune Orphan Images', function () {
           Value: 'localhost:5454' }
       ])
   })
+  beforeEach(function (done) {
+    rabbitmq.connect().asCallback(done)
+  })
   beforeEach(function () {
     sinon.spy(Image.prototype, 'remove')
     sinon.spy(Docker.prototype, 'listImages')
     // spy on all tasks
     Object.keys(tasks).forEach(function (t) { sinon.spy(tasks, t) })
     const opts = {
-      name: 'khronos',
+      name: process.env.APP_NAME,
       hostname: process.env.RABBITMQ_HOSTNAME,
       port: process.env.RABBITMQ_PORT,
       username: process.env.RABBITMQ_USERNAME || 'guest',
@@ -80,6 +83,9 @@ describe('Prune Orphan Images', function () {
     // restore all methods
     Object.keys(tasks).forEach(function (t) { tasks[t].restore() })
     dockerFactory.deleteAllImagesAndContainers(docker, done)
+  })
+  afterEach(function (done) {
+    rabbitmq.disconnect().asCallback(done)
   })
   afterEach(function (done) {
     mongodbFactory.removeAllContextVersions(done)

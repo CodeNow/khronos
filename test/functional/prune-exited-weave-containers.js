@@ -34,7 +34,9 @@ describe('Prune Exited Weave Containers', function () {
   }
   var dockerMockServer
   var workerServer
-
+  before(function (done) {
+    rabbitmq.connect().asCallback(done)
+  })
   before(function (done) {
     dockerMockServer = dockerMock.listen(process.env.KHRONOS_DOCKER_PORT, done)
   })
@@ -78,6 +80,9 @@ describe('Prune Exited Weave Containers', function () {
   })
   after(function (done) {
     dockerMockServer.close(done)
+  })
+  after(function (done) {
+    rabbitmq.disconnect().asCallback(done)
   })
 
   describe('unpopulated dock', function () {
