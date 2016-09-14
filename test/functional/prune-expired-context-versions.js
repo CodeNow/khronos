@@ -263,9 +263,11 @@ describe('Prune Expired Context Versions', function () {
           // the functionality
           sinon.spy(mongodb.prototype, 'insertContextVersions')
           sinon.stub(mongodb.prototype, 'countInstances').yieldsAsync(null, 0)
-          mongodb.prototype.countInstances.withArgs({
-            'contextVersion._id': new ObjectID('' + savedContextVersion._id)
-          }).yieldsAsync(null, 1)
+          var withArgs = mongodb.prototype.countInstances.withArgs({
+            'contextVersion._id': savedContextVersion._id
+          })
+          withArgs.onFirstCall().yieldsAsync(null, 0)
+          withArgs.onSecondCall().yieldsAsync(null, 1)
         })
         afterEach(function () {
           mongodb.prototype.countInstances.restore()
