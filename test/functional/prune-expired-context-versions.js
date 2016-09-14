@@ -11,7 +11,6 @@ const rabbitmq = require('models/rabbitmq')
 const pluck = require('101/pluck')
 const ponos = require('ponos')
 const sinon = require('sinon')
-const ObjectID = require('mongodb').ObjectID
 // internal
 const mongodb = require('models/mongodb')
 const mongodbFactory = require('../factories/mongodb')
