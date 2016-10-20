@@ -49,7 +49,8 @@
   "dependencies": {
     "101": "^1.5.0",
     "@runnable/api-client": "^7.5.0",
-    "@runnable/loki": "^3.0.0",
+    "@runnable/big-poppa-client": "1.0.0",
+    "@runnable/loki": "^3.3.0",
     "async": "^1.4.2",
     "bluebird": "3.4.6",
     "bunyan": "^1.4.0",
