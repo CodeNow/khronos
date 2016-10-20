@@ -438,13 +438,15 @@ describe('Network Ping Canary', () => {
           'instance.container.health-check.failed',
           {
             id: testTartgetContainers[0],
-            host: testTartgetHosts[0]
+            host: testTartgetHosts[0],
+            githubOrgId: mock.job.targetOrg
           })
         sinon.assert.calledWith(rabbitmq.publishEvent.getCall(1),
           'instance.container.health-check.failed',
           {
             id: testTartgetContainers[1],
-            host: testTartgetHosts[1]
+            host: testTartgetHosts[1],
+            githubOrgId: mock.job.targetOrg
           })
       })
     })
