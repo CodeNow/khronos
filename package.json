@@ -24,7 +24,7 @@
     ]
   },
   "options": {
-    "mocha": "--timeout 5000 --bail --recursive --reporter spec"
+    "mocha": "--timeout 10000 --bail --recursive --reporter spec"
   },
   "repository": {
     "type": "git",
