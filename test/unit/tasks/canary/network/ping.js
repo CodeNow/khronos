@@ -9,7 +9,6 @@ const assert = chai.assert
 chai.use(require('chai-as-promised'))
 
 // external
-const Dockerode = require('dockerode')
 const noop = require('101/noop')
 const sinon = require('sinon')
 require('sinon-as-promised')(Promise)
@@ -89,9 +88,7 @@ describe('Network Ping Canary', () => {
     sinon.stub(CanaryBase.prototype, 'handleGenericError')
     sinon.stub(CanaryBase.prototype, 'handleSuccess')
     sinon.stub(Docker.prototype, 'pull')
-    sinon.stub(Dockerode.prototype, 'run')
-      .returns(mock.runEventEmitter)
-      .yieldsAsync(null, mock.runData, mock.container)
+    sinon.stub(Docker.prototype, 'runContainer').resolves([mock.runData, mock.container])
     sinon.stub(rabbitmq, 'publishTask').resolves()
     sinon.stub(rabbitmq, 'publishEvent').resolves()
     sinon.stub(Swarm.prototype, 'checkHostExists')
@@ -105,7 +102,7 @@ describe('Network Ping Canary', () => {
     CanaryBase.prototype.handleGenericError.restore()
     CanaryBase.prototype.handleSuccess.restore()
     Docker.prototype.pull.restore()
-    Dockerode.prototype.run.restore()
+    Docker.prototype.runContainer.restore()
     rabbitmq.publishTask.restore()
     rabbitmq.publishEvent.restore()
     Swarm.prototype.checkHostExists.restore()
@@ -246,9 +243,9 @@ describe('Network Ping Canary', () => {
     })
 
     it('should run image', () => {
-      Dockerode.prototype.run.yieldsAsync(null, {
+      Docker.prototype.runContainer.resolves([{
         StatusCode: 0
-      })
+      }])
       return pingCanary(mock.job).then(() => {
         const ips = testTartgetIps.join(' ')
         const cmd = [
@@ -256,20 +253,19 @@ describe('Network Ping Canary', () => {
           '-c',
           process.env.RUNNABLE_WAIT_FOR_WEAVE + 'node index.js ' + ips
         ]
-        sinon.assert.calledOnce(Dockerode.prototype.run)
+        sinon.assert.calledOnce(Docker.prototype.runContainer)
         sinon.assert.calledWith(
-          Dockerode.prototype.run,
+          Docker.prototype.runContainer,
           process.env.NETWORK_PING_IMAGE,
-          cmd,
-          false
+          cmd
         )
       })
     })
 
     it('should run image for one ip since one dock was removed', () => {
-      Dockerode.prototype.run.yieldsAsync(null, {
+      Docker.prototype.runContainer.resolves([{
         StatusCode: 0
-      })
+      }])
       const cvs = [
         {
           _id: testTartgetCvs[0],
@@ -288,12 +284,11 @@ describe('Network Ping Canary', () => {
           '-c',
           process.env.RUNNABLE_WAIT_FOR_WEAVE + 'node index.js ' + ips
         ]
-        sinon.assert.calledOnce(Dockerode.prototype.run)
+        sinon.assert.calledOnce(Docker.prototype.runContainer)
         sinon.assert.calledWith(
-          Dockerode.prototype.run,
+          Docker.prototype.runContainer,
           process.env.NETWORK_PING_IMAGE,
-          cmd,
-          false
+          cmd
         )
       })
     })
@@ -314,7 +309,7 @@ describe('Network Ping Canary', () => {
 
     describe('without container', () => {
       beforeEach(() => {
-        Dockerode.prototype.run.yieldsAsync(null, mock.runData, null)
+        Docker.prototype.runContainer.resolves([mock.runData, null])
       })
 
       it('should not cleanup the test container', () => {
@@ -326,7 +321,7 @@ describe('Network Ping Canary', () => {
 
     describe('with malformed container', () => {
       beforeEach(() => {
-        Dockerode.prototype.run.yieldsAsync(null, mock.runData, {})
+        Docker.prototype.runContainer.resolves([mock.runData, {}])
       })
 
       it('should not cleanup the test container', () => {
@@ -351,7 +346,7 @@ describe('Network Ping Canary', () => {
     })
 
     it('should fail canary on error', () => {
-      Dockerode.prototype.run.yieldsAsync(new Error('bad'))
+      Docker.prototype.runContainer.rejects(new Error('bad'))
       return pingCanary(mock.job).then(() => {
         sinon.assert.calledOnce(CanaryBase.prototype.handleCanaryError)
         assert.match(
@@ -362,8 +357,7 @@ describe('Network Ping Canary', () => {
     })
 
     it('should fail canary on network attach error', () => {
-      Dockerode.prototype.run
-        .yieldsAsync(null, { StatusCode: 55 }, mock.container)
+      Docker.prototype.runContainer.resolves([{ StatusCode: 55 }, mock.container])
       return pingCanary(mock.job).then(() => {
         sinon.assert.calledOnce(CanaryBase.prototype.handleCanaryError)
         assert.match(
@@ -374,8 +368,7 @@ describe('Network Ping Canary', () => {
     })
 
     it('should fail canary on non-zero', () => {
-      Dockerode.prototype.run
-        .yieldsAsync(null, { StatusCode: 123 }, mock.container)
+      Docker.prototype.runContainer.resolves([{ StatusCode: 123 }, mock.container])
       return pingCanary(mock.job).then(() => {
         sinon.assert.calledOnce(CanaryBase.prototype.handleCanaryError)
         assert.match(
@@ -386,24 +379,10 @@ describe('Network Ping Canary', () => {
     })
 
     it('should fail ERR in logs', () => {
-      Dockerode.prototype.run.restore()
-      sinon.stub(Dockerode.prototype, 'run', function (a, b, c, callback) {
-        return {
-          on: (name, cb) => {
-            assert.equal(name, 'stream')
-            cb({
-              on: function (name, cb) {
-                assert.equal(name, 'data')
-                const pingLog = testTartgetIps.map((ip) => {
-                  return ip + ': ERR: bad happened\n'
-                }).join('\n')
-                cb(pingLog)
-                callback(null, { StatusCode: 0 }, mock.container)
-              }
-            })
-          }
-        }
-      })
+      const pingLog = testTartgetIps.map((ip) => {
+        return ip + ': ERR: bad happened\n'
+      }).join('\n')
+      Docker.prototype.runContainer.resolves([{ StatusCode: 0 }, mock.container, pingLog])
       return pingCanary(mock.job).then(() => {
         sinon.assert.calledOnce(CanaryBase.prototype.handleCanaryError)
         assert.match(
@@ -414,24 +393,10 @@ describe('Network Ping Canary', () => {
     })
 
     it('should publish health-check.failed if ERR in logs', () => {
-      Dockerode.prototype.run.restore()
-      sinon.stub(Dockerode.prototype, 'run', function (a, b, c, callback) {
-        return {
-          on: (name, cb) => {
-            assert.equal(name, 'stream')
-            cb({
-              on: function (name, cb) {
-                assert.equal(name, 'data')
-                const pingLog = testTartgetIps.map((ip) => {
-                  return ip + ': ERR: bad happened\n'
-                }).join('\n')
-                cb(pingLog)
-                callback(null, { StatusCode: 0 }, mock.container)
-              }
-            })
-          }
-        }
-      })
+      const pingLog = testTartgetIps.map((ip) => {
+        return ip + ': ERR: bad happened\n'
+      }).join('\n')
+      Docker.prototype.runContainer.resolves([{ StatusCode: 0 }, mock.container, pingLog])
       return pingCanary(mock.job).then(() => {
         sinon.assert.calledTwice(rabbitmq.publishEvent)
         sinon.assert.calledWith(rabbitmq.publishEvent.getCall(0),

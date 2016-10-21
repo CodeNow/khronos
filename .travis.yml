@@ -6,9 +6,9 @@ services:
   - rabbitmq
   - mongodb
 before_install:
+  - echo "//registry.npmjs.org/:_authToken=\${NPM_TOKEN}" > .npmrc
+  - ulimit -n
   - npm install -g npm@latest
-before_script:
-  - ulimit -n 10240
 script:
   - npm run lint
   - npm run coverage
