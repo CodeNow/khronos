@@ -35,11 +35,8 @@ describe('Prune Orphaned Containers', function () {
   }
   var dockerMockServer
   var workerServer
-  var prevMongo
 
   before(function (done) {
-    prevMongo = process.env.KHRONOS_MONGO
-    process.env.KHRONOS_MONGO = 'mongodb://localhost/khronos-test'
     dockerMockServer = dockerMock.listen(process.env.KHRONOS_DOCKER_PORT, done)
   })
   before(function () {
@@ -90,7 +87,6 @@ describe('Prune Orphaned Containers', function () {
     nock.cleanAll()
   })
   after(function (done) {
-    process.env.KHRONOS_MONGO = prevMongo
     dockerMockServer.close(done)
   })
   describe('unpopulated dock', function () {
