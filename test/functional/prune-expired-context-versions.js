@@ -7,9 +7,10 @@ const async = require('async')
 const chai = require('chai')
 const find = require('101/find')
 const hasKeypaths = require('101/has-keypaths')
-const rabbitmq = require('models/rabbitmq')
 const pluck = require('101/pluck')
 const ponos = require('ponos')
+const Promise = require('bluebird')
+const rabbitmq = require('models/rabbitmq')
 const sinon = require('sinon')
 // internal
 const mongodb = require('models/mongodb')
@@ -41,7 +42,14 @@ describe('Prune Expired Context Versions', function () {
     return rabbitmq.connect().then(workerServer.start.bind(workerServer))
   })
   afterEach(function () {
-    return assert.isFulfilled(Promise.all([rabbitmq.disconnect(), workerServer.stop()]))
+    return Promise.resolve()
+      .tap(rabbitmq.disconnect.bind(rabbitmq))
+      // So... Tests fail in runnable without this delay. It's only runnable, and the tests seem to only fail on the first
+      // runthrough on that container. So I could run the tests 4x and it'll only fail on the first one. Sometimes to get
+      // the first failure I had to re-build rabbit as well. The error seems to point to an issue regarding closing
+      // the connection in amqlib multiple times. It seems we're crossing the wires here somewhere...
+      .delay(1000)
+      .tap(workerServer.stop.bind(workerServer))
   })
   afterEach(function () {
     tasks['context-versions.prune-expired'].restore()
