@@ -44,6 +44,10 @@ describe('Prune Expired Context Versions', function () {
   afterEach(function () {
     return Promise.resolve()
       .tap(rabbitmq.disconnect.bind(rabbitmq))
+      // So... Tests fail in runnable without this delay. It's only runnable, and the tests seem to only fail on the first
+      // runthrough on that container. So I could run the tests 4x and it'll only fail on the first one. Sometimes to get
+      // the first failure I had to re-build rabbit as well. The error seems to point to an issue regarding closing
+      // the connection in amqlib multiple times. It seems we're crossing the wires here somewhere...
       .delay(1000)
       .tap(workerServer.stop.bind(workerServer))
   })
