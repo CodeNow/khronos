@@ -44,8 +44,8 @@ describe('Prune Expired Context Versions', function () {
   afterEach(function () {
     return Promise.resolve()
       .tap(rabbitmq.disconnect.bind(rabbitmq))
-      .tap(workerServer.stop.bind(workerServer))
       .delay(1000)
+      .tap(workerServer.stop.bind(workerServer))
   })
   afterEach(function () {
     tasks['context-versions.prune-expired'].restore()
