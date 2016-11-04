@@ -7,9 +7,10 @@ const async = require('async')
 const chai = require('chai')
 const find = require('101/find')
 const hasKeypaths = require('101/has-keypaths')
-const rabbitmq = require('models/rabbitmq')
 const pluck = require('101/pluck')
 const ponos = require('ponos')
+const Promise = require('bluebird')
+const rabbitmq = require('models/rabbitmq')
 const sinon = require('sinon')
 // internal
 const mongodb = require('models/mongodb')
@@ -41,7 +42,9 @@ describe('Prune Expired Context Versions', function () {
     return rabbitmq.connect().then(workerServer.start.bind(workerServer))
   })
   afterEach(function () {
-    return assert.isFulfilled(Promise.all([rabbitmq.disconnect(), workerServer.stop()]))
+    return Promise.resolve()
+      .tap(rabbitmq.disconnect.bind(rabbitmq))
+      .tap(workerServer.stop.bind(workerServer))
   })
   afterEach(function () {
     tasks['context-versions.prune-expired'].restore()
