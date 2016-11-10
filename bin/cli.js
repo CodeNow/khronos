@@ -63,7 +63,7 @@ function main () {
     ]
   }
 
-  var publisher = new RabbitMQ({opts})
+  var publisher = new RabbitMQ(opts)
 
   publisher.connect()
     .tap(function () {
