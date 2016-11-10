@@ -55,7 +55,7 @@ function main () {
       }
     ]
   } else {
-    opts.event = [
+    opts.events = [
       {
         name: program.event,
         jobSchema: joi.object({}).unknown()
