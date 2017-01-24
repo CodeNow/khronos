@@ -1,6 +1,6 @@
 {
   "name": "khronos",
-  "version": "6.5.3",
+  "version": "6.5.4",
   "description": "Task Runner for various Runnable operations",
   "main": "index.js",
   "bin": "./bin/cli.js",
