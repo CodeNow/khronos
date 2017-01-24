@@ -4,3 +4,4 @@ node_modules/
 *.dump
 config/*.env
 coverage
+.idea
