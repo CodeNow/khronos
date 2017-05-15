@@ -338,6 +338,18 @@ describe('Network Ping Canary', () => {
       Docker.prototype.pull.resolves()
     })
 
+    it('should workerstop and publish dock lost if no host found', () => {
+      Swarm.prototype.checkHostExists.rejects(new Swarm.InvalidHostError('bad'))
+
+      return pingCanary(mock.job).then(() => {
+        sinon.assert.calledOnce(rabbitmq.publishEvent)
+        sinon.assert.calledWith(rabbitmq.publishEvent, 'dock.lost', {
+          host: mock.job.targetDockerUrl,
+          githubOrgId: mock.job.targetOrg
+        })
+      })
+    })
+
     it('should TaskFatal on db error', () => {
       MongoDB.prototype.fetchContextVersions.yieldsAsync(new Error('Mongo error'))
       return pingCanary(mock.job).then(() => {
