@@ -5,6 +5,7 @@ require('loadenv')({ debugName: 'khronos:test' })
 const log = require('logger')
 const ponos = require('ponos')
 const rabbitmq = require('models/rabbitmq')
+const mongoClient = require('tasks/utils/mongodb').client
 
 const events = {
   'context-version.deleted': require('tasks/context-versions/deleted')
@@ -57,6 +58,7 @@ const server = new ponos.Server({
 log.info('Server start')
 rabbitmq.connect()
   .tap(function () { log.info('RabbitMQ Client connected') })
+  .tap(() => mongoClient.connectAsync())
   .then(() => {
     server.start()
       .tap(function () { log.info('Worker Server has started') })
